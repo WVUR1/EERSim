@@ -1,7 +1,6 @@
 """Desktop launcher and reproducible headless runs."""
 from __future__ import annotations
 
-import argparse
 import json
 import math
 import sys
@@ -9,6 +8,15 @@ from pathlib import Path
 
 
 def main(argv=None) -> int:
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    if arguments and arguments[0] == "--gpu-probe-output":
+        if len(arguments) != 2:
+            return 2
+        from .gpu_probe import write_probe_result
+        return write_probe_result(arguments[1])
+    from .runtime_paths import ensure_console_streams
+    ensure_console_streams()
+    import argparse
     parser = argparse.ArgumentParser(description="EERKit Autonomy Lab")
     parser.add_argument("--headless", action="store_true", help="Run without the desktop")
     parser.add_argument("--renderer", choices=["auto", "gpu", "cpu"], help="Graphics backend (physics always uses fixed CPU steps)")
@@ -20,7 +28,7 @@ def main(argv=None) -> int:
     parser.add_argument("--seconds", type=float, default=5.0, help="Headless competition duration in simulated seconds")
     parser.add_argument("--csv", type=Path, help="Export ground-truth pose telemetry")
     parser.add_argument("--controller", type=Path, help="JSON analog/digital controller values for headless driver runs")
-    args = parser.parse_args(argv)
+    args = parser.parse_args(arguments)
     try:
         from .config import default_config, load_config
         if args.demo:

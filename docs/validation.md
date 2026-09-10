@@ -6,6 +6,16 @@ The local environment uses Python 3.11.16, conda-forge Bullet 3.25 (Python
 distribution version 3.2.5), NumPy 2.4.6, PySide6 6.8.3, VTK 9.6.2, and
 LLVM-MinGW Clang 22.1.8. The GPU reports OpenGL 4.5.
 
+Local setup and Ubuntu CI both create the environment from `environment.yml`,
+which pins conda-forge Bullet 3.25 and supplies the test dependencies. Install
+the checkout with `python -m pip install -e . --no-deps` after activating that
+environment so pip preserves its solver build. CI records the installed
+versions and checks the conda Bullet package before running the full tests.
+Its [official micromamba action](https://github.com/mamba-org/setup-micromamba)
+activates this environment for every command. Different Bullet releases and
+platform builds can change contact settling; a broad pip dependency range is
+not a reproducible substitute for the validated environment.
+
 ## Code and physics
 
 The separate EERKit workspace's 11 existing C++ translation units compile without edits.

@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 
 def inspect_context() -> dict:
@@ -44,24 +45,53 @@ def probe_gpu() -> dict:
     package_root = str(Path(__file__).resolve().parent.parent)
     environment["PYTHONPATH"] = package_root + os.pathsep + environment.get("PYTHONPATH", "")
     try:
-        result = subprocess.run([sys.executable, "-m", "eersim.gpu_probe"],
-                                capture_output=True, text=True, encoding="utf-8", errors="replace",
-                                env=environment, timeout=25,
-                                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
-        for line in reversed(result.stdout.splitlines()):
-            if line.startswith("EERSIM_GPU "):
-                info = json.loads(line[len("EERSIM_GPU "):])
-                if result.returncode == 0:
-                    return info
+        # A PyInstaller executable cannot run Python's -m switch, and a
+        # windowed executable has no stdout. Use a private file protocol in
+        # that case; its entry point dispatches before importing the GUI.
+        with tempfile.TemporaryDirectory(prefix="eersim-gpu-") as temporary:
+            output = Path(temporary) / "probe.json"
+            frozen = bool(getattr(sys, "frozen", False))
+            command = ([sys.executable, "--gpu-probe-output", str(output)] if frozen
+                       else [sys.executable, "-m", "eersim.gpu_probe"])
+            result = subprocess.run(command, capture_output=True, text=True,
+                                    encoding="utf-8", errors="replace", env=environment, timeout=25,
+                                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+            if result.returncode == 0:
+                if frozen and output.is_file():
+                    return _validated_result(json.loads(output.read_text(encoding="utf-8")))
+                if not frozen:
+                    for line in reversed((result.stdout or "").splitlines()):
+                        if line.startswith("EERSIM_GPU "):
+                            return _validated_result(json.loads(line[len("EERSIM_GPU "):]))
         error = (result.stderr or result.stdout or f"Graphics probe exited with code {result.returncode}").strip()
+        if result.returncode == 0:
+            error = "Graphics probe produced no valid result. " + error
     except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
         error = str(exc)
     return {"available": False, "hardware_accelerated": False, "error": error[-1500:]}
 
 
-if __name__ == "__main__":
+def _validated_result(info: object) -> dict:
+    if not isinstance(info, dict) or any(type(info.get(key)) is not bool for key in ("available", "hardware_accelerated")):
+        raise ValueError("Graphics probe returned malformed capability data")
+    return info
+
+
+def _inspect_safely() -> dict:
     try:
-        result = inspect_context()
+        return inspect_context()
     except Exception as exc:
-        result = {"available": False, "hardware_accelerated": False, "error": str(exc)}
-    print("EERSIM_GPU " + json.dumps(result), flush=True)
+        return {"available": False, "hardware_accelerated": False, "error": str(exc)}
+
+
+def write_probe_result(path: str | Path) -> int:
+    """Private frozen-process entry point; never starts Qt or needs stdout."""
+    try:
+        Path(path).write_text(json.dumps(_inspect_safely()), encoding="utf-8")
+    except (OSError, ValueError):
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    print("EERSIM_GPU " + json.dumps(_inspect_safely()), flush=True)

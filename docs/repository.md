@@ -1,10 +1,20 @@
 # Repository and large assets
 
 EERSim is a standalone repository. Select any PROS source workspace in the GUI;
-the robot code does not need to live inside this repository. Install dependencies
-from `environment.yml` and put your desktop compiler on `PATH` or set `CXX`.
-The PowerShell launcher also accepts `EERSIM_PYTHON` and discovers local environments
-relative to itself. No installation directory or user account is embedded in source.
+the robot code does not need to live inside this repository. On 64-bit Windows,
+run `.\setup.ps1` once, then `.\launch.ps1` from the repository root. Setup creates
+or repairs `.sim-tools/physics-env` using its own downloaded Python and dependencies;
+it requires internet access and several gigabytes of free space, but no existing
+Python, Conda, or administrator privileges. Rerun setup to repair missing modules
+such as PySide6. It ignores global Python and does not install a C++ compiler.
+Put your desktop compiler on `PATH` or set `CXX`.
+
+The launcher discovers environments relative to itself and accepts a local
+`.venv` only when its dependencies load. An explicit `EERSIM_PYTHON` overrides the
+managed environment; `.\launch.ps1 --check` reports the selected Python and checks.
+The [start instructions](../README.md#start-here) include troubleshooting and an
+alternative `environment.yml` installation for users who already have Conda or
+install Miniforge first. No installation directory or user account is embedded in source.
 
 Saved experiments refer to built-in assets with `asset://` names resolved against
 the current installation. Selected workspaces and user assets use profile-relative

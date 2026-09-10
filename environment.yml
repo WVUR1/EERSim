@@ -5,6 +5,9 @@ dependencies:
   - python=3.11
   - pybullet=3.25
   - numpy>=1.26,<3
+  # OpenBLAS keeps the Windows EXE much smaller than an MKL runtime bundle.
+  - "libblas=*=*openblas"
+  - "liblapack=*=*openblas"
   - pip
   - pip:
       - PySide6==6.8.3

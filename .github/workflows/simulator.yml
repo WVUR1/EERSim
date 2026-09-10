@@ -9,21 +9,43 @@ jobs:
   physics-and-pros:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
     env:
       CXX: g++
       QT_QPA_PLATFORM: offscreen
       EERSIM_RENDERER: cpu
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: mamba-org/setup-micromamba@v3
         with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: pyproject.toml
+          environment-file: environment.yml
+          micromamba-version: "2.9.0-0"
+          init-shell: bash
+          cache-environment: true
+          post-cleanup: all
       - name: Check Git file sizes
         run: python tools/check_git_sizes.py
       - name: Install simulator
-        run: python -m pip install -e '.[test]'
+        # environment.yml supplies pytest and the calibrated Bullet build.
+        # Resolving pip dependencies here would replace it with a newer solver.
+        run: |
+          python -m pip install -e . --no-deps
+          python -m pip check
+      - name: Verify physics environment
+        run: |
+          python - <<'PY'
+          import importlib.metadata
+          import json
+          from pathlib import Path
+          import sys
+          records = [json.loads(path.read_text()) for path in (Path(sys.prefix) / "conda-meta").glob("pybullet-*.json")]
+          assert len(records) == 1 and records[0]["version"] == "3.25", "CI must use environment.yml's conda-forge Bullet 3.25"
+          for name in ("pybullet", "numpy", "PySide6", "vtk", "pytest"):
+              print(f"{name}: {importlib.metadata.version(name)}")
+          print(f"Conda Bullet build: {records[0]['build']}")
+          PY
       - name: Test physics and native robot code
         run: python -m pytest tests -q
       - name: Build distributable package

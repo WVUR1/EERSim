@@ -14,15 +14,54 @@ is reported separately in the [validation notes](docs/validation.md).
 
 ## Start here
 
-From the EERSim repository root on Windows, run:
+For a packaged Windows preview, download `EERSim-windows-x64.zip` from the private
+[Releases page](https://github.com/WVUR1/EERSim/releases), extract the whole ZIP,
+and run `EERSim/EERSim.exe`. Keep its adjacent `_internal` directory.
+The default bundle includes Python, the simulator dependencies, assets, and the
+native robot compiler. Current previews are unsigned. A single-file `EERSim.exe`
+is also available, but extracts its runtime on every launch and can take several
+minutes to start; the ZIP bundle avoids that repeated extraction.
+See [Windows EXE builds](docs/windows-release.md) to build a single EXE or
+directory bundle, or add certificate signing later.
+
+To run from source instead, use the setup below.
+
+On **64-bit Windows**, open PowerShell in the EERSim repository root. If you
+already have a clone, run `git pull` first to get the current setup script. Then run:
 
 ```powershell
+.\setup.ps1
 .\launch.ps1
 ```
 
-The launcher checks repository-local environments in `.venv` or `.sim-tools`
-and Python on `PATH`. Set `EERSIM_PYTHON` to choose another Python executable.
-For a fresh Windows/macOS/Linux installation, create a conda-forge environment:
+Setup downloads its own Python and simulator dependencies into
+`.sim-tools/physics-env`. It needs an internet connection and several gigabytes
+of free disk space; no existing Python, Conda, or administrator privileges are
+required. It ignores global Python installations. Run setup once, then use
+`launch.ps1` for normal starts. Rerun setup to update or repair dependencies,
+including PySide6. **Setup does not install the desktop C++ compiler** needed to
+build robot code; compiler options are below.
+
+If launch reports `No module named 'PySide6'` or another missing dependency, run
+`setup.ps1` again, then inspect the selected Python and dependency checks with:
+
+```powershell
+.\launch.ps1 --check
+```
+
+The launcher validates dependencies before using a local `.venv` or another
+discovered environment. `EERSIM_PYTHON` explicitly overrides the managed
+environment. If that variable points at an old environment, remove the override
+for the current PowerShell session and launch again:
+
+```powershell
+Remove-Item Env:EERSIM_PYTHON -ErrorAction SilentlyContinue
+.\launch.ps1
+```
+
+For a manually managed environment on Windows, macOS, or Linux, first install
+[Miniforge](https://github.com/conda-forge/miniforge) or use an existing Conda
+installation. On Windows, run these commands in the Miniforge Prompt:
 
 ```sh
 conda env create -f environment.yml

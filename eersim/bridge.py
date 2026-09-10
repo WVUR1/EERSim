@@ -60,11 +60,17 @@ def _compiler() -> str:
         if found:
             return found
         raise BuildError(f"CXX={configured!r} is not an executable. Set CXX to the compiler path without flags.")
+    checkout = Path(__file__).resolve().parents[1]
+    if getattr(sys, "frozen", False):
+        # A release bundles the complete LLVM/MinGW distribution, including
+        # its headers, linker, runtime libraries and license files.
+        bundled = checkout / "compiler" / "bin" / ("clang++.exe" if os.name == "nt" else "clang++")
+        if bundled.is_file():
+            return str(bundled)
     for name in ("clang++", "g++", "cl"):
         found = shutil.which(name)
         if found:
             return found
-    checkout = Path(__file__).resolve().parents[1]
     candidates = []
     if os.name == "nt":
         candidates += sorted((checkout / ".sim-tools").glob("llvm*/bin/clang++.exe"))

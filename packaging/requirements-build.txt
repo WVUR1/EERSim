@@ -1,0 +1,6 @@
+# Build in the Windows 64-bit environment created by setup.ps1.
+# Hooks 2026.7 include VTK 9.6 module dependency support.
+pyinstaller==6.22.2
+pyinstaller-hooks-contrib==2026.7
+# The standalone app includes USB game-controller support.
+pygame==2.6.1
