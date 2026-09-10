@@ -1,66 +1,102 @@
-# Windows EXE builds
+# Windows installer and EXE builds
 
-Run the released `EERSim.exe` directly on 64-bit Windows. It includes Python,
-PySide6, PyBullet, VTK, the robot and field assets, and (in the default build) the
-desktop LLVM-MinGW compiler needed to compile a selected PROS workspace. The
-target machine does not need Python, Conda, PROS tooling, or WSL installed.
+Download `EERSim-Setup-x64.exe` from the private
+[Releases page](https://github.com/WVUR1/EERSim/releases), run the wizard, and
+start **EERSim** from the Start menu. The installer includes Python, PySide6,
+PyBullet, VTK, the default robot and field assets, and the desktop LLVM-MinGW
+compiler for selected PROS workspaces. Recipients do not need Python, Conda,
+PROS tooling, a separate compiler, or WSL installed.
+
+The installer targets 64-bit Windows and installs for the current account under
+`%LOCALAPPDATA%\Programs\EERSim` by default. It does not request administrator
+privileges. The destination and Start menu folder are editable; the desktop
+shortcut is optional. Reinstalling updates that installation. Remove it through
+Windows **Installed apps** or its **Uninstall EERSim** Start menu shortcut.
+Uninstall removes installed program files and shortcuts, while preserving
+`%LOCALAPPDATA%\EERSim` user data and external robot projects, designs, and maps.
+Keep custom files in your own folders, outside the installation directory.
 
 Current private previews are **unsigned** because the organization has no
-code-signing certificate. Windows may show an unknown-publisher warning. An
-unsigned artifact must not be described as a signed or verified-publisher release.
+code-signing certificate. Windows may show an unknown-publisher warning. These
+artifacts must not be described as signed or verified-publisher releases.
 
-For regular use, download the portable `EERSim-windows-x64.zip`, extract the
-entire archive, and run `EERSim/EERSim.exe`. Keep the adjacent `_internal` folder.
-The one-file EXE extracts its runtime to a temporary directory at every startup;
-the large field assets and compiler can make this take several minutes. Keep
-space for the extracted runtime. The directory build avoids repeated extraction.
-Choose an external PROS workspace with `src/` and `include/` in the GUI. Bundled
-demo code is copied to the user's EERSim application data directory so it remains
-writable and survives temporary-bundle cleanup.
+## Import custom robots and fields
 
-## Build an unsigned private preview
+1. Select an external PROS workspace containing `src/` and `include/` with
+   **Browse…**, then **Build workspace**.
+2. Open **Robot → Import URDF…** and select a URDF, with its referenced meshes
+   retained beside it. Assign ports, cartridges, and gear ratios in the motor
+   setup dialog. Hold the jog buttons to test joints in the movable 3D preview.
+3. Open **Field → Import field…** to choose a game-pack JSON or a complete field
+   URDF. Built-in field and robot presets are already available.
+4. Click **Apply settings & reset scene**. **Save/Load** in **Experiment setup**
+   stores and restores experiment profiles.
 
-Build on Windows; PyInstaller does not cross-compile a Windows executable from
-Ubuntu/WSL. First extract the x86_64 UCRT LLVM-MinGW toolchain described below
-under `.sim-tools/`; `setup.ps1` installs Python dependencies, not the compiler.
-Then run from the repository root:
+The application reads external designs in place. Generated import wrappers and
+the writable copy of the bundled claw demo live in EERSim's per-user data
+directory. There is no need to modify the installed `_internal` assets.
+
+## Build the installer
+
+Build on 64-bit Windows. First run `setup.ps1` and obtain an **x86_64 Windows
+host, UCRT** toolchain from the
+[official LLVM-MinGW releases](https://github.com/mstorsjo/llvm-mingw/releases).
+Extract it under `.sim-tools/llvm*`, or pass `-CompilerPath` with the extracted
+directory containing `bin/clang++.exe` and `x86_64-w64-mingw32/`. Setup installs
+Python dependencies; it does not install this compiler. The validated toolchain
+is LLVM-MinGW 20260616 UCRT.
+
+Install **Inno Setup 7.1 or newer** from its
+[official download page](https://jrsoftware.org/isdl.php). The wrapper discovers
+`ISCC.exe` through `PATH`, `.sim-tools/inno-setup/`, or Inno Setup's installation
+registry entries. Use `-InnoSetupCompiler` to select it explicitly.
 
 ```powershell
 .\setup.ps1
-.\build.ps1
+.\build-installer.ps1
+# Optional explicit locations, held in variables selected on this machine:
+.\build-installer.ps1 -CompilerPath $llvmMingwDirectory -InnoSetupCompiler $iscc
 ```
 
-The build installs pinned packaging tools into the selected local Python
-environment. It finds an extracted LLVM-MinGW toolchain under `.sim-tools/llvm*`
-or accepts an explicit toolchain directory:
+The wrapper runs `build.ps1 -Layout Directory -SkipArchive`, then packages the
+complete directory payload with Inno Setup. Output is
+`dist/windows-installer/EERSim-Setup-x64.exe`, its `.sha256` checksum, and
+`build-manifest.json`. Generated files remain ignored by Git; publish them as
+private release assets, which support files larger than Git's normal limit.
+
+To package an already built and validated directory without rebuilding:
 
 ```powershell
-.\build.ps1 -CompilerPath $llvmMingwDirectory
+.\build-installer.ps1 -SkipBundleBuild
+.\build-installer.ps1 -SkipBundleBuild -BundleDirectory $validatedBundle
 ```
 
-Obtain the **x86_64 Windows host, UCRT** ZIP from the
-[official LLVM-MinGW releases](https://github.com/mstorsjo/llvm-mingw/releases).
-Extract it into `.sim-tools/` or set `$llvmMingwDirectory` to its extracted root
-(the directory containing `bin/clang++.exe` and `x86_64-w64-mingw32/`). A complete
-compiler is bundled so the recipient can build robot code without a separate
-compiler install. The locally validated toolchain is LLVM-MinGW 20260616 UCRT.
+`-BundleDirectory` requires `-SkipBundleBuild`. It must point at the folder
+containing `EERSim.exe` and `_internal`. The wrapper validates the runtime,
+default assets, native adapter, and compiler before packaging. Stop running
+copies and their native compiler processes before rebuilding the bundle.
+`-PythonPath` selects another complete Windows Python build environment.
+`-WithoutCompiler` is an advanced option for recipients who supply their own
+desktop compiler through `CXX` or `PATH`.
 
-Output is `dist/windows-onefile/EERSim.exe`, its `.sha256` checksum, and
-`build-manifest.json`. These generated artifacts stay out of Git. Share them
-through the private repository's Releases page, whose assets can exceed Git's
-ordinary file-size limit.
+## Other distribution layouts
 
-For faster starts, build a directory bundle and distribute its complete ZIP:
+These build options remain available; the current private preview distributes
+the installer described above.
 
 ```powershell
 .\build.ps1 -Layout Directory
+.\build.ps1 -Layout Directory -SkipArchive
+.\build.ps1
 ```
 
-Extract `dist/windows-onedir/EERSim-windows-x64.zip` and run `EERSim/EERSim.exe`.
-The adjacent `_internal` directory is required. `-WithoutCompiler` creates a
-smaller package whose users must provide their own desktop compiler through
-`CXX` or `PATH`. `-PythonPath` selects another fully installed Windows build
-environment.
+The first command produces `dist/windows-onedir/EERSim-windows-x64.zip`; extract
+the whole ZIP and run `EERSim/EERSim.exe`, keeping `_internal` beside it. The
+second leaves the complete directory ready for installer packaging and records
+the EXE checksum in its manifest. The last command produces the one-file
+`dist/windows-onefile/EERSim.exe`. That executable extracts the large runtime
+and compiler to a temporary folder on every launch, which can take several
+minutes. The installer and directory layout avoid repeated extraction.
 
 ## Optional signing later
 
@@ -68,16 +104,20 @@ When the organization has a trusted Authenticode certificate and its key provide
 configured in the Windows Personal (`My`) certificate store, use:
 
 ```powershell
+.\build-installer.ps1 -CertificateThumbprint $thumbprint
+# The portable formats also support signing:
 .\build.ps1 -CertificateThumbprint $thumbprint
 ```
 
-The helper discovers Microsoft's SignTool through `PATH` or the installed
-Windows SDK registry settings. It signs with SHA-256, requests an RFC 3161
-timestamp, and verifies the resulting signature and signer before reporting
-success. `-CertificateStore LocalMachine`, `-SignToolPath`, and `-TimestampServer`
-support other existing signing setups. No certificates are generated or imported;
-no private key or password is needed in the repository. This signing path has
-only prerequisite/error checks until an actual organization certificate exists.
+The existing certificate is checked before building. The application is signed
+before packaging; an Inno Setup signing callback signs the embedded uninstaller
+and final setup executable. Microsoft's SignTool uses SHA-256, requests an RFC
+3161 timestamp, and verifies the signature and selected signer before success.
+`-CertificateStore LocalMachine`, `-SignToolPath`, and `-TimestampServer` support
+other existing signing setups. No certificates are generated or imported, and
+no private key or password belongs in the repository. The actual signing path
+remains untested until an organization certificate is available.
 
-See [Microsoft's SignTool documentation](https://learn.microsoft.com/en-us/windows/win32/seccrypto/signtool)
-for certificate-store and verification options.
+See [Microsoft SignTool](https://learn.microsoft.com/en-us/windows/win32/seccrypto/signtool),
+[Inno Setup compiler options](https://jrsoftware.org/ishelp/topic_compilercmdline.htm),
+and [Inno Setup signing](https://jrsoftware.org/ishelp/topic_setup_signtool.htm).

@@ -30,6 +30,20 @@ from .gui_styles import GOLD, MUTED, STYLESHEET
 from .motor import CARTRIDGES as PHYSICAL_CARTRIDGES
 
 
+def _dialog_default(filename, category, previous=None, workspace=None):
+    """Choose writable frozen-app defaults without replacing user choices."""
+    if previous:
+        return str(previous)
+    if workspace:
+        return str(Path(workspace).expanduser().resolve() / filename)
+    if getattr(sys, "frozen", False):
+        from .runtime_paths import user_data_dir
+        directory = user_data_dir() / category
+        directory.mkdir(parents=True, exist_ok=True)
+        return str(directory / filename)
+    return filename
+
+
 MODES = (
     ("skills_driver", "Skills Driver", "opcontrol", 60),
     ("skills_auto", "Skills Auto", "autonomous", 60),
@@ -1375,8 +1389,8 @@ class Workbench(QMainWindow):
 
     def _import_field(self, path):
         try:
-            from .importers import import_field
-            destination = Path(self.workspace.text().strip() or Path.cwd()) / ".eersim" / "imports"
+            from .importers import default_import_directory, import_field
+            destination = default_import_directory(self.workspace.text().strip() or None)
             imported = import_field(path, dest=destination if Path(path).suffix.lower() == ".urdf" else None)
             self.config.pop("field_objects", None)
             self.game_path.setText(str(imported["path"]))
@@ -1440,26 +1454,32 @@ class Workbench(QMainWindow):
         self.scene.set_camera(*((45, -52, 6.4), (0, -89, 5), (90, -24, 6.4), (45, -30, 1.3))[index], target=target)
 
     def _save_profile(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Save experiment profile", "experiment.json", "Experiment profile (*.json)")
-        if not path:
-            return
         try:
+            initial = _dialog_default("experiment.json", "experiments", getattr(self, "_profile_path", None),
+                                      self.workspace.text().strip() or None)
+            path, _ = QFileDialog.getSaveFileName(self, "Save experiment profile", initial, "Experiment profile (*.json)")
+            if not path:
+                return
             from .config import save_config
             config = self._collect_config()
             save_config(config, path)
+            self._profile_path = path
             self.statusBar().showMessage(f"Saved experiment profile: {path}")
         except (OSError, ValueError) as exc:
             self._on_failed(str(exc))
 
     def _load_profile(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Load experiment profile", "", "Experiment profile (*.json)")
-        if not path:
-            return
         try:
+            initial = _dialog_default("", "experiments", getattr(self, "_profile_path", None),
+                                      self.workspace.text().strip() or None)
+            path, _ = QFileDialog.getOpenFileName(self, "Load experiment profile", initial, "Experiment profile (*.json)")
+            if not path:
+                return
             from .config import load_config
             config = load_config(path)
             self._fill_widgets(config)
             self.config = config
+            self._profile_path = path
             self._apply_config()
         except (OSError, ValueError, TypeError, AttributeError) as exc:
             self._on_failed(f"Could not load experiment profile: {exc}")
@@ -1478,9 +1498,15 @@ class Workbench(QMainWindow):
             self._on_failed(f"Could not load the claw scoring demo: {exc}")
 
     def _export_csv(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Export run telemetry", "telemetry.csv", "CSV data (*.csv)")
-        if path:
-            self.engine.export_csv(path)
+        try:
+            initial = _dialog_default("telemetry.csv", "telemetry", getattr(self, "_telemetry_path", None),
+                                      self.workspace.text().strip() or None)
+            path, _ = QFileDialog.getSaveFileName(self, "Export run telemetry", initial, "CSV data (*.csv)")
+            if path:
+                self._telemetry_path = path
+                self.engine.export_csv(path)
+        except OSError as exc:
+            self._on_failed(str(exc))
 
     def _key(self, key, down):
         if down:

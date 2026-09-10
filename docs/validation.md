@@ -103,3 +103,10 @@ agreement with a physical robot. The placement indicator is a mechanism-testing
 metric and does not implement official scoring or all game rules.
 
 An Ubuntu CI workflow is included; the local results above are Windows results.
+The [Linux CI run on September 10, 2026](https://github.com/WVUR1/EERSim/actions/runs/34541525808)
+finished with 112 passed, 12 skipped and two failures in the existing bounded-rest
+tests. A pin in a cup and a pin in a goal retained small velocities where the
+tests required exact native sleep after eight simulated seconds. These failures
+persisted after verifying the same conda-forge Bullet 3.25 release used locally.
+Their cause remains undiagnosed; no contact thresholds or assertions were
+relaxed, and the Linux suite is not currently passing.

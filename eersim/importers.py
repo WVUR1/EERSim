@@ -11,12 +11,23 @@ import json
 import math
 import os
 from pathlib import Path
+import sys
 from typing import Any
 import xml.etree.ElementTree as ET
 
 
 _MOVABLE = {"continuous", "revolute", "prismatic"}
 _JOINT_TYPES = _MOVABLE | {"fixed", "floating", "planar"}
+
+
+def default_import_directory(workspace: str | Path | None = None) -> Path:
+    """Keep generated imports writable outside a frozen installation folder."""
+    if workspace:
+        return Path(workspace).expanduser().resolve() / ".eersim" / "imports"
+    if getattr(sys, "frozen", False):
+        from .runtime_paths import user_data_dir
+        return user_data_dir() / "imports"
+    return Path.cwd() / ".eersim" / "imports"
 
 
 def _file(path: str | Path, label: str) -> Path:
@@ -96,7 +107,7 @@ def _prepare_urdf(path: Path) -> Path:
     assets = [element for element in root.iter() if element.tag in {"mesh", "texture"} and element.get("filename")]
     if not any(element.get("filename", "").startswith("package://") for element in assets):
         return path
-    destination_directory = Path.cwd() / ".eersim" / "imports"
+    destination_directory = default_import_directory()
     for element in assets:
         resolved = _asset_path(element.get("filename", ""), path.parent, f"URDF {element.tag}")
         element.set("filename", _relative_reference(resolved, destination_directory))
@@ -167,7 +178,7 @@ def _inspect(path: str | Path) -> dict[str, Any]:
     for element in package_assets:
         _asset_path(element.get("filename", ""), path.parent, f"URDF {element.tag}")
     if package_assets:
-        warnings.append("Local ROS package assets resolved. Import will use a generated URDF with absolute mesh paths; the original file is preserved.")
+        warnings.append("Local ROS package assets resolved. Import will use a generated URDF with local mesh references; the original file is preserved.")
     for geometry in root.iter("geometry"):
         shapes = list(geometry)
         if len(shapes) != 1:
@@ -444,15 +455,16 @@ def import_field(path: str | Path, dest: str | Path | None = None) -> dict[str, 
     """Import a field; dest is a .json filename or a directory for generated packs.
 
     JSON imports without dest use the validated source file unless asset paths
-    require normalization. Generated packs default to cwd/.eersim/imports; a GUI
-    can supply workspace/.eersim/imports.
+    require normalization. Generated packs use per-user EERSim/imports in the
+    frozen app, or cwd/.eersim/imports from source. An explicit destination or
+    a GUI-selected workspace takes precedence for generated field packs.
     """
     source = _file(path, "Field")
     data = load_field_import(source)
     output = source
     needs_normalization = bool(data.get("import_metadata", {}).get("normalized_urdfs"))
     if dest is not None or source.suffix.lower() == ".urdf" or needs_normalization:
-        destination = Path(dest).expanduser().resolve() if dest is not None else Path.cwd() / ".eersim" / "imports"
+        destination = Path(dest).expanduser().resolve() if dest is not None else default_import_directory()
         if destination.suffix.lower() == ".json" and not destination.is_dir():
             output = destination
         else:

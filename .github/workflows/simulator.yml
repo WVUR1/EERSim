@@ -28,7 +28,7 @@ jobs:
       - name: Check Git file sizes
         run: python tools/check_git_sizes.py
       - name: Install simulator
-        # environment.yml supplies pytest and the calibrated Bullet build.
+        # environment.yml supplies pytest and the validated Bullet build.
         # Resolving pip dependencies here would replace it with a newer solver.
         run: |
           python -m pip install -e . --no-deps

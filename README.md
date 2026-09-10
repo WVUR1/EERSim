@@ -14,15 +14,21 @@ is reported separately in the [validation notes](docs/validation.md).
 
 ## Start here
 
-For a packaged Windows preview, download `EERSim-windows-x64.zip` from the private
-[Releases page](https://github.com/WVUR1/EERSim/releases), extract the whole ZIP,
-and run `EERSim/EERSim.exe`. Keep its adjacent `_internal` directory.
-The default bundle includes Python, the simulator dependencies, assets, and the
-native robot compiler. Current previews are unsigned. A single-file `EERSim.exe`
-is also available, but extracts its runtime on every launch and can take several
-minutes to start; the ZIP bundle avoids that repeated extraction.
-See [Windows EXE builds](docs/windows-release.md) to build a single EXE or
-directory bundle, or add certificate signing later.
+For the Windows preview, download `EERSim-Setup-x64.exe` from the private
+[Releases page](https://github.com/WVUR1/EERSim/releases), run the installer,
+and open **EERSim** from the Start menu. The installer includes Python, the
+simulator dependencies, default robots and fields, and the native robot compiler.
+It installs for your Windows account without administrator privileges; a desktop
+shortcut is optional. Current previews are unsigned.
+
+Use **Robot → Import URDF…** and **Field → Import field…** to select custom
+designs from your own folders. The robot import preview supports motor setup and
+live jogging. Click **Apply settings & reset scene** after importing, and use
+**Save/Load** in **Experiment setup** to retain profiles. Keep meshes beside their
+URDFs; custom files do not need to be copied into the installation directory.
+Updates and uninstall preserve EERSim user data and external projects.
+See [Windows installer and EXE builds](docs/windows-release.md) for installation,
+build options, and optional certificate signing.
 
 To run from source instead, use the setup below.
 
@@ -274,7 +280,8 @@ URDF files must have valid inertial and collision properties. Use simple collisi
 meshes and primitives even when visual meshes are detailed. Asset paths resolve
 relative to their files. The importer resolves ROS `package://` references from
 nearby package folders and reports missing or ambiguous assets. Resolved imports
-are cached under `.eersim/imports`; the original design files remain untouched.
+are cached under `.eersim/imports` for source use or the user's EERSim application
+data directory in the installed application; the original design files remain untouched.
 The binding editor maps unique smart ports to URDF joint names and cartridge RPM.
 Multiple motors may drive one joint, with their torque contributions summed.
 

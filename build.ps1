@@ -6,6 +6,7 @@ The default is an unsigned private preview. An existing certificate is optional.
 param(
     [ValidateSet('OneFile', 'Directory')]
     [string]$Layout = 'OneFile',
+    [switch]$SkipArchive,
     [string]$PythonPath,
     [string]$CompilerPath,
     [switch]$WithoutCompiler,
@@ -28,6 +29,7 @@ try {
     if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT -or -not [Environment]::Is64BitOperatingSystem) {
         throw 'Build the Windows EXE on 64-bit Windows. Cross-compiling from WSL/Linux is not supported.'
     }
+    if ($SkipArchive -and $Layout -ne 'Directory') { throw 'SkipArchive requires -Layout Directory.' }
     if ($WithoutCompiler -and $CompilerPath) { throw 'Use either CompilerPath or WithoutCompiler.' }
     if (-not $PythonPath) { $PythonPath = $env:EERSIM_PYTHON }
     if (-not $PythonPath) {
@@ -93,18 +95,29 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Signing or signature verification failed. This build is not a signed release.' }
     }
     $artifact = $executable
-    if ($Layout -eq 'Directory') {
+    if ($Layout -eq 'Directory' -and -not $SkipArchive) {
         $artifact = Join-Path $output 'EERSim-windows-x64.zip'
-        Compress-Archive -LiteralPath (Join-Path $output 'EERSim') -DestinationPath $artifact -Force
+        for ($archiveAttempt = 1; $archiveAttempt -le 3; $archiveAttempt++) {
+            try {
+                Compress-Archive -LiteralPath (Join-Path $output 'EERSim') -DestinationPath $artifact -Force -ErrorAction Stop
+                break
+            } catch {
+                if ($archiveAttempt -eq 3) { throw }
+                Write-Host "ZIP creation failed (attempt $archiveAttempt of 3): $($_.Exception.Message)"
+                Write-Host 'Retrying in two seconds. Close any running app or compiler using the directory bundle.'
+                Start-Sleep -Seconds 2
+            }
+        }
     }
     $hash = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
     $utf8 = [Text.UTF8Encoding]::new($false)
     [IO.File]::WriteAllText($artifact + '.sha256', ($hash + '  ' + (Split-Path -Leaf $artifact) + "`n"), $utf8)
     $manifest = [ordered]@{
-        artifact = Split-Path -Leaf $artifact
+        artifact = if ($Layout -eq 'Directory' -and $SkipArchive) { 'EERSim/EERSim.exe' } else { Split-Path -Leaf $artifact }
         sha256 = $hash
         bytes = (Get-Item -LiteralPath $artifact).Length
         layout = $env:EERSIM_BUNDLE_MODE
+        archive = ($Layout -eq 'Directory' -and -not $SkipArchive)
         includes_compiler = -not $WithoutCompiler
         signed = [bool]$CertificateThumbprint
         signature_status = [string](Get-AuthenticodeSignature -LiteralPath $executable).Status
