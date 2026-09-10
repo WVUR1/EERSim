@@ -1,0 +1,68 @@
+"""Desktop launcher and reproducible headless runs."""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import sys
+from pathlib import Path
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="EERKit Autonomy Lab")
+    parser.add_argument("--headless", action="store_true", help="Run without the desktop")
+    parser.add_argument("--renderer", choices=["auto", "gpu", "cpu"], help="Graphics backend (physics always uses fixed CPU steps)")
+    parser.add_argument("--workspace", type=Path, help="PROS workspace to compile")
+    experiments = parser.add_mutually_exclusive_group()
+    experiments.add_argument("--config", type=Path, help="Saved simulator configuration")
+    experiments.add_argument("--demo", choices=["claw"], help="Load the X-drive pick-and-place experiment")
+    parser.add_argument("--mode", choices=["skills_driver", "skills_auto", "match_auto", "driver_auto"], default="skills_auto")
+    parser.add_argument("--seconds", type=float, default=5.0, help="Headless competition duration in simulated seconds")
+    parser.add_argument("--csv", type=Path, help="Export ground-truth pose telemetry")
+    parser.add_argument("--controller", type=Path, help="JSON analog/digital controller values for headless driver runs")
+    args = parser.parse_args(argv)
+    try:
+        from .config import default_config, load_config
+        if args.demo:
+            from .demos import claw_demo_config
+            config = claw_demo_config()
+        else:
+            config = load_config(args.config) if args.config else default_config()
+        if args.workspace:
+            config["workspace"] = str(args.workspace.resolve())
+        if args.renderer:
+            config["renderer"] = args.renderer
+        if not args.headless:
+            from .gui import run
+            return run(config, str(args.workspace) if args.workspace else None)
+        if not math.isfinite(args.seconds) or args.seconds <= 0:
+            parser.error("--seconds must be positive and finite")
+        from .runner import Session
+        if hasattr(config, "to_dict"):
+            config = config.to_dict()
+        config.setdefault("duration_overrides", {})[args.mode] = args.seconds
+        session = Session(config, lambda line: print(line, file=sys.stderr))
+        try:
+            if config.get("workspace"):
+                from .bridge import build_workspace
+                session.start(args.mode, build_workspace(Path(config["workspace"]), lambda line: print(line, file=sys.stderr)))
+                if args.controller:
+                    session.controller = json.loads(args.controller.read_text(encoding="utf-8"))
+                while session.running:
+                    session.step()
+            else:
+                for _ in range(math.ceil(args.seconds / session.dt)):
+                    session.step()
+            if args.csv:
+                session.export_csv(args.csv)
+            print(json.dumps(session.state(), indent=2, default=str))
+        finally:
+            session.close()
+        return 0
+    except (RuntimeError, ValueError, OSError, ImportError) as exc:
+        print(f"EERKit simulator: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

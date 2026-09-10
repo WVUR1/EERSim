@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "name": "Simple X-drive + pin claw",
+  "urdf": "xdrive_claw.urdf",
+  "description": "Four-wheel X-drive and motorized lift with slim friction jaws that grip the upper taper of an Override pin. No grasp attachments or teleports.",
+  "motors": [
+    {
+      "port": 1,
+      "joint": "front_left",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 2
+    },
+    {
+      "port": 2,
+      "joint": "front_right",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 2
+    },
+    {
+      "port": 3,
+      "joint": "back_left",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 2
+    },
+    {
+      "port": 4,
+      "joint": "back_right",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 2
+    },
+    {
+      "port": 5,
+      "joint": "lift",
+      "cartridge": "red",
+      "rpm": 100,
+      "lead_m": 0.04,
+      "current_limit": 0.25
+    },
+    {
+      "port": 6,
+      "joint": "claw",
+      "cartridge": "red",
+      "rpm": 100,
+      "lead_m": 0.02,
+      "current_limit": 0.15
+    }
+  ],
+  "drive": {
+    "type": "omni",
+    "wheels": [
+      {
+        "joint": "front_left",
+        "radius": 0.034925,
+        "direction": [
+          0.7071067811865476,
+          -0.7071067811865476,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      },
+      {
+        "joint": "front_right",
+        "radius": 0.034925,
+        "direction": [
+          0.7071067811865476,
+          0.7071067811865476,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      },
+      {
+        "joint": "back_left",
+        "radius": 0.034925,
+        "direction": [
+          0.7071067811865476,
+          0.7071067811865476,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      },
+      {
+        "joint": "back_right",
+        "radius": 0.034925,
+        "direction": [
+          0.7071067811865476,
+          -0.7071067811865476,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      }
+    ]
+  },
+  "initial_joints": {
+    "claw": 0.04,
+    "lift": 0
+  },
+  "link_friction": {
+    "fixed_finger": 1.8,
+    "moving_finger": 1.8
+  },
+  "sensors": {
+    "imu_heading_sign": -1,
+    "otos": {
+      "port": 7,
+      "x_sign": 1,
+      "y_sign": -1,
+      "heading_sign": 1
+    }
+  },
+  "claw": {
+    "pin_target_offset": [
+      0.34,
+      0,
+      0.06
+    ],
+    "open_motor_degrees": 720,
+    "close_motor_degrees": -144,
+    "lift_metres_per_revolution": 0.04,
+    "gap_metres": ".040 + joint position"
+  }
+}

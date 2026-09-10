@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "name": "Four-wheel tank example",
+  "description": "Illustrative 10.73 kg robot; measure and replace mass, inertia, friction and geometry for your robot.",
+  "urdf": "tank.urdf",
+  "motors": [
+    {
+      "port": 1,
+      "joint": "front_left",
+      "cartridge": "green",
+      "rpm": 200,
+      "gear_ratio": 1
+    },
+    {
+      "port": 3,
+      "joint": "front_right",
+      "cartridge": "green",
+      "rpm": 200,
+      "gear_ratio": 1
+    },
+    {
+      "port": 2,
+      "joint": "back_left",
+      "cartridge": "green",
+      "rpm": 200,
+      "gear_ratio": 1
+    },
+    {
+      "port": 4,
+      "joint": "back_right",
+      "cartridge": "green",
+      "rpm": 200,
+      "gear_ratio": 1
+    },
+    {
+      "port": 5,
+      "joint": "intake",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    }
+  ],
+  "drive": {
+    "type": "tank",
+    "wheels": [
+      {
+        "joint": "front_left",
+        "radius": 0.0508,
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      },
+      {
+        "joint": "front_right",
+        "radius": 0.0508,
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      },
+      {
+        "joint": "back_left",
+        "radius": 0.0508,
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      },
+      {
+        "joint": "back_right",
+        "radius": 0.0508,
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      }
+    ]
+  },
+  "pneumatics": [
+    {
+      "port": "A",
+      "joint": "flap",
+      "extended": 1.1,
+      "retracted": 0,
+      "force": 3,
+      "max_velocity": 2
+    },
+    {
+      "port": "B",
+      "joint": "lift",
+      "extended": 0.11,
+      "retracted": 0,
+      "force": 35,
+      "max_velocity": 0.15
+    },
+    {
+      "port": "C",
+      "joint": "loader",
+      "extended": 1.2,
+      "retracted": 0,
+      "force": 3,
+      "max_velocity": 2
+    }
+  ],
+  "distance_sensors": [
+    {
+      "port": 6,
+      "position": [
+        0.23,
+        0,
+        0.06
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "max_range": 2
+    }
+  ],
+  "sensors": {
+    "imu_heading_sign": -1,
+    "otos": {
+      "port": 5,
+      "x_sign": 1,
+      "y_sign": -1,
+      "heading_sign": 1
+    }
+  },
+  "sources": [
+    "https://kb.vex.com/hc/en-us/articles/360044325872-Understanding-V5-Smart-Motor-11W-Performance"
+  ]
+}

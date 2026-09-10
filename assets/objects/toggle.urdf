@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="override_toggle">
+  <link name="mount" concave="yes">
+    <inertial>
+      <mass value="0" />
+      <inertia ixx="0" iyy="0" izz="0" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../meshes/override/toggle_fixed.obj" />
+      </geometry>
+      <material name=".._meshes_override_toggle_fixed.obj">
+        <color rgba=".75 .77 .80 1" />
+      </material>
+    </visual>
+    <collision concave="yes">
+      <geometry>
+        <mesh filename="../meshes/override/toggle_fixed.obj" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="paddle">
+    <inertial>
+      <mass value="0.12" />
+      <origin xyz="0.004365624949999969 0 0.0014407278925166675" rpy="0 0 0" />
+      <inertia ixx="0.004906573764105845" iyy="6.0873707807576986e-05" izz="0.004898938357285892" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <collision>
+      <origin xyz="0.004365624949999969 0 0.0014407278925166675" rpy="0 0 0" />
+      <geometry>
+        <box size=".0515937501 .6980200002 .0585273930" />
+      </geometry>
+    </collision>
+    <visual>
+      <geometry>
+        <mesh filename="../meshes/override/toggle_rotor.obj" />
+      </geometry>
+      <material name=".._meshes_override_toggle_rotor.obj">
+        <color rgba=".4 .42 .44 1" />
+      </material>
+      <origin xyz="0.00351410538862319 0 -0.0292747046375939" />
+    </visual>
+  </link>
+  <joint name="toggle" type="continuous">
+    <parent link="mount" />
+    <child link="paddle" />
+    <origin xyz="-0.00351410538862319 0 0.0292747046375939" rpy="0 0 0" />
+    <axis xyz="0 -1 0" />
+    <dynamics damping="0.0001" friction="0" />
+    <limit effort="60" velocity="200" />
+  </joint>
+</robot>

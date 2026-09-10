@@ -1,0 +1,227 @@
+[
+  {
+    "key": "pin",
+    "definition": "276-9250-80x_Red-Blue",
+    "axis": "y",
+    "origin": "center",
+    "origin_offset_mm": [
+      0,
+      0,
+      0
+    ],
+    "split_halves": true,
+    "color": [
+      0.8,
+      0.18,
+      0.12,
+      1
+    ]
+  },
+  {
+    "key": "cup",
+    "definition": "276-9250-81x",
+    "axis": "y",
+    "origin": "base",
+    "origin_offset_mm": [
+      0,
+      0,
+      -82.25
+    ],
+    "split_halves": true,
+    "color": [
+      0.45,
+      0.46,
+      0.48,
+      1
+    ]
+  },
+  {
+    "key": "goal_alliance",
+    "definition": "276-9250-840_Red 2",
+    "axis": "y",
+    "origin": "base",
+    "origin_offset_mm": [
+      0,
+      0,
+      0
+    ],
+    "color": [
+      0.8,
+      0.18,
+      0.12,
+      1
+    ]
+  },
+  {
+    "key": "goal_neutral",
+    "definition": "276-9250-840_Neutral Goal 1",
+    "axis": "y",
+    "origin": "base",
+    "origin_offset_mm": [
+      0,
+      0,
+      -64
+    ],
+    "color": [
+      0.5,
+      0.51,
+      0.52,
+      1
+    ]
+  },
+  {
+    "key": "goal_center",
+    "definition": "276-9250-840_Neutral Goal 0",
+    "axis": "y",
+    "origin": "base",
+    "origin_offset_mm": [
+      0,
+      0,
+      -140.2
+    ],
+    "color": [
+      0.5,
+      0.51,
+      0.52,
+      1
+    ]
+  },
+  {
+    "key": "loader",
+    "definition": "276-9250-830_276-9250-831",
+    "axis": "y",
+    "origin": "base",
+    "color": [
+      0.83,
+      0.86,
+      0.89,
+      1
+    ]
+  },
+  {
+    "key": "toggle",
+    "definition": "276-9250-120_Blue Alliance Side",
+    "axis": "y",
+    "origin": "base",
+    "color": [
+      0.6,
+      0.62,
+      0.65,
+      1
+    ]
+  },
+  {
+    "key": "goal_socket",
+    "definition": "276-9250-003_Master",
+    "axis": "y",
+    "origin": "base",
+    "origin_offset_mm": [
+      0,
+      0,
+      0
+    ],
+    "color": [
+      0.12,
+      0.12,
+      0.13,
+      1
+    ]
+  },
+  {
+    "key": "white_panel",
+    "definition": "276-7596-014",
+    "axis": "y",
+    "origin": "center",
+    "origin_offset_mm": [
+      0,
+      0,
+      0
+    ],
+    "color": [
+      0.93,
+      0.93,
+      0.93,
+      1
+    ]
+  },
+  {
+    "key": "white_panel_short",
+    "definition": "276-7596-015",
+    "axis": "y",
+    "origin": "center",
+    "origin_offset_mm": [
+      0,
+      0,
+      0
+    ],
+    "color": [
+      0.93,
+      0.93,
+      0.93,
+      1
+    ]
+  },
+  {
+    "key": "toggle_fixed",
+    "definition": "276-9250-120_Blue Alliance Side",
+    "axis": "y",
+    "origin": "base",
+    "component_indices": [
+      0,
+      1,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+    ],
+    "color": [
+      0.7,
+      0.72,
+      0.74,
+      1
+    ]
+  },
+  {
+    "key": "toggle_rotor",
+    "definition": "276-9250-120_Blue Alliance Side",
+    "axis": "y",
+    "origin": "base",
+    "component_indices": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      19,
+      20,
+      21,
+      22
+    ],
+    "color": [
+      0.6,
+      0.62,
+      0.65,
+      1
+    ]
+  },
+  {
+    "key": "loader_blue",
+    "definition": "276-9250-830_276-9250-832",
+    "axis": "y",
+    "origin": "base",
+    "color": [
+      0.1,
+      0.38,
+      0.85,
+      1
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eerkit-simulator"
+version = "0.1.0"
+description = "WVU EERKit desktop autonomy lab with rigid-body physics and a native PROS runtime"
+requires-python = ">=3.11,<3.14"
+dependencies = ["numpy>=1.26,<3", "pybullet>=3.2.5,<4", "PySide6>=6.8,<6.10", "vtk>=9.5,<9.7"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9"]
+gamepad = ["pygame>=2.6,<3"]
+
+[project.scripts]
+eersim = "eersim.__main__:main"
+
+[tool.setuptools]
+packages = ["eersim"]
+include-package-data = true
+
+[tool.setuptools.data-files]
+"share/eersim" = ["README.md", "environment.yml"]
+"share/eersim/docs" = ["docs/*.png", "docs/*.md", "docs/*.mp4"]
+"share/eersim/assets" = ["assets/README.md", "assets/cad_manifest.json", "assets/generate_samples.py"]
+"share/eersim/assets/robots" = ["assets/robots/*"]
+"share/eersim/assets/games" = ["assets/games/*"]
+"share/eersim/assets/objects" = ["assets/objects/*"]
+"share/eersim/assets/meshes/override" = ["assets/meshes/override/*.obj", "assets/meshes/override/*.mtl", "assets/meshes/override/*.md"]
+"share/eersim/native" = ["native/*.cpp", "native/*.hpp", "native/README.md"]
+"share/eersim/tools" = ["tools/*.py", "tools/README.md", "tools/requirements-cad.txt", "tools/*.json"]
+"share/eersim/examples/claw_demo" = ["examples/claw_demo/README.md"]
+"share/eersim/examples/claw_demo/src" = ["examples/claw_demo/src/*.cpp"]
+"share/eersim/examples/claw_demo/include" = ["examples/claw_demo/include/*.h"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

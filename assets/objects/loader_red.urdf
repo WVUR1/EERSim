@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="override_loader_red">
+  <link name="loader" concave="yes">
+    <inertial>
+      <mass value="0" />
+      <inertia ixx="0" iyy="0" izz="0" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../meshes/override/loader.obj" />
+      </geometry>
+      <material name=".._meshes_override_loader.obj">
+        <color rgba=".8 .08 .12 1" />
+      </material>
+    </visual>
+    <collision concave="yes">
+      <geometry>
+        <mesh filename="../meshes/override/loader.obj" />
+      </geometry>
+    </collision>
+  </link>
+</robot>

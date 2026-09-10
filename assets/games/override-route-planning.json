@@ -1,0 +1,2940 @@
+{
+  "schema_version": 1,
+  "name": "Override 2026\u201327 \u00b7 route planning",
+  "season": "2026-2027",
+  "manual_version": "2.0",
+  "verified_date": "2026-09-10",
+  "description": "Route-planning experiment: the 36 cups and 37 field pins are fixed, immovable obstacles. They cannot be pushed or grasped. Robot dynamics and the hinged toggles still simulate. Use the full Override preset to test interactions with the field's game pieces.",
+  "geometry_accuracy": "Official CAD layout and the same collision approximations as the full field. Fixed game pieces intentionally change contact behavior for route planning; this preset is not a full-game dynamics or scoring test.",
+  "sources": [
+    "https://www.vexrobotics.com/override-manual",
+    "https://www.vexrobotics.com/26-27-manuals",
+    "https://link.vex.com/docs/26-27/v5rc/field-cad"
+  ],
+  "field": {
+    "size": [
+      3.588351204,
+      3.588351204
+    ],
+    "wall_height": 0.3090484,
+    "tile_size": 0.598058534,
+    "material": "vex_foam_tile",
+    "wall_color": [
+      0.94,
+      0.95,
+      0.96,
+      1
+    ],
+    "walls": false,
+    "inner_panel_span": 3.570357986
+  },
+  "mode_durations": {
+    "skills_driver": 60,
+    "skills_auto": 60,
+    "match_auto": 30,
+    "driver_auto": 90
+  },
+  "inventory": {
+    "cups": {
+      "total": 56,
+      "on_field": 36,
+      "gray_up": 24,
+      "clear_up": 12,
+      "match_loads": 20
+    },
+    "pins": {
+      "total": 63,
+      "on_field": 37,
+      "preloads": 4,
+      "match_loads": 22,
+      "on_field_colors": {
+        "red_blue": 4,
+        "red_yellow": 8,
+        "blue_yellow": 8,
+        "yellow_yellow": 17
+      }
+    }
+  },
+  "objects": [
+    {
+      "name": "autonomous_tape_-1",
+      "shape": "box",
+      "size": [
+        4.8,
+        0.018,
+        0.001
+      ],
+      "position": [
+        0,
+        0,
+        0.002
+      ],
+      "rotation": [
+        0,
+        0,
+        -0.7853981633974483
+      ],
+      "color": [
+        0.92,
+        0.93,
+        0.94,
+        1
+      ],
+      "collision": false
+    },
+    {
+      "name": "autonomous_tape_1",
+      "shape": "box",
+      "size": [
+        4.8,
+        0.018,
+        0.001
+      ],
+      "position": [
+        0,
+        0,
+        0.002
+      ],
+      "rotation": [
+        0,
+        0,
+        0.7853981633974483
+      ],
+      "color": [
+        0.92,
+        0.93,
+        0.94,
+        1
+      ],
+      "collision": false
+    },
+    {
+      "name": "midfield_tape",
+      "shape": "box",
+      "size": [
+        0.8457824898757708,
+        0.018,
+        0.001
+      ],
+      "position": [
+        0.299029267,
+        0.299029267,
+        0.003
+      ],
+      "rotation": [
+        0,
+        0,
+        -0.7853981633974483
+      ],
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "collision": false
+    },
+    {
+      "name": "midfield_tape",
+      "shape": "box",
+      "size": [
+        0.8457824898757708,
+        0.018,
+        0.001
+      ],
+      "position": [
+        0.299029267,
+        -0.299029267,
+        0.003
+      ],
+      "rotation": [
+        0,
+        0,
+        0.7853981633974483
+      ],
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "collision": false
+    },
+    {
+      "name": "midfield_tape",
+      "shape": "box",
+      "size": [
+        0.8457824898757708,
+        0.018,
+        0.001
+      ],
+      "position": [
+        -0.299029267,
+        -0.299029267,
+        0.003
+      ],
+      "rotation": [
+        0,
+        0,
+        -0.7853981633974483
+      ],
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "collision": false
+    },
+    {
+      "name": "midfield_tape",
+      "shape": "box",
+      "size": [
+        0.8457824898757708,
+        0.018,
+        0.001
+      ],
+      "position": [
+        -0.299029267,
+        0.299029267,
+        0.003
+      ],
+      "rotation": [
+        0,
+        0,
+        0.7853981633974483
+      ],
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "collision": false
+    },
+    {
+      "name": "white_panel_63",
+      "urdf": "../objects/white_panel.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        -1.7876789933700206,
+        1.2018175977899999,
+        0.14477999999982222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267948966
+      ],
+      "source_instance_index": 63
+    },
+    {
+      "name": "white_panel_247",
+      "urdf": "../objects/white_panel_short.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        -1.7876789933700201,
+        6.775585951677859e-17,
+        0.1447799999998222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267948966
+      ],
+      "source_instance_index": 247
+    },
+    {
+      "name": "white_panel_248",
+      "urdf": "../objects/white_panel.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        -1.7851789933700206,
+        -1.2018175977899999,
+        0.14477999999982222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        -1.5707963267948966
+      ],
+      "source_instance_index": 248
+    },
+    {
+      "name": "white_panel_391",
+      "urdf": "../objects/white_panel.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        1.2018175977900063,
+        -1.7851789933700164,
+        0.14477999999982222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 391
+    },
+    {
+      "name": "white_panel_392",
+      "urdf": "../objects/white_panel.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        1.7851789933700122,
+        1.2018175977900123,
+        0.14477999999982222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267949037
+      ],
+      "source_instance_index": 392
+    },
+    {
+      "name": "white_panel_393",
+      "urdf": "../objects/white_panel.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        -1.2018175977900185,
+        1.785178993370008,
+        0.14477999999982222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        -3.1415926535897825
+      ],
+      "source_instance_index": 393
+    },
+    {
+      "name": "white_panel_451",
+      "urdf": "../objects/white_panel_short.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        6.173891985676524e-15,
+        -1.7876789933700201,
+        0.1447799999998222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        -3.14159265358979
+      ],
+      "source_instance_index": 451
+    },
+    {
+      "name": "white_panel_452",
+      "urdf": "../objects/white_panel_short.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        1.7876789933700201,
+        1.2415539830869829e-14,
+        0.1447799999998222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        -1.5707963267948897
+      ],
+      "source_instance_index": 452
+    },
+    {
+      "name": "white_panel_453",
+      "urdf": "../objects/white_panel_short.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        -1.865718767606313e-14,
+        1.7876789933700201,
+        0.1447799999998222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 453
+    },
+    {
+      "name": "white_panel_460",
+      "urdf": "../objects/white_panel.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        -1.2018175977899936,
+        -1.7876789933700248,
+        0.14477999999982222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        -3.14159265358979
+      ],
+      "source_instance_index": 460
+    },
+    {
+      "name": "white_panel_461",
+      "urdf": "../objects/white_panel.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        1.787678993370029,
+        -1.2018175977899876,
+        0.14477999999982222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        -1.5707963267948897
+      ],
+      "source_instance_index": 461
+    },
+    {
+      "name": "white_panel_462",
+      "urdf": "../objects/white_panel.urdf",
+      "fixed": true,
+      "kind": "white_panel",
+      "position": [
+        1.2018175977899812,
+        1.7876789933700332,
+        0.14477999999982222
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 462
+    },
+    {
+      "name": "goal_neutral_2",
+      "urdf": "../objects/goal_neutral.urdf",
+      "fixed": true,
+      "position": [
+        -1.196117068,
+        0.598058534,
+        -0.0
+      ],
+      "kind": "goal",
+      "scoring": {
+        "type": "goal",
+        "height": 0.14653265,
+        "socket_depth": 0.08253265,
+        "socket_radius": 0.0384,
+        "alliance": "neutral"
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 502
+    },
+    {
+      "name": "goal_neutral_1",
+      "urdf": "../objects/goal_neutral.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058533999,
+        1.196117068,
+        -0.0
+      ],
+      "kind": "goal",
+      "scoring": {
+        "type": "goal",
+        "height": 0.14653265,
+        "socket_depth": 0.08253265,
+        "socket_radius": 0.0384,
+        "alliance": "neutral"
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 522
+    },
+    {
+      "name": "goal_neutral_4",
+      "urdf": "../objects/goal_neutral.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        -1.196117068,
+        -0.0
+      ],
+      "kind": "goal",
+      "scoring": {
+        "type": "goal",
+        "height": 0.14653265,
+        "socket_depth": 0.08253265,
+        "socket_radius": 0.0384,
+        "alliance": "neutral"
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 542
+    },
+    {
+      "name": "goal_neutral_3",
+      "urdf": "../objects/goal_neutral.urdf",
+      "fixed": true,
+      "position": [
+        1.196117068,
+        -0.598058534,
+        -0.0
+      ],
+      "kind": "goal",
+      "scoring": {
+        "type": "goal",
+        "height": 0.14653265,
+        "socket_depth": 0.08253265,
+        "socket_radius": 0.0384,
+        "alliance": "neutral"
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 562
+    },
+    {
+      "name": "goal_red_5",
+      "urdf": "../objects/goal_red.urdf",
+      "fixed": true,
+      "position": [
+        -1.196117068,
+        -0.598058534,
+        -0.0
+      ],
+      "kind": "goal",
+      "scoring": {
+        "type": "goal",
+        "height": 0.08253265,
+        "socket_depth": 0.08253265,
+        "socket_radius": 0.0384,
+        "alliance": "red"
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 582
+    },
+    {
+      "name": "goal_red_6",
+      "urdf": "../objects/goal_red.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        -1.196117068,
+        -0.0
+      ],
+      "kind": "goal",
+      "scoring": {
+        "type": "goal",
+        "height": 0.08253265,
+        "socket_depth": 0.08253265,
+        "socket_radius": 0.0384,
+        "alliance": "red"
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 601
+    },
+    {
+      "name": "goal_blue_8",
+      "urdf": "../objects/goal_blue.urdf",
+      "fixed": true,
+      "position": [
+        1.196117068,
+        0.598058534,
+        -0.0
+      ],
+      "kind": "goal",
+      "scoring": {
+        "type": "goal",
+        "height": 0.08253265,
+        "socket_depth": 0.08253265,
+        "socket_radius": 0.0384,
+        "alliance": "blue"
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 620
+    },
+    {
+      "name": "goal_blue_7",
+      "urdf": "../objects/goal_blue.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534001,
+        1.196117068,
+        -0.0
+      ],
+      "kind": "goal",
+      "scoring": {
+        "type": "goal",
+        "height": 0.08253265,
+        "socket_depth": 0.08253265,
+        "socket_radius": 0.0384,
+        "alliance": "blue"
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 639
+    },
+    {
+      "name": "goal_center_0",
+      "urdf": "../objects/goal_center.urdf",
+      "fixed": true,
+      "position": [
+        -0.0,
+        -0.0,
+        -0.0
+      ],
+      "kind": "goal",
+      "scoring": {
+        "type": "goal",
+        "height": 0.22273265,
+        "socket_depth": 0.08253265,
+        "socket_radius": 0.0384,
+        "alliance": "neutral"
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 658
+    },
+    {
+      "name": "pin_midfield_3",
+      "urdf": "../objects/pin_blue_red.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        0.0,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "red"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 682,
+      "mass": 0
+    },
+    {
+      "name": "cup_midfield_3",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        0.0,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        -3.1415926535896417
+      ],
+      "source_instance_index": 685,
+      "mass": 0
+    },
+    {
+      "name": "cup_midfield_2",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        0.0,
+        -0.598058534,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        -1.5707963267950484
+      ],
+      "source_instance_index": 688,
+      "mass": 0
+    },
+    {
+      "name": "pin_midfield_2",
+      "urdf": "../objects/pin_blue_red.urdf",
+      "fixed": true,
+      "position": [
+        0.0,
+        -0.598058534,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "red"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        3.141592653589793,
+        0.0,
+        -1.5707963267950484
+      ],
+      "source_instance_index": 691,
+      "mass": 0
+    },
+    {
+      "name": "pin_midfield_0",
+      "urdf": "../objects/pin_blue_red.urdf",
+      "fixed": true,
+      "position": [
+        -0.0,
+        0.598058534,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "red"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        -1.570796326795048
+      ],
+      "source_instance_index": 694,
+      "mass": 0
+    },
+    {
+      "name": "pin_midfield_1",
+      "urdf": "../objects/pin_blue_red.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        -0.0,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "red"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 697,
+      "mass": 0
+    },
+    {
+      "name": "cup_midfield_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -0.0,
+        0.598058534,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        1.5707963267947451
+      ],
+      "source_instance_index": 700,
+      "mass": 0
+    },
+    {
+      "name": "cup_midfield_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        -0.0,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        3.141592653589793,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 703,
+      "mass": 0
+    },
+    {
+      "name": "pin_wall_3_0",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -1.743099285812,
+        -0.598058534,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        -1.570796326794745
+      ],
+      "source_instance_index": 706,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_3_0_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -1.743099285812,
+        -0.598058534,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        -1.570796326794745
+      ],
+      "source_instance_index": 709,
+      "mass": 0
+    },
+    {
+      "name": "pin_diagonal_0",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -1.196117068,
+        -1.196117067999,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 712,
+      "mass": 0
+    },
+    {
+      "name": "pin_goal_2",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -1.196117068,
+        0.598058534,
+        0.1485
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        2.356194490192345
+      ],
+      "source_instance_index": 715,
+      "mass": 0
+    },
+    {
+      "name": "pin_goal_0",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        0.0,
+        0.0,
+        0.2247
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        2.3561944901923453
+      ],
+      "source_instance_index": 718,
+      "mass": 0
+    },
+    {
+      "name": "toggle_0",
+      "urdf": "../objects/toggle.urdf",
+      "fixed": true,
+      "position": [
+        -0.0,
+        1.81134279337,
+        0.364614899095
+      ],
+      "kind": "toggle",
+      "rotation": [
+        3.141592653589736,
+        0.0,
+        -1.5707963267948857
+      ],
+      "source_instance_index": 721
+    },
+    {
+      "name": "toggle_1",
+      "urdf": "../objects/toggle.urdf",
+      "fixed": true,
+      "position": [
+        1.81134279337,
+        0.0,
+        0.364614899095
+      ],
+      "kind": "toggle",
+      "rotation": [
+        3.141592653589736,
+        0.0,
+        -3.1415926535897856
+      ],
+      "source_instance_index": 745
+    },
+    {
+      "name": "toggle_2",
+      "urdf": "../objects/toggle.urdf",
+      "fixed": true,
+      "position": [
+        -0.0,
+        -1.81134279337,
+        0.364614899095
+      ],
+      "kind": "toggle",
+      "rotation": [
+        3.141592653589736,
+        0.0,
+        1.5707963267949006
+      ],
+      "source_instance_index": 769
+    },
+    {
+      "name": "toggle_3",
+      "urdf": "../objects/toggle.urdf",
+      "fixed": true,
+      "position": [
+        -1.81134279337,
+        0.0,
+        0.364614899095
+      ],
+      "kind": "toggle",
+      "rotation": [
+        3.141592653589736,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 793
+    },
+    {
+      "name": "loader_1",
+      "urdf": "../objects/loader_red.urdf",
+      "fixed": true,
+      "position": [
+        -1.756685045332,
+        -1.49258519558,
+        0.0039272
+      ],
+      "kind": "loader",
+      "rotation": [
+        0.0,
+        0.0,
+        -1.5707963267948966
+      ],
+      "source_instance_index": 817
+    },
+    {
+      "name": "loader_0",
+      "urdf": "../objects/loader_red.urdf",
+      "fixed": true,
+      "position": [
+        -1.756685045332,
+        1.49258519558,
+        0.0039272
+      ],
+      "kind": "loader",
+      "rotation": [
+        0.0,
+        0.0,
+        -1.5707963267948966
+      ],
+      "source_instance_index": 844
+    },
+    {
+      "name": "loader_3",
+      "urdf": "../objects/loader_blue.urdf",
+      "fixed": true,
+      "position": [
+        1.756685045332,
+        -1.49258519558,
+        -1e-10
+      ],
+      "kind": "loader",
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267948966
+      ],
+      "source_instance_index": 871
+    },
+    {
+      "name": "loader_2",
+      "urdf": "../objects/loader_blue.urdf",
+      "fixed": true,
+      "position": [
+        1.756685045332,
+        1.49258519558,
+        -1e-10
+      ],
+      "kind": "loader",
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267948966
+      ],
+      "source_instance_index": 898
+    },
+    {
+      "name": "cup_cluster_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -1.196117068,
+        1.196117068,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        3.141592653589793,
+        0.0,
+        -3.141592653589793
+      ],
+      "source_instance_index": 964,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_0_south",
+      "urdf": "../objects/pin_red_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -1.196117068,
+        1.078603495272,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "red",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.3094713199664023,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 967,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_0_west",
+      "urdf": "../objects/pin_red_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -1.313630640728,
+        1.196117068,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "red",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.3094713199664023,
+        0.0,
+        -1.5707963267948999
+      ],
+      "source_instance_index": 970,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_0_north",
+      "urdf": "../objects/pin_blue_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -1.196117067999,
+        1.313630640728,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.3094713199664023,
+        0.0,
+        3.1415926535897865
+      ],
+      "source_instance_index": 973,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_0_east",
+      "urdf": "../objects/pin_blue_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -1.078603495272,
+        1.196117068,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.3094713199664023,
+        0.0,
+        1.5707963267948863
+      ],
+      "source_instance_index": 976,
+      "mass": 0
+    },
+    {
+      "name": "cup_cluster_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        0.598058534,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        3.141592653589793,
+        0.0,
+        -3.141592653589793
+      ],
+      "source_instance_index": 979,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_1_south",
+      "urdf": "../objects/pin_red_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        0.480328965905,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "red",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.3094713199664028,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 982,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_1_west",
+      "urdf": "../objects/pin_red_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -0.715788102095,
+        0.598058534,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "red",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.3094713199664028,
+        0.0,
+        -1.5707963267948999
+      ],
+      "source_instance_index": 985,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_1_north",
+      "urdf": "../objects/pin_blue_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058533999,
+        0.715788102095,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.3094713199664028,
+        0.0,
+        3.1415926535897865
+      ],
+      "source_instance_index": 988,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_1_east",
+      "urdf": "../objects/pin_blue_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -0.480328965905,
+        0.598058534,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.3094713199664028,
+        0.0,
+        1.5707963267948863
+      ],
+      "source_instance_index": 991,
+      "mass": 0
+    },
+    {
+      "name": "cup_cluster_3",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        1.196117068,
+        -1.196117068,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        -1.570796326794897
+      ],
+      "source_instance_index": 994,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_3_west",
+      "urdf": "../objects/pin_red_yellow.urdf",
+      "fixed": true,
+      "position": [
+        1.078603495272,
+        -1.196117068,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "red",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.3094713199664023,
+        0.0,
+        -1.570796326794897
+      ],
+      "source_instance_index": 997,
+      "mass": 0
+    },
+    {
+      "name": "cup_cluster_2",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        -0.598058534,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        -1.570796326794897
+      ],
+      "source_instance_index": 1000,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_2_west",
+      "urdf": "../objects/pin_red_yellow.urdf",
+      "fixed": true,
+      "position": [
+        0.480328965905,
+        -0.598058534,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "red",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.3094713199664028,
+        0.0,
+        -1.570796326794897
+      ],
+      "source_instance_index": 1003,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_3_south",
+      "urdf": "../objects/pin_red_yellow.urdf",
+      "fixed": true,
+      "position": [
+        1.196117068,
+        -1.313630640728,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "red",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.309471319966401,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1006,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_3_east",
+      "urdf": "../objects/pin_blue_yellow.urdf",
+      "fixed": true,
+      "position": [
+        1.313630640728,
+        -1.196117068,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.309471319966401,
+        0.0,
+        1.5707963267947518
+      ],
+      "source_instance_index": 1009,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_3_north",
+      "urdf": "../objects/pin_blue_yellow.urdf",
+      "fixed": true,
+      "position": [
+        1.196117068,
+        -1.078603495272,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.309471319966401,
+        0.0,
+        3.1415926535896515
+      ],
+      "source_instance_index": 1012,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_2_south",
+      "urdf": "../objects/pin_red_yellow.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        -0.715788102095,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "red",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.309471319966402,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1015,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_2_east",
+      "urdf": "../objects/pin_blue_yellow.urdf",
+      "fixed": true,
+      "position": [
+        0.715788102095,
+        -0.598058534,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.309471319966402,
+        0.0,
+        1.570796326794752
+      ],
+      "source_instance_index": 1018,
+      "mass": 0
+    },
+    {
+      "name": "pin_cluster_2_north",
+      "urdf": "../objects/pin_blue_yellow.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        -0.480328965905,
+        0.035631617476
+      ],
+      "kind": "pin",
+      "colors": [
+        "blue",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        1.309471319966402,
+        0.0,
+        3.141592653589652
+      ],
+      "source_instance_index": 1021,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_3_1_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -1.743099285812,
+        0.598058534,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        -1.570796326795048
+      ],
+      "source_instance_index": 1024,
+      "mass": 0
+    },
+    {
+      "name": "pin_wall_3_1",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -1.743099285812,
+        0.598058534,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        1.5707963267947445
+      ],
+      "source_instance_index": 1027,
+      "mass": 0
+    },
+    {
+      "name": "pin_wall_0_0",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        1.743099285812,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        -3.1415926535896452
+      ],
+      "source_instance_index": 1030,
+      "mass": 0
+    },
+    {
+      "name": "pin_wall_1_1",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        1.743099285812,
+        0.598058534,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267950413
+      ],
+      "source_instance_index": 1033,
+      "mass": 0
+    },
+    {
+      "name": "pin_wall_2_1",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        -1.743099285812,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1036,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_0_0_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        1.743099285811,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        -3.1415926535896452
+      ],
+      "source_instance_index": 1039,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_1_1_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        1.743099285811,
+        0.598058534,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267950413
+      ],
+      "source_instance_index": 1042,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_2_1_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        -1.743099285811,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1045,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_0_1_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        1.743099285811,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        3.1415926535896386
+      ],
+      "source_instance_index": 1048,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_1_0_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        1.743099285811,
+        -0.598058534,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267947382
+      ],
+      "source_instance_index": 1051,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_2_0_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        -1.743099285811,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1054,
+      "mass": 0
+    },
+    {
+      "name": "pin_wall_0_1",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        1.743099285812,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1057,
+      "mass": 0
+    },
+    {
+      "name": "pin_wall_1_0",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        1.743099285812,
+        -0.598058534,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        -1.5707963267950558
+      ],
+      "source_instance_index": 1060,
+      "mass": 0
+    },
+    {
+      "name": "pin_wall_2_0",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        -1.743099285812,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        3.1415926535896306
+      ],
+      "source_instance_index": 1063,
+      "mass": 0
+    },
+    {
+      "name": "cup_diagonal_0",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -1.196117068,
+        -1.196117068,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        3.141592653589793
+      ],
+      "source_instance_index": 1066,
+      "mass": 0
+    },
+    {
+      "name": "cup_diagonal_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        -0.598058534,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        3.141592653589793,
+        0.0,
+        3.141592653589793
+      ],
+      "source_instance_index": 1069,
+      "mass": 0
+    },
+    {
+      "name": "cup_diagonal_3",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        1.196117068,
+        1.196117068,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        3.141592653589793,
+        0.0,
+        1.5707963267948968
+      ],
+      "source_instance_index": 1072,
+      "mass": 0
+    },
+    {
+      "name": "cup_diagonal_2",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        0.598058534,
+        0.16453265
+      ],
+      "kind": "cup",
+      "clear_up": true,
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        1.5707963267948968
+      ],
+      "source_instance_index": 1075,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_3_0_-1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -1.743099285812,
+        -0.678258534,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        -1.570796326794745
+      ],
+      "source_instance_index": 1078,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_3_0_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -1.743099285813,
+        -0.517858533993,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        -1.570796326794745
+      ],
+      "source_instance_index": 1081,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_3_1_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -1.743099285812,
+        0.678258534,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        -1.570796326795048
+      ],
+      "source_instance_index": 1084,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_3_1_-1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -1.743099285813,
+        0.517858533993,
+        3.265e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        -1.570796326795048
+      ],
+      "source_instance_index": 1087,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_0_1_-1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        0.517858533801,
+        1.743099285838,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        3.1415926535896386
+      ],
+      "source_instance_index": 1090,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_1_0_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        1.743099285838,
+        -0.517858533801,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267947385
+      ],
+      "source_instance_index": 1093,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_2_0_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -0.517858533801,
+        -1.743099285838,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1096,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_0_1_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        0.678258533826,
+        1.74309928571,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        3.1415926535896386
+      ],
+      "source_instance_index": 1099,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_1_0_-1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        1.74309928571,
+        -0.678258533826,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267947382
+      ],
+      "source_instance_index": 1102,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_2_0_-1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -0.678258533826,
+        -1.74309928571,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1105,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_0_0_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -0.517858533801,
+        1.743099285838,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        -3.1415926535896452
+      ],
+      "source_instance_index": 1108,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_1_1_-1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        1.743099285838,
+        0.517858533801,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        1.570796326795041
+      ],
+      "source_instance_index": 1111,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_2_1_-1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        0.517858533801,
+        -1.743099285838,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1114,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_0_0_-1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        -0.678258533826,
+        1.74309928571,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        -3.1415926535896452
+      ],
+      "source_instance_index": 1117,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_1_1_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        1.74309928571,
+        0.678258533826,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        1.5707963267950413
+      ],
+      "source_instance_index": 1120,
+      "mass": 0
+    },
+    {
+      "name": "cup_wall_2_1_1",
+      "urdf": "../objects/cup_gray_up.urdf",
+      "fixed": true,
+      "position": [
+        0.678258533826,
+        -1.74309928571,
+        3.2650123e-05
+      ],
+      "kind": "cup",
+      "clear_up": false,
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1123,
+      "mass": 0
+    },
+    {
+      "name": "pin_diagonal_1",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        -0.598058534,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source_instance_index": 1126,
+      "mass": 0
+    },
+    {
+      "name": "pin_goal_4",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534001,
+        -1.196117068,
+        0.1485
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        0.0,
+        0.0,
+        2.356194490192345
+      ],
+      "source_instance_index": 1129,
+      "mass": 0
+    },
+    {
+      "name": "pin_goal_1",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        -0.598058534,
+        1.196117068,
+        0.1485
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        3.141592653589793,
+        0.0,
+        2.3561944901923453
+      ],
+      "source_instance_index": 1132,
+      "mass": 0
+    },
+    {
+      "name": "pin_goal_3",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        1.196117068,
+        -0.598058534001,
+        0.1485
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        -3.141592653589793,
+        0.0,
+        2.3561944901923453
+      ],
+      "source_instance_index": 1135,
+      "mass": 0
+    },
+    {
+      "name": "pin_diagonal_2",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        0.598058534,
+        0.598058534,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        3.141592653589793,
+        0.0,
+        -1.5707963267948963
+      ],
+      "source_instance_index": 1138,
+      "mass": 0
+    },
+    {
+      "name": "pin_diagonal_3",
+      "urdf": "../objects/pin_yellow_yellow.urdf",
+      "fixed": true,
+      "position": [
+        1.196117067999,
+        1.196117068,
+        0.16728265
+      ],
+      "kind": "pin",
+      "colors": [
+        "yellow",
+        "yellow"
+      ],
+      "scoring": {
+        "type": "pin",
+        "length": 0.165,
+        "radius": 0.0178
+      },
+      "rotation": [
+        3.141592653589793,
+        0.0,
+        -1.5707963267948963
+      ],
+      "source_instance_index": 1141,
+      "mass": 0
+    },
+    {
+      "name": "perimeter_rail_0_0.0381",
+      "shape": "box",
+      "size": [
+        3.62,
+        0.0254,
+        0.0254
+      ],
+      "position": [
+        0,
+        1.797878993,
+        0.0381
+      ],
+      "color": [
+        0.65,
+        0.68,
+        0.72,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_rail_0_0.25146",
+      "shape": "box",
+      "size": [
+        3.62,
+        0.0254,
+        0.0254
+      ],
+      "position": [
+        0,
+        1.797878993,
+        0.25146
+      ],
+      "color": [
+        0.65,
+        0.68,
+        0.72,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_0_-1.797878993",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        -1.797878993,
+        1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_0_-0.598058534",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        -0.598058534,
+        1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_0_0.598058534",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        0.598058534,
+        1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_0_1.797878993",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        1.797878993,
+        1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_rail_1_0.0381",
+      "shape": "box",
+      "size": [
+        0.0254,
+        3.62,
+        0.0254
+      ],
+      "position": [
+        1.797878993,
+        0,
+        0.0381
+      ],
+      "color": [
+        0.65,
+        0.68,
+        0.72,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_rail_1_0.25146",
+      "shape": "box",
+      "size": [
+        0.0254,
+        3.62,
+        0.0254
+      ],
+      "position": [
+        1.797878993,
+        0,
+        0.25146
+      ],
+      "color": [
+        0.65,
+        0.68,
+        0.72,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_1_-1.797878993",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        1.797878993,
+        -1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_1_-0.598058534",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        1.797878993,
+        -0.598058534,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_1_0.598058534",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        1.797878993,
+        0.598058534,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_1_1.797878993",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        1.797878993,
+        1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_rail_2_0.0381",
+      "shape": "box",
+      "size": [
+        3.62,
+        0.0254,
+        0.0254
+      ],
+      "position": [
+        0,
+        -1.797878993,
+        0.0381
+      ],
+      "color": [
+        0.65,
+        0.68,
+        0.72,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_rail_2_0.25146",
+      "shape": "box",
+      "size": [
+        3.62,
+        0.0254,
+        0.0254
+      ],
+      "position": [
+        0,
+        -1.797878993,
+        0.25146
+      ],
+      "color": [
+        0.65,
+        0.68,
+        0.72,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_2_-1.797878993",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        -1.797878993,
+        -1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_2_-0.598058534",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        -0.598058534,
+        -1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_2_0.598058534",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        0.598058534,
+        -1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_2_1.797878993",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        1.797878993,
+        -1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_rail_3_0.0381",
+      "shape": "box",
+      "size": [
+        0.0254,
+        3.62,
+        0.0254
+      ],
+      "position": [
+        -1.797878993,
+        0,
+        0.0381
+      ],
+      "color": [
+        0.65,
+        0.68,
+        0.72,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_rail_3_0.25146",
+      "shape": "box",
+      "size": [
+        0.0254,
+        3.62,
+        0.0254
+      ],
+      "position": [
+        -1.797878993,
+        0,
+        0.25146
+      ],
+      "color": [
+        0.65,
+        0.68,
+        0.72,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_3_-1.797878993",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        -1.797878993,
+        -1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_3_-0.598058534",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        -1.797878993,
+        -0.598058534,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_3_0.598058534",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        -1.797878993,
+        0.598058534,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    },
+    {
+      "name": "perimeter_post_3_1.797878993",
+      "shape": "box",
+      "size": [
+        0.022,
+        0.022,
+        0.26
+      ],
+      "position": [
+        -1.797878993,
+        1.797878993,
+        0.13
+      ],
+      "color": [
+        0.7,
+        0.73,
+        0.77,
+        1
+      ]
+    }
+  ],
+  "cad_source_sha256": "3f24b7572d21195522ad44f265b358bc96d0f5767920cdc6fc817c2891477a1e",
+  "scenario": {
+    "fixed_game_pieces": true,
+    "source_pack": "override-2026-27.json"
+  }
+}

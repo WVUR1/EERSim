@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "name": "Autonomy practice field",
+  "season": "Practice",
+  "description": "12 ft square practice arena with movable objects and calibration obstacles.",
+  "geometry_accuracy": "Practice geometry; no competition scoring or rules adjudication.",
+  "field": {
+    "size": [
+      3.6576,
+      3.6576
+    ],
+    "wall_height": 0.3,
+    "tile_size": 0.6096,
+    "material": "vex_foam_tile"
+  },
+  "mode_durations": {
+    "skills_driver": 60,
+    "skills_auto": 60,
+    "match_auto": 30,
+    "driver_auto": 90
+  },
+  "objects": [
+    {
+      "name": "red_start_zone",
+      "size": [
+        0.55,
+        0.55,
+        0.002
+      ],
+      "position": [
+        -1.2,
+        -1.2,
+        0.002
+      ],
+      "color": [
+        0.55,
+        0.12,
+        0.17,
+        1
+      ],
+      "collision": false
+    },
+    {
+      "name": "blue_start_zone",
+      "size": [
+        0.55,
+        0.55,
+        0.002
+      ],
+      "position": [
+        1.2,
+        1.2,
+        0.002
+      ],
+      "color": [
+        0.08,
+        0.3,
+        0.6,
+        1
+      ],
+      "collision": false
+    },
+    {
+      "name": "calibration_barrier",
+      "size": [
+        0.08,
+        0.7,
+        0.16
+      ],
+      "position": [
+        0.65,
+        0.35,
+        0.08
+      ],
+      "color": [
+        0.9,
+        0.68,
+        0.08,
+        1
+      ]
+    },
+    {
+      "name": "pickup_cube",
+      "size": [
+        0.12,
+        0.12,
+        0.12
+      ],
+      "position": [
+        -0.55,
+        -0.6,
+        0.062
+      ],
+      "mass": 0.18,
+      "color": [
+        0.95,
+        0.24,
+        0.14,
+        1
+      ]
+    },
+    {
+      "name": "movable_ball",
+      "shape": "sphere",
+      "radius": 0.065,
+      "position": [
+        0.1,
+        -0.25,
+        0.066
+      ],
+      "mass": 0.12,
+      "color": [
+        0.08,
+        0.46,
+        0.92,
+        1
+      ],
+      "rolling_friction": 0.002
+    },
+    {
+      "name": "hollow_cup",
+      "urdf": "../objects/cup.urdf",
+      "fixed": false,
+      "position": [
+        -0.4,
+        0.4,
+        0.007
+      ]
+    }
+  ]
+}

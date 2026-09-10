@@ -1,0 +1,51 @@
+# Local environments, downloads, and CAD conversion caches
+.sim-tools/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.eersim/
+.cache/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.egg-info/
+/build/
+/dist/
+
+# Raw source CAD and archives: regenerate runtime meshes with tools/import_vex_cad.py.
+*.step
+*.stp
+*.STEP
+*.STP
+*.brep
+*.BREP
+*.xbf
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.whl
+
+# Native build outputs. Wavefront .obj meshes are required source assets.
+*.o
+*.obj
+!assets/**/*.obj
+*.exe
+*.dll
+*.pdb
+*.so
+*.dylib
+*.a
+*.lib
+*.elf
+*.bin
+
+# Per-machine editor/OS state
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+/Microsoft/Windows/PowerShell/ModuleAnalysisCache

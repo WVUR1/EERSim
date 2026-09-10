@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="override_pin_blue_red">
+  <link name="pin">
+    <inertial>
+      <mass value="0.075" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <inertia ixx="0.000183825" iyy="0.000183825" izz="0.000183825" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../meshes/override/pin_upper.obj" />
+      </geometry>
+      <material name=".._meshes_override_pin_upper.obj">
+        <color rgba=".02 .48 .83 1" />
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <mesh filename="../meshes/override/pin_lower.obj" />
+      </geometry>
+      <material name=".._meshes_override_pin_lower.obj">
+        <color rgba=".82 .08 .13 1" />
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="pin_root_-1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_root_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_taper_-1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_taper_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_tip_-1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_tip_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_flange.stl" />
+      </geometry>
+    </collision>
+  </link>
+</robot>

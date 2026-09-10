@@ -1,0 +1,346 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="override_dual_cup">
+  <link name="cup">
+    <inertial>
+      <origin xyz="0 0 .08225" />
+      <mass value="0.075" />
+      <inertia ixx="0.00019" iyy="0.00019" izz="9e-05" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="../meshes/override/cup_upper.obj" />
+      </geometry>
+      <material name=".._meshes_override_cup_upper.obj">
+        <color rgba=".27 .29 .31 1" />
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <mesh filename="../meshes/override/cup_lower.obj" />
+      </geometry>
+      <material name=".._meshes_override_cup_lower.obj">
+        <color rgba=".63 .68 .72 .42" />
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_0_15.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_-1_1_15.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_0_15.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_4.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_5.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_6.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_7.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_8.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_9.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_10.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_11.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_12.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_13.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_14.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="cup_hull_1_1_15.stl" />
+      </geometry>
+    </collision>
+  </link>
+</robot>

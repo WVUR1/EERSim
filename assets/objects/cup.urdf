@@ -1,0 +1,205 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="approximate_hollow_cup">
+  <link name="cup">
+    <inertial>
+      <mass value="0.1" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <inertia ixx="0.00015125000000000002" iyy="0.00015125000000000002" izz="0.00015125000000000002" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.055" length="0.006" />
+      </geometry>
+      <material name="cup_material">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.055" length="0.006" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.057 0.0 .048" rpy="0 0 0.0" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.057 0.0 .048" rpy="0 0 0.0" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.04936344801571301 0.028499999999999998 .048" rpy="0 0 0.5235987755982988" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04936344801571301 0.028499999999999998 .048" rpy="0 0 0.5235987755982988" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.028500000000000008 0.049363448015713005 .048" rpy="0 0 1.0471975511965976" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.028500000000000008 0.049363448015713005 .048" rpy="0 0 1.0471975511965976" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="3.490243377569957e-18 0.057 .048" rpy="0 0 1.5707963267948966" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="3.490243377569957e-18 0.057 .048" rpy="0 0 1.5707963267948966" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.028499999999999987 0.04936344801571301 .048" rpy="0 0 2.0943951023931953" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.028499999999999987 0.04936344801571301 .048" rpy="0 0 2.0943951023931953" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.04936344801571301 0.028499999999999998 .048" rpy="0 0 2.6179938779914944" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.04936344801571301 0.028499999999999998 .048" rpy="0 0 2.6179938779914944" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.057 6.980486755139913e-18 .048" rpy="0 0 3.141592653589793" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.057 6.980486755139913e-18 .048" rpy="0 0 3.141592653589793" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.04936344801571301 -0.028499999999999984 .048" rpy="0 0 3.665191429188092" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.04936344801571301 -0.028499999999999984 .048" rpy="0 0 3.665191429188092" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.028500000000000025 -0.049363448015713 .048" rpy="0 0 4.1887902047863905" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.028500000000000025 -0.049363448015713 .048" rpy="0 0 4.1887902047863905" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="-1.047073013270987e-17 -0.057 .048" rpy="0 0 4.71238898038469" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-1.047073013270987e-17 -0.057 .048" rpy="0 0 4.71238898038469" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.028500000000000008 -0.049363448015713005 .048" rpy="0 0 5.235987755982989" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.028500000000000008 -0.049363448015713005 .048" rpy="0 0 5.235987755982989" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.04936344801571299 -0.028500000000000025 .048" rpy="0 0 5.759586531581287" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+      <material name="blue">
+        <color rgba=".05 .35 .8 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.04936344801571299 -0.028500000000000025 .048" rpy="0 0 5.759586531581287" />
+      <geometry>
+        <box size=".007 .030 .09" />
+      </geometry>
+    </collision>
+  </link>
+</robot>

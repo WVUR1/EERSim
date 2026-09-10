@@ -1,0 +1,30 @@
+name: Simulator
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  physics-and-pros:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CXX: g++
+      QT_QPA_PLATFORM: offscreen
+      EERSIM_RENDERER: cpu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Check Git file sizes
+        run: python tools/check_git_sizes.py
+      - name: Install simulator
+        run: python -m pip install -e '.[test]'
+      - name: Test physics and native robot code
+        run: python -m pytest tests -q
+      - name: Build distributable package
+        run: python -m pip wheel . --no-deps --wheel-dir dist

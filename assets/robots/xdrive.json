@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "name": "WVU EERKit X-drive example",
+  "description": "Illustrative 10.73 kg robot; measure and replace mass, inertia, friction and geometry for your robot.",
+  "urdf": "xdrive.urdf",
+  "motors": [
+    {
+      "port": 15,
+      "joint": "front_left",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": 17,
+      "joint": "front_left",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": -16,
+      "joint": "front_left",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": -8,
+      "joint": "front_right",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": -6,
+      "joint": "front_right",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": 21,
+      "joint": "front_right",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": 19,
+      "joint": "back_left",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": 18,
+      "joint": "back_left",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": -20,
+      "joint": "back_left",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": -9,
+      "joint": "back_right",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": -1,
+      "joint": "back_right",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": 10,
+      "joint": "back_right",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": 11,
+      "joint": "intake",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": -7,
+      "joint": "intake",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": 3,
+      "joint": "intake",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    },
+    {
+      "port": -14,
+      "joint": "intake",
+      "cartridge": "blue",
+      "rpm": 600,
+      "gear_ratio": 1
+    }
+  ],
+  "drive": {
+    "type": "omni",
+    "wheels": [
+      {
+        "joint": "front_left",
+        "radius": 0.0254,
+        "direction": [
+          0.7071067811865476,
+          -0.7071067811865476,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      },
+      {
+        "joint": "front_right",
+        "radius": 0.0254,
+        "direction": [
+          0.7071067811865476,
+          0.7071067811865476,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      },
+      {
+        "joint": "back_left",
+        "radius": 0.0254,
+        "direction": [
+          0.7071067811865476,
+          0.7071067811865476,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      },
+      {
+        "joint": "back_right",
+        "radius": 0.0254,
+        "direction": [
+          0.7071067811865476,
+          -0.7071067811865476,
+          0
+        ],
+        "roller_friction": 0.025,
+        "slip_speed": 0.12
+      }
+    ]
+  },
+  "pneumatics": [
+    {
+      "port": "A",
+      "joint": "flap",
+      "extended": 1.1,
+      "retracted": 0,
+      "force": 3,
+      "max_velocity": 2
+    },
+    {
+      "port": "B",
+      "joint": "lift",
+      "extended": 0.11,
+      "retracted": 0,
+      "force": 35,
+      "max_velocity": 0.15
+    },
+    {
+      "port": "C",
+      "joint": "loader",
+      "extended": 1.2,
+      "retracted": 0,
+      "force": 3,
+      "max_velocity": 2
+    }
+  ],
+  "distance_sensors": [
+    {
+      "port": 2,
+      "position": [
+        0.23,
+        0,
+        0.06
+      ],
+      "direction": [
+        1,
+        0,
+        0
+      ],
+      "max_range": 2
+    }
+  ],
+  "sensors": {
+    "imu_heading_sign": -1,
+    "otos": {
+      "port": 5,
+      "x_sign": 1,
+      "y_sign": -1,
+      "heading_sign": 1
+    }
+  },
+  "sources": [
+    "https://kb.vex.com/hc/en-us/articles/360044325872-Understanding-V5-Smart-Motor-11W-Performance"
+  ]
+}
