@@ -1,0 +1,4 @@
+# Optional headless research runtime; not a dependency of the EERSim app.
+ovphysx==0.5.11
+ovstage==0.1.1.355824
+numpy==2.4.6

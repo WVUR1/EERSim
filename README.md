@@ -201,6 +201,11 @@ visual formats fall back to CPU rendering with a reason in the status/log.
 Rigid-body physics and robot code remain on the CPU. GPU rendering does not
 change the contact solver, motor model, timestep, or sensor observations.
 
+A separate [PhysX/CUDA research prototype](tools/physx_prototype/README.md)
+provides reproducible A100 and CPU benchmarks, geometry audits, and joint checks.
+It is a source-checkout tool; it does not enable GPU physics in this application
+or establish equivalent robot behavior.
+
 Bullet integrates gravity, inertia, articulated joints, contact impulses, and
 collisions at **240 Hz** by default. The timestep is independent of display FPS.
 Rendering never increases the timestep or discards pending physics steps. When

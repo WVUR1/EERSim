@@ -13,6 +13,13 @@ optional cProfile data. See [validation notes](../docs/validation.md#full-field-
 for measured limits and interpretation. This diagnostic requires the source
 Python environment.
 
+## Experimental PhysX/CUDA study
+
+See [physx_prototype/README.md](physx_prototype/README.md) for the headless
+field exporter, verified CPU/GPU benchmarks, geometry and joint audits, and
+measured limitations. This is an optional source-checkout experiment, separate
+from the GUI and installer physics backend.
+
 ## Import the official VEX CAD
 
 The bundled Override visual meshes are derived from VEX Robotics' official

@@ -22,6 +22,7 @@ def launch() -> int:
     # multiprocessing workers; has no effect on ordinary desktop launches.
     multiprocessing.freeze_support()
     helper = len(sys.argv) > 1 and sys.argv[1] == "--gpu-probe-output"
+    noninteractive = "--headless" in sys.argv[1:] or "--gpu-probe-output" in sys.argv[1:]
     log_path = None
     try:
         from eersim.runtime_paths import ensure_console_streams
@@ -44,10 +45,13 @@ def launch() -> int:
     except Exception:
         traceback.print_exc()
         code = 1
-    if code and not helper:
+    if code:
         if sys.stderr is not None:
             sys.stderr.flush()
-        _show_failure(log_path)
+        # Batch runs and graphics helpers report through exit codes/logs.
+        # A modal error box would block automation and open an unwanted window.
+        if not noninteractive:
+            _show_failure(log_path)
     return code
 
 
