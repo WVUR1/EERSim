@@ -1,4 +1,19 @@
-# Import the official VEX CAD
+# Tools
+
+## Physics performance
+
+From the activated source environment, run `python tools/benchmark_physics.py`.
+It measures the full claw field without opening windows or executing robot
+code, reporting fixed-step throughput and contact counts. The default wall
+budget is 30 seconds after loading; it stops at a complete physics tick.
+
+Use `--practice` for the simple field, `--config experiment.json` for a saved
+scene, `--json report.json` to save results, and `--profile timing.prof` for
+optional cProfile data. See [validation notes](../docs/validation.md#full-field-physics-profile)
+for measured limits and interpretation. This diagnostic requires the source
+Python environment.
+
+## Import the official VEX CAD
 
 The bundled Override visual meshes are derived from VEX Robotics' official
 2026–2027 field STEP assembly. OpenCASCADE measures the BReps and tessellates

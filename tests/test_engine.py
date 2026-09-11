@@ -2,6 +2,7 @@
 import time
 import copy
 from pathlib import Path
+from types import SimpleNamespace
 import pytest
 
 from PySide6.QtCore import QCoreApplication
@@ -98,5 +99,95 @@ def test_slow_physics_services_pause_and_retains_unprocessed_time(monkeypatch):
         assert any(state["paused"] and state["steps"] == 2 for state in states), states
         assert any(state["steps"] == 2 and not state["paused"]
                    and state["physics_backlog_s"] > .1 for state in states), states
+    finally:
+        worker.close()
+
+
+def test_rtf_counts_completed_work_and_resets_between_lifecycle_changes(monkeypatch):
+    """Startup/paused time and previous runs must not dilute measured throughput."""
+    app = QCoreApplication.instance() or QCoreApplication([])
+    states = []
+
+    class Clock:
+        now = 100.0
+
+        def advance(self, seconds):
+            self.now += seconds
+
+    clock = Clock()
+
+    class TimedSession:
+        dt = 1 / 240
+        renderer_status = {"device": "test renderer"}
+
+        def __init__(self, config, log):
+            clock.advance(3)  # Scene loading is not simulated time.
+            self.world = self
+            self.running = self.paused = False
+            self.manual_joints = {}
+            self.steps = 0
+
+        def start(self, mode, executable):
+            clock.advance(5)  # Reset/initialization cost precedes tick pacing.
+            self.running, self.paused = True, False
+
+        def step(self):
+            clock.advance(.25)
+            self.steps += 1
+            worker.pause()  # Observe the completed tick, then service pause.
+
+        def state(self):
+            return {"steps": self.steps, "running": self.running, "paused": self.paused}
+
+        def render(self, *args, **kwargs):
+            return None
+
+        def reset(self):
+            clock.advance(7)
+            self.running = self.paused = False
+            self.steps = 0
+
+        def stop(self):
+            self.running = self.paused = False
+
+        def close(self):
+            self.stop()
+
+    def wait_for(predicate):
+        deadline = time.monotonic() + 3
+        while not predicate() and time.monotonic() < deadline:
+            app.processEvents()
+            time.sleep(.002)
+        assert predicate(), states
+
+    # Patch only the engine's module reference; Qt and test deadlines use real time.
+    monkeypatch.setattr(engine, "time", SimpleNamespace(perf_counter=lambda: clock.now))
+    monkeypatch.setattr(engine, "Session", TimedSession)
+    worker = engine.SimulationEngine(defer_configuration=True)
+    worker.state.connect(states.append)
+    try:
+        worker.configure(default_config())
+        worker.start("skills_driver")
+        wait_for(lambda: states and states[-1]["running"])
+        assert states[-1]["real_time_factor"] == 0
+
+        for completed_steps in (1, 2):
+            if completed_steps == 2:
+                clock.advance(20)  # Paused wall time cannot enter the next sample.
+                worker.resume()
+                wait_for(lambda: not states[-1]["paused"])
+                assert states[-1]["real_time_factor"] == 0
+            clock.advance(.5)
+            wait_for(lambda: states[-1]["paused"] and states[-1]["steps"] == completed_steps)
+            completed = next(state for state in reversed(states)
+                             if state["steps"] == completed_steps and not state["paused"])
+            # One tick completed after 0.5 s pacing plus its own 0.25 s work.
+            assert completed["real_time_factor"] == pytest.approx((1 / 240) / .75)
+            assert completed["physics_backlog_s"] == pytest.approx(.5 - 1 / 240)
+            assert states[-1]["real_time_factor"] == 0
+
+        worker.reset()
+        wait_for(lambda: states[-1]["steps"] == 0 and not states[-1]["running"])
+        assert states[-1]["real_time_factor"] == 0
     finally:
         worker.close()

@@ -160,6 +160,10 @@ class SimulationEngine(QObject):
                             self.log.emit(f"Saved {len(session.samples)} telemetry samples to {args[0]}")
                         if action not in ("controller", "camera"):
                             last_wall = time.perf_counter()
+                            if action in ("configure", "build", "start", "pause", "resume", "stop", "reset"):
+                                # A new run must not inherit old ticks or include
+                                # scene loading, compilation, or paused wall time.
+                                measured_wall, measured_steps, rtf = last_wall, 0, 0.0
                             # Lifecycle changes must reach the GUI even when a
                             # render clears dirty before the next telemetry interval.
                             last_state = 0.0
@@ -189,10 +193,14 @@ class SimulationEngine(QObject):
                     else:
                         clock.pending = 0
                     last_wall = now
-                    elapsed = now - measured_wall
+                    # The accumulator keeps the pre-work timestamp so the next
+                    # pass includes this work in its backlog. Throughput instead
+                    # observes wall time after the counted ticks have completed.
+                    completed_at = time.perf_counter()
+                    elapsed = completed_at - measured_wall
                     if elapsed >= 0.5:
                         rtf = measured_steps * session.dt / elapsed
-                        measured_steps, measured_wall = 0, now
+                        measured_steps, measured_wall = 0, completed_at
                     if dirty and now - last_state >= 0.05:
                         self.state.emit({**session.state(), "real_time_factor": rtf,
                                          "physics_backlog_s": clock.pending})

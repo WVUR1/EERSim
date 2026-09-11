@@ -85,6 +85,52 @@ were preserved. This is a material limitation of the current CPU implementation;
 GPU graphics does not remove that contact cost. Use the fixed-piece layout for
 route iteration and the full scene when movable game-piece interactions matter.
 
+## Full-field physics profile
+
+A headless profile on an Intel Core i7-1185G7 with the Windows environment above
+measured 240 ticks of the loaded claw scene, with no robot program running.
+Scene loading was excluded. One simulated second took 50.85 wall seconds
+(0.0197x). `pybullet.stepSimulation` accounted for 49.06 seconds, or 96.5% of
+the measured time; 2,753 contact points remained after that interval. This is
+a settling-field profile, not a complete native claw run or a measurement of
+the user's Ryzen/GeForce machine.
+
+The field has 36 cups with 64 convex collision leaves each, plus 37 pins with
+seven leaves each, before the demo preload. A short native Bullet trace shows
+substantial work in both collision detection and constraint solving. The
+installed PyBullet build provides serial CPU dynamics; VTK/OpenGL accelerates
+graphics only. Python threads cannot parallelize this world's causal physics
+ticks. Separate processes can run independent experiments concurrently, but
+that does not accelerate a single field's timeline.
+
+An experimental maximal-coordinate prop representation improved the short
+profile only to 0.0256x and changes how leaf collision margins are applied.
+It was not adopted. Alternative SAT contacts and larger solver batches did
+not establish a useful improvement. The production timestep, 100 solver
+iterations, collision geometry, and rest thresholds remain unchanged.
+
+GPU dynamics would require a backend adapter and renewed contact, joint, motor,
+and sensor validation. The [PhysX GPU backend](https://nvidia-omniverse.github.io/PhysX/physx/5.6.1/docs/GPURigidBodies.html)
+supports CUDA physics and articulations on Windows, but does not guarantee a
+particular speedup for this scene. This release does not implement that backend.
+
+The source GUI now measures RTF using the wall-clock timestamp after its counted
+ticks finish and resets the measurement across lifecycle changes. This corrects
+reporting; it does not speed up the physics solver.
+
+For comparable measurements from a source environment, run:
+
+```powershell
+python tools/benchmark_physics.py --ticks 240 --max-wall-seconds 120 --json .sim-tools/physics-benchmark.json --profile .sim-tools/physics-benchmark.prof
+python -m pstats .sim-tools/physics-benchmark.prof
+```
+
+The benchmark opens no windows and runs no robot code. Add `--practice` to
+measure the simpler field or `--config experiment.json` for a saved scene.
+Its default 30-second wall budget stops at a complete tick and reports the
+actual number of measured ticks. Load/warmup time is excluded; profiling adds
+overhead. Do not run competing benchmarks at the same time.
+
 ## Installed package
 
 A wheel was installed into a separate environment and tested from a directory
