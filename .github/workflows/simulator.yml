@@ -33,6 +33,11 @@ jobs:
         run: |
           python -m pip install -e . --no-deps
           python -m pip check
+      - name: Install Qt runtime library
+        # QtGui links EGL even for import-only tests that create no window.
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libegl1
       - name: Verify physics environment
         run: |
           python - <<'PY'
@@ -40,6 +45,7 @@ jobs:
           import json
           from pathlib import Path
           import sys
+          from PySide6 import QtGui  # Import only; no QApplication or graphics context.
           records = [json.loads(path.read_text()) for path in (Path(sys.prefix) / "conda-meta").glob("pybullet-*.json")]
           assert len(records) == 1 and records[0]["version"] == "3.25", "CI must use environment.yml's conda-forge Bullet 3.25"
           for name in ("pybullet", "numpy", "PySide6", "vtk", "pytest"):
