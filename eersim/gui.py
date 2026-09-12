@@ -14,10 +14,10 @@ import sys
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from PySide6.QtCore import QEvent, QPointF, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QImage, QKeyEvent, QPainter, QPen
+from PySide6.QtCore import QEvent, QPointF, QRectF, QStandardPaths, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QFont, QIcon, QImage, QKeyEvent, QPainter, QPen
 from PySide6.QtWidgets import (
-    QApplication, QButtonGroup, QComboBox, QDoubleSpinBox, QDialog, QDialogButtonBox,
+    QApplication, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView,
     QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QProgressBar,
     QPushButton, QScrollArea, QSizePolicy, QSpinBox, QSplitter,
@@ -55,6 +55,48 @@ DIGITAL_NAMES = ("l1", "l2", "r1", "r2", "up", "down", "left", "right", "x", "b"
 CARTRIDGES = {name: (preset.label, preset.rpm, preset.stall_torque)
               for name, preset in PHYSICAL_CARTRIDGES.items()}
 APPLY_STATUS = "Applying experiment settings and resetting physics…"
+
+
+class AppLogoState:
+    """Resolve expressive branding without letting routine telemetry erase outcomes."""
+
+    def __init__(self):
+        self.outcome = "happy"
+        self.error = False
+        self._was_running = False
+        self._manual_stop = False
+
+    def event(self, event):
+        if event == "error":
+            self.error = True
+            return
+        self.error = False
+        self.outcome = {"success": "done_confirm_good", "stopped": "snooze",
+                        "robot_import": "love", "field_import": "wink"}.get(event, "happy")
+        self._manual_stop = event == "stopped"
+        if event in ("begin", "reset"):
+            self._was_running = False
+
+    def observe(self, state):
+        running = bool(state.get("running"))
+        if self._was_running and not running:
+            duration = float(state.get("duration", 0))
+            complete = duration > 0 and float(state.get("mode_time", 0)) >= duration - 1e-8
+            self.outcome = "done_confirm_good" if complete and not self._manual_stop else "snooze"
+        self._was_running = running
+
+    def name(self, state, *, building=False, loading=False):
+        if self.error:
+            return "question_confused"
+        if building or loading:
+            return "alert_normal"
+        if state.get("paused"):
+            return "snooze"
+        if state.get("running"):
+            if state.get("phase") == "initialize":
+                return "alert_normal"
+            return "swag" if state.get("mode") in ("skills_driver", "driver_auto") else "alert_happy"
+        return self.outcome
 
 
 def label(text: str, name: str = "", wrap: bool = False) -> QLabel:
@@ -105,6 +147,79 @@ def fit_window(window: QWidget, width: int, height: int, minimum_width: int = 11
     max_height = max(480, available.height() - 48) if available else height
     window.setMinimumSize(min(minimum_width, max_width), min(640, max_height))
     window.resize(min(width, max_width), min(height, max_height))
+
+
+class DiagnosticsExportDialog(QDialog):
+    """Choose a reproducible diagnostic run without starting physics or graphics."""
+
+    def __init__(self, destination: str, mode: str = "skills_auto", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Export performance diagnostics")
+        self.setStyleSheet(STYLESHEET + "QDialog { background: #101e2d; }")
+        self.setMinimumWidth(480)
+        self.resize(580, 430)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(22, 20, 22, 20)
+        layout.setSpacing(13)
+        layout.addWidget(label("PERFORMANCE DIAGNOSTICS", "Section"))
+        layout.addWidget(label("Export the settings currently shown, including edits you have not applied. Run the exported script later on this computer to measure performance.", "Muted", True))
+        form = QFormLayout()
+        folder_row = QHBoxLayout()
+        self.destination = QLineEdit(destination)
+        self.destination.setReadOnly(True)
+        self.destination.setToolTip("A new diagnostic folder will be created inside this location.")
+        folder_row.addWidget(self.destination, 1)
+        folder_row.addWidget(button("Browse…", self._browse))
+        form.addRow("Export location", folder_row)
+        self.mode = QComboBox()
+        for value, caption, _, _ in MODES:
+            self.mode.addItem(caption, value)
+        selected = self.mode.findData(mode)
+        self.mode.setCurrentIndex(selected if selected >= 0 else self.mode.findData("skills_auto"))
+        form.addRow("Robot program mode", self.mode)
+        self.wall_seconds = QSpinBox()
+        self.wall_seconds.setRange(60, 600)
+        self.wall_seconds.setSingleStep(30)
+        self.wall_seconds.setValue(120)
+        self.wall_seconds.setSuffix(" s per case")
+        self.wall_seconds.setToolTip("Wall-clock measurement budget for each case. Scene loading, native compilation, and cleanup add time.")
+        form.addRow("Wall-time limit", self.wall_seconds)
+        layout.addLayout(form)
+        self.compare_rates = QCheckBox("Compare 120 Hz and 240 Hz")
+        self.compare_rates.setChecked(True)
+        self.compare_rates.setToolTip("Run two separate cases. Uncheck to use the physics frequency currently shown in Field.")
+        layout.addWidget(self.compare_rates)
+        self.include_rendering = QCheckBox("Measure rendering separately")
+        self.include_rendering.setChecked(True)
+        self.include_rendering.setToolTip("After physics measurement, time a stationary scene with the selected renderer. No images are saved.")
+        layout.addWidget(self.include_rendering)
+        layout.addWidget(label("Driver modes use neutral controller input. The scripts keep local robot, field, and workspace paths; use them on this computer. Exporting does not run the tests.", "Muted", True))
+        layout.addWidget(label("The report ZIP excludes raw PROS source and asset files. Nothing is uploaded automatically.", "Muted", True))
+        self.error = label("", "Muted", True)
+        layout.addWidget(self.error)
+        actions = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        actions.button(QDialogButtonBox.StandardButton.Ok).setText("Export diagnostics")
+        actions.button(QDialogButtonBox.StandardButton.Ok).setObjectName("Primary")
+        actions.accepted.connect(self._accept_destination)
+        actions.rejected.connect(self.reject)
+        layout.addWidget(actions)
+
+    def _browse(self):
+        selected = QFileDialog.getExistingDirectory(self, "Choose diagnostic export location", self.destination.text())
+        if selected:
+            self.destination.setText(selected)
+            self.error.setText("")
+
+    def _accept_destination(self):
+        if not self.destination.text().strip() or not Path(self.destination.text()).expanduser().is_dir():
+            self.error.setText("Choose an existing folder for the diagnostic export.")
+            return
+        self.accept()
+
+    def options(self):
+        return {"destination": Path(self.destination.text()).expanduser(), "mode": self.mode.currentData(),
+                "wall_seconds": self.wall_seconds.value(), "compare_rates": self.compare_rates.isChecked(),
+                "include_rendering": self.include_rendering.isChecked()}
 
 
 class RobotImportDialog(QDialog):
@@ -617,6 +732,9 @@ class Workbench(QMainWindow):
         self._building = False
         self._pending_scene_applies = 0
         self._scene_apply_ready = False
+        self._logo = AppLogoState()
+        self._logo_cache = {}
+        self._shown_logo = None
         self._mode = "skills_auto"
         self._keys: set[int] = set()
         self._controller = {"analog": {name: 0 for name in ANALOG_NAMES},
@@ -633,6 +751,7 @@ class Workbench(QMainWindow):
         layout.setContentsMargins(18, 14, 18, 6)
         layout.setSpacing(12)
         self._make_header(layout, workspace)
+        self._refresh_logo()
         split = QSplitter(Qt.Orientation.Horizontal)
         split.setHandleWidth(12)
         split.setChildrenCollapsible(False)
@@ -659,6 +778,11 @@ class Workbench(QMainWindow):
 
     def _make_header(self, parent, workspace):
         header = QHBoxLayout()
+        self.brand_logo = QLabel()
+        self.brand_logo.setFixedSize(58, 62)
+        self.brand_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.brand_logo.setAccessibleName("EERSim status logo")
+        header.addWidget(self.brand_logo)
         identity = QVBoxLayout()
         identity.setSpacing(0)
         identity.addWidget(label("EER / SIM", "Brand"))
@@ -677,6 +801,37 @@ class Workbench(QMainWindow):
         self.status_badge = label("LOADING WORLD", "Badge")
         header.addWidget(self.status_badge)
         parent.addLayout(header)
+
+    def _logo_event(self, event):
+        self._logo.event(event)
+        self._refresh_logo()
+
+    def _refresh_logo(self):
+        state = self._state
+        loading = not state or bool(self._pending_scene_applies or self._scene_apply_ready)
+        name = self._logo.name(state, building=self._building, loading=loading)
+        if name == self._shown_logo:
+            return
+        if name not in self._logo_cache:
+            icon = QIcon(str(ASSETS / "logos" / f"{name}.png"))
+            if icon.isNull():
+                icon = QIcon(str(ASSETS / "logos" / "happy.png"))
+            if icon.isNull():
+                return
+            self._logo_cache[name] = (icon, icon.pixmap(54, 60))
+        icon, pixmap = self._logo_cache[name]
+        self._shown_logo = name
+        self.setWindowIcon(icon)
+        application = QApplication.instance()
+        if application is not None:
+            application.setWindowIcon(icon)
+        self.brand_logo.setPixmap(pixmap)
+        caption = {"happy": "Ready", "snooze": "Paused or stopped", "alert_normal": "Loading, initializing, or building",
+                   "alert_happy": "Autonomous program running", "swag": "Driver program running",
+                   "done_confirm_good": "Completed", "question_confused": "Needs attention",
+                   "love": "Robot imported", "wink": "Field imported"}[name]
+        self.brand_logo.setToolTip(caption)
+        self.brand_logo.setAccessibleName("EERSim: " + caption)
 
     def _make_scene(self):
         pane = QWidget()
@@ -1022,6 +1177,10 @@ class Workbench(QMainWindow):
         self.telemetry_table.setMinimumHeight(160)
         layout.addWidget(self.telemetry_table)
         layout.addWidget(button("Export telemetry CSV…", self._export_csv))
+        layout.addWidget(button("Export performance diagnostics…", self._export_diagnostics))
+        self.diagnostics_status = label("Create a script to measure these settings on your computer.", "Muted", True)
+        self.diagnostics_status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self.diagnostics_status)
         heading = QHBoxLayout()
         heading.addWidget(label("BUILD & RUNTIME LOG", "Section"))
         heading.addStretch()
@@ -1153,6 +1312,7 @@ class Workbench(QMainWindow):
             self._neutral_controller()
             self._pending_scene_applies += 1
             self._scene_apply_ready = False
+            self._logo_event("begin")
             self.engine.configure(config)
             self.engine.set_camera(self.scene.yaw, self.scene.pitch, self.scene.distance, self.scene.target)
             self.statusBar().showMessage(APPLY_STATUS)
@@ -1186,6 +1346,7 @@ class Workbench(QMainWindow):
             self._on_failed("Select a PROS workspace containing a src folder.")
             return
         self._building = True
+        self._logo_event("begin")
         self._built_workspace = None
         self._pending_workspace = str(workspace)
         self.build_button.setEnabled(False)
@@ -1199,6 +1360,7 @@ class Workbench(QMainWindow):
     def _on_built(self, path):
         self._building = False
         self._built_workspace = self._pending_workspace
+        self._logo_event("success")
         self.build_button.setEnabled(True)
         self.build_button.setText("Rebuild workspace")
         self.workspace.setEnabled(True)
@@ -1228,10 +1390,12 @@ class Workbench(QMainWindow):
 
     def _stop(self):
         self._neutral_controller()
+        self._logo_event("stopped")
         self.engine.stop()
 
     def _reset(self):
         self._neutral_controller()
+        self._logo_event("reset")
         self.engine.reset()
 
     def _select_mode(self, mode):
@@ -1358,6 +1522,7 @@ class Workbench(QMainWindow):
         for warning in inspection.get("warnings", []):
             self._log("URDF: " + str(warning))
         self.statusBar().showMessage("Robot imported. Adjust start height and click Apply settings to load it into the field.")
+        self._logo_event("robot_import")
 
     def _edit_robot_setup(self):
         self._urdf_selected(self.urdf_path.text(), current=True)
@@ -1426,6 +1591,7 @@ class Workbench(QMainWindow):
             for warning in imported.get("metadata", {}).get("warnings", []):
                 self._log("Field import: " + str(warning))
             self.statusBar().showMessage("Field imported. Click Apply settings to load its geometry.")
+            self._logo_event("field_import")
         except (OSError, ValueError, TypeError, KeyError) as exc:
             self.game_path.setText(str(self.config.get("game_pack", "")))
             self._on_failed(f"Could not import field: {exc}")
@@ -1492,6 +1658,7 @@ class Workbench(QMainWindow):
             save_config(config, path)
             self._profile_path = path
             self.statusBar().showMessage(f"Saved experiment profile: {path}")
+            self._logo_event("success")
         except (OSError, ValueError) as exc:
             self._on_failed(str(exc))
 
@@ -1534,6 +1701,34 @@ class Workbench(QMainWindow):
                 self.engine.export_csv(path)
         except OSError as exc:
             self._on_failed(str(exc))
+
+    def _export_diagnostics(self):
+        try:
+            destination = getattr(self, "_diagnostics_directory", "")
+            if not destination or not Path(destination).is_dir():
+                destination = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+            if not destination or not Path(destination).is_dir():
+                destination = str(Path.home())
+            dialog = DiagnosticsExportDialog(destination, getattr(self, "_mode", "skills_auto"), self)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+            options = dialog.options()
+            from .diagnostics_export import export_diagnostics
+            exported = export_diagnostics(self._collect_config(), **options)
+            self._diagnostics_directory = str(options["destination"])
+            run = ("Run in PowerShell inside that folder:\npowershell -NoProfile -ExecutionPolicy Bypass -File .\\run-diagnostics.ps1"
+                   if sys.platform == "win32" else "See the instructions in the exported folder to run the diagnostics.")
+            message = f"Diagnostics exported to {exported}\n{run}"
+            self.diagnostics_status.setText(message)
+            self._log(message.replace("\n", " · "))
+            self.statusBar().showMessage(f"Performance diagnostics exported to {exported}")
+            self._logo_event("success")
+        except (OSError, ValueError) as exc:
+            message = f"Could not export performance diagnostics: {exc}"
+            self.diagnostics_status.setText(message)
+            self._log("ERROR: " + message)
+            self.statusBar().showMessage(message)
+            self._logo_event("error")
 
     def _key(self, key, down):
         if down:
@@ -1645,6 +1840,8 @@ class Workbench(QMainWindow):
             if self.statusBar().currentMessage() == APPLY_STATUS:
                 self.statusBar().clearMessage()
         self._state = state
+        self._logo.observe(state)
+        self._refresh_logo()
         running, paused = bool(state.get("running", False)), bool(state.get("paused", False))
         elapsed = float(state.get("time", 0))
         duration = float(state.get("duration", 0)) or self.duration_fields[self._mode].value()
@@ -1724,6 +1921,7 @@ class Workbench(QMainWindow):
         self._pending_scene_applies = 0
         self._scene_apply_ready = False
         self._building = False
+        self._logo_event("error")
         self.build_button.setEnabled(not self._state.get("running", False))
         self.build_button.setText("Build workspace")
         self.workspace.setEnabled(True)
@@ -1746,6 +1944,7 @@ def run(config: dict | None = None, workspace: str | None = None) -> int:
     app.setApplicationName("EER SIM")
     app.setOrganizationName("WVU Robotics")
     app.setStyle("Fusion")
+    app.setWindowIcon(QIcon(str(ASSETS / "logos" / "happy.png")))
     window = Workbench(config=config, workspace=workspace)
     window.show()
     return app.exec()

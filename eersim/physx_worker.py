@@ -13,6 +13,8 @@ from pathlib import Path
 import sys
 import traceback
 
+from .performance import PerformanceRecorder
+
 
 def cuda_device_info(index: int = 0) -> dict:
     """Query the CUDA driver without importing PhysX or creating a GL window."""
@@ -54,6 +56,7 @@ def cuda_device_info(index: int = 0) -> dict:
 class PhysXProcess:
     """Bounded, synchronous control channel to a private physics process."""
     def __init__(self, scene: Path, manifest: dict, config: dict, work: Path):
+        self.performance = PerformanceRecorder()
         self.failed = False
         self.work = Path(work)
         self.work.mkdir(parents=True, exist_ok=True)
@@ -62,10 +65,12 @@ class PhysXProcess:
         self.connection, child = context.Pipe()
         self.process = context.Process(target=_worker_main,
             args=(child, str(scene), manifest, config, str(self.work)), daemon=True)
-        self.process.start()
+        with self.performance.span("physx.process.spawn"):
+            self.process.start()
         child.close()
         try:
-            self.initial = self._receive(180)
+            with self.performance.span("physx.process.ready"):
+                self.initial = self._receive(180)
         except BaseException:
             self.close()
             raise
@@ -90,15 +95,16 @@ class PhysXProcess:
         return payload
 
     def call(self, command: str, payload=None):
-        if not self.process.is_alive():
-            self.failed = True
-            raise RuntimeError(f'PhysX worker is not running; see {self.log_path}')
-        try:
-            self.connection.send((command, payload))
-            return self._receive(60)
-        except (EOFError, BrokenPipeError, OSError):
-            self.failed = True
-            raise RuntimeError(f'PhysX worker connection failed; see {self.log_path}') from None
+        with self.performance.span(f"physx.rpc.{command}"):
+            if not self.process.is_alive():
+                self.failed = True
+                raise RuntimeError(f'PhysX worker is not running; see {self.log_path}')
+            try:
+                self.connection.send((command, payload))
+                return self._receive(60)
+            except (EOFError, BrokenPipeError, OSError):
+                self.failed = True
+                raise RuntimeError(f'PhysX worker connection failed; see {self.log_path}') from None
 
     def close(self):
         process = getattr(self, 'process', None)
@@ -117,7 +123,8 @@ class PhysXProcess:
 
 
 class _Runtime:
-    def __init__(self, scene, manifest, config, work):
+    def __init__(self, scene, manifest, config, work, performance=None):
+        self.performance = performance if performance is not None else PerformanceRecorder()
         import numpy as np
         import ovstage
         from ovphysx import PhysX, PhysXConfig, TensorType
@@ -190,7 +197,14 @@ class _Runtime:
             self._bind('body_wrenches', TensorType.RIGID_BODY_WRENCH, prim_paths=self.regular_paths)
             self.regular_paths = self.bindings['body_wrenches'].prim_paths
         # Do not call warmup_gpu(): that performs a real 1 ns step in 0.5.11.
-        self.physx.step_sync(self.dt)
+        with self.performance.span("worker.native.bootstrap"):
+            self.physx.step_sync(self.dt)
+        if self.performance.enabled:
+            self.performance.increment("worker.bootstrap_steps")
+            self.performance.gauge("scene.dynamic_actors", len(self.actor_paths))
+            self.performance.gauge("scene.articulation_links", len(self.articulation_actor_rows))
+            self.performance.gauge("scene.dofs", len(self.dof_names))
+            self.performance.gauge("scene.collision_shapes", manifest.get("counts", {}).get("collision_shapes", 0))
         verified = {}
         if gpu:
             from .physx_verification import verify_gpu_scene
@@ -219,31 +233,58 @@ class _Runtime:
         self.buffers[name] = self.np.zeros(binding.shape, dtype=self.np.float32)
 
     def state(self):
-        for key in ('poses', 'velocities', 'q', 'qd'):
-            if key in self.bindings:
-                self.bindings[key].read(self.buffers[key])
-                if not self.np.isfinite(self.buffers[key]).all():
-                    raise RuntimeError(f'Non-finite PhysX {key}; simulation stopped')
-        return {'poses': self.buffers['poses'].copy(), 'velocities': self.buffers['velocities'].copy(),
-                'q': self.buffers.get('q', self.np.empty((1, 0))).copy(),
-                'qd': self.buffers.get('qd', self.np.empty((1, 0))).copy(),
-                **self.contacts.capture_runtime(self.manifest['robot']['body_id'])}
+        with self.performance.span("worker.state.read"):
+            reads = 0
+            for key in ('poses', 'velocities', 'q', 'qd'):
+                if key in self.bindings:
+                    self.bindings[key].read(self.buffers[key])
+                    reads += 1
+                    if not self.np.isfinite(self.buffers[key]).all():
+                        raise RuntimeError(f'Non-finite PhysX {key}; simulation stopped')
+            result = {'poses': self.buffers['poses'].copy(), 'velocities': self.buffers['velocities'].copy(),
+                      'q': self.buffers.get('q', self.np.empty((1, 0))).copy(),
+                      'qd': self.buffers.get('qd', self.np.empty((1, 0))).copy()}
+        with self.performance.span("worker.contacts.read_convert"):
+            contacts = self.contacts.capture_runtime(self.manifest['robot']['body_id'])
+        result.update(contacts)
+        if self.performance.enabled:
+            self.performance.increment("worker.state.tensor_reads", reads)
+            raw = int(self.contacts._counts.sum())
+            self.performance.increment("worker.contacts.raw_reports", raw)
+            self.performance.gauge("worker.contacts.raw_reports_last", raw)
+            self.performance.gauge("worker.contacts.materialized_last", len(contacts['contacts']))
+            self.performance.gauge("worker.contacts.body_pairs_last", len(contacts['contact_body_pairs']))
+        return result
+
+    def diagnostics(self, payload=None):
+        payload = {} if payload is None else payload
+        if (not isinstance(payload, dict) or set(payload) - {'reset'} or
+                not isinstance(payload.get('reset', False), bool)):
+            raise ValueError('Diagnostics accepts only an optional boolean reset flag')
+        return {'performance': self.performance.snapshot(reset=payload.get('reset', False))}
 
     def step(self, controls):
-        for key in ('target_velocity', 'target_position', 'max_force', 'stiffness', 'damping', 'effort'):
-            if key in self.bindings:
-                self.buffers[key][...] = controls[key]
-                self.bindings[key].write(self.buffers[key])
-        wrenches = controls['wrenches']
-        if 'body_wrenches' in self.bindings:
-            values = self.buffers['body_wrenches']
-            for row, path in enumerate(self.regular_paths):
-                values[row] = wrenches[self.actor_rows[path]]
-            self.bindings['body_wrenches'].write(values)
-        if 'link_wrenches' in self.bindings:
-            self.buffers['link_wrenches'][0, ...] = wrenches[self.articulation_actor_rows]
-            self.bindings['link_wrenches'].write(self.buffers['link_wrenches'])
-        self.physx.step_sync(self.dt)
+        with self.performance.span('worker.control.write'):
+            for key in ('target_velocity', 'target_position', 'max_force', 'stiffness', 'damping', 'effort'):
+                if key in self.bindings:
+                    self.buffers[key][...] = controls[key]
+                    self.bindings[key].write(self.buffers[key])
+            wrenches = controls['wrenches']
+            if 'body_wrenches' in self.bindings:
+                values = self.buffers['body_wrenches']
+                for row, path in enumerate(self.regular_paths):
+                    values[row] = wrenches[self.actor_rows[path]]
+                self.bindings['body_wrenches'].write(values)
+            if 'link_wrenches' in self.bindings:
+                self.buffers['link_wrenches'][0, ...] = wrenches[self.articulation_actor_rows]
+                self.bindings['link_wrenches'].write(self.buffers['link_wrenches'])
+        with self.performance.span("worker.native.step"):
+            self.physx.step_sync(self.dt)
+        if self.performance.enabled:
+            self.performance.increment("worker.steps")
+            self.performance.increment("worker.control.tensor_writes", sum(
+                key in self.bindings for key in ("target_velocity", "target_position", "max_force",
+                    "stiffness", "damping", "effort", "body_wrenches", "link_wrenches")))
         return self.state()
 
     def raycast(self, rays):
@@ -286,7 +327,9 @@ def _worker_main(connection, scene, manifest, config, work):
                 os.dup2(stream.fileno(), descriptor)
             except OSError:
                 pass
-        runtime = _Runtime(Path(scene), manifest, config, work)
+        performance = PerformanceRecorder()
+        with performance.span("worker.setup"):
+            runtime = _Runtime(Path(scene), manifest, config, work, performance=performance)
         connection.send((True, {'state': runtime.state(), 'actor_paths': runtime.actor_paths,
                                'dof_names': runtime.dof_names, 'physics_status': runtime.status}))
         while True:
@@ -296,11 +339,17 @@ def _worker_main(connection, scene, manifest, config, work):
             if command == 'step':
                 result = runtime.step(payload)
             elif command == 'raycast':
-                result = runtime.raycast(payload)
+                with runtime.performance.span("worker.sensor.raycast"):
+                    result = runtime.raycast(payload)
+                if runtime.performance.enabled:
+                    runtime.performance.increment("worker.sensor.rays", len(payload))
             elif command == 'contacts':
                 # Explicit diagnostics fetch full manifolds from this same
                 # completed tick; the normal snapshot sends only robot points.
-                result = runtime.contacts.capture()
+                with runtime.performance.span("worker.contacts.full_capture"):
+                    result = runtime.contacts.capture()
+            elif command == 'diagnostics':
+                result = runtime.diagnostics(payload)
             else:
                 raise ValueError(f'Unknown physics request {command}')
             connection.send((True, result))

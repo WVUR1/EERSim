@@ -24,6 +24,8 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import pybullet as p
 
+from .performance import PerformanceRecorder
+
 from .config import SimConfig
 from .motor import cartridge_for, pwm_no_load_speed, pwm_torque, torque_fraction
 
@@ -68,12 +70,14 @@ class World:
     """
 
     def __init__(self, config: dict[str, Any] | SimConfig | None = None):
+        self.performance = PerformanceRecorder()
         self._physics = p
         self.client = self._physics.connect(self._physics.DIRECT)
         if self.client < 0:
             raise RuntimeError("Could not create a PyBullet physics connection")
         try:
-            self.reset(config)
+            with self.performance.span("world.setup"):
+                self.reset(config)
         except Exception:
             self.close()
             raise
@@ -537,76 +541,79 @@ class World:
         return torque
 
     def _apply_motors(self) -> None:
-        torques: dict[int, float] = {}
-        linear_limits: dict[int, float] = {}
-        servos: dict[int, list[tuple[dict[str, Any], float, float]]] = {}
-        self._servo_loads = {}
-        for motor in self.motor_bindings:
-            position, velocity, _, _ = self._physics.getJointState(self.robot, motor["index"], physicsClientId=self.client)
-            factor = motor["factor"] * motor["sign"]
-            command = self._commands["motors"].get(str(motor["port"]), {})
-            servo = self._servo_command(motor, position * factor, velocity * factor, command)
-            if servo is not None:
-                target, bound = servo
-                force = bound * abs(factor) * motor["efficiency"]
-                servos.setdefault(motor["index"], []).append((motor, target / factor, force))
-                continue
-            torque = self._motor_torque(motor, position * factor, velocity * factor, command)
-            bound = min(motor["stall_torque"] * motor["current_limit"] / 2.5,
-                        motor["max_power"] / max(abs(velocity * factor), .001))
-            torque = _clip(torque, -bound, bound)
-            self._last_torques[motor["port"]] = torque
-            torques[motor["index"]] = torques.get(motor["index"], 0) + torque * factor * motor["efficiency"]
-            if self._joint_info[motor["joint"]][2] == self._physics.JOINT_PRISMATIC:
-                limit = motor["rpm"] * math.pi / 30 / abs(factor)
-                linear_limits[motor["index"]] = min(linear_limits.get(motor["index"], limit), limit)
-        for index, torque in torques.items():
-            if index in linear_limits:
-                # Screw reductions can produce a very stiff actuator. Bullet's
-                # implicit finite-force motor enforces the V5 speed bound without
-                # an explicit force overshooting many revolutions in one tick.
-                self._physics.setJointMotorControl2(self.robot, index, self._physics.VELOCITY_CONTROL,
-                                       targetVelocity=math.copysign(linear_limits[index], torque),
-                                       force=abs(torque), physicsClientId=self.client)
-            else:
-                self._physics.setJointMotorControl2(self.robot, index, self._physics.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
-                self._physics.setJointMotorControl2(self.robot, index, self._physics.TORQUE_CONTROL, force=torque, physicsClientId=self.client)
-        for index, group in servos.items():
-            total = sum(force for _, _, force in group)
-            if total == 0 and index in torques:
-                for motor, _, _ in group:
-                    self._last_torques[motor["port"]] = 0
-                continue
-            target = sum(target * force for _, target, force in group) / total if total > 0 else 0
-            self._physics.setJointMotorControl2(self.robot, index, self._physics.VELOCITY_CONTROL, targetVelocity=target,
-                                   force=total, velocityGain=1, physicsClientId=self.client)
-            self._servo_loads[index] = [(motor, force / total if total else 0) for motor, _, force in group]
-        for piston in self._pneumatics:
-            value = self._commands["adi"].get(str(piston["port"]).upper(), False)
-            target = float(piston.get("extended", 0.05) if value else piston.get("retracted", 0))
-            self._physics.setJointMotorControl2(self.robot, piston["index"], self._physics.POSITION_CONTROL, targetPosition=target,
-                                   force=float(piston.get("force", 40)), maxVelocity=float(piston.get("max_velocity", 1)),
-                                   positionGain=0.15, velocityGain=1, physicsClientId=self.client)
-        for name, command in self._commands["joints"].items():
-            if isinstance(command, (int, float)):
-                command = {"mode": "position", "value": command}
-            info = self._require_joint(name)
-            mode = command.get("mode", "position")
-            value = float(command.get("value", 0))
-            if not math.isfinite(value):
-                raise ValueError("Joint command must be finite")
-            force = min(abs(float(command.get("force", info[10] or 10))), info[10] or 1000)
-            if mode == "position":
-                if info[8] <= info[9]:
-                    value = _clip(value, info[8], info[9])
-                self._physics.setJointMotorControl2(self.robot, info[0], self._physics.POSITION_CONTROL, targetPosition=value, force=force, physicsClientId=self.client)
-            elif mode == "velocity":
-                self._physics.setJointMotorControl2(self.robot, info[0], self._physics.VELOCITY_CONTROL, targetVelocity=value, force=force, physicsClientId=self.client)
-            elif mode == "torque":
-                self._physics.setJointMotorControl2(self.robot, info[0], self._physics.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
-                self._physics.setJointMotorControl2(self.robot, info[0], self._physics.TORQUE_CONTROL, force=_clip(value, -force, force), physicsClientId=self.client)
-            else:
-                raise ValueError(f"Unknown joint control mode '{mode}'")
+        with self.performance.span('world.control.motors'):
+            torques: dict[int, float] = {}
+            linear_limits: dict[int, float] = {}
+            servos: dict[int, list[tuple[dict[str, Any], float, float]]] = {}
+            self._servo_loads = {}
+            for motor in self.motor_bindings:
+                position, velocity, _, _ = self._physics.getJointState(self.robot, motor["index"], physicsClientId=self.client)
+                factor = motor["factor"] * motor["sign"]
+                command = self._commands["motors"].get(str(motor["port"]), {})
+                servo = self._servo_command(motor, position * factor, velocity * factor, command)
+                if servo is not None:
+                    target, bound = servo
+                    force = bound * abs(factor) * motor["efficiency"]
+                    servos.setdefault(motor["index"], []).append((motor, target / factor, force))
+                    continue
+                torque = self._motor_torque(motor, position * factor, velocity * factor, command)
+                bound = min(motor["stall_torque"] * motor["current_limit"] / 2.5,
+                            motor["max_power"] / max(abs(velocity * factor), .001))
+                torque = _clip(torque, -bound, bound)
+                self._last_torques[motor["port"]] = torque
+                torques[motor["index"]] = torques.get(motor["index"], 0) + torque * factor * motor["efficiency"]
+                if self._joint_info[motor["joint"]][2] == self._physics.JOINT_PRISMATIC:
+                    limit = motor["rpm"] * math.pi / 30 / abs(factor)
+                    linear_limits[motor["index"]] = min(linear_limits.get(motor["index"], limit), limit)
+            for index, torque in torques.items():
+                if index in linear_limits:
+                    # Screw reductions can produce a very stiff actuator. Bullet's
+                    # implicit finite-force motor enforces the V5 speed bound without
+                    # an explicit force overshooting many revolutions in one tick.
+                    self._physics.setJointMotorControl2(self.robot, index, self._physics.VELOCITY_CONTROL,
+                                           targetVelocity=math.copysign(linear_limits[index], torque),
+                                           force=abs(torque), physicsClientId=self.client)
+                else:
+                    self._physics.setJointMotorControl2(self.robot, index, self._physics.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
+                    self._physics.setJointMotorControl2(self.robot, index, self._physics.TORQUE_CONTROL, force=torque, physicsClientId=self.client)
+            for index, group in servos.items():
+                total = sum(force for _, _, force in group)
+                if total == 0 and index in torques:
+                    for motor, _, _ in group:
+                        self._last_torques[motor["port"]] = 0
+                    continue
+                target = sum(target * force for _, target, force in group) / total if total > 0 else 0
+                self._physics.setJointMotorControl2(self.robot, index, self._physics.VELOCITY_CONTROL, targetVelocity=target,
+                                       force=total, velocityGain=1, physicsClientId=self.client)
+                self._servo_loads[index] = [(motor, force / total if total else 0) for motor, _, force in group]
+        with self.performance.span('world.control.pneumatics'):
+            for piston in self._pneumatics:
+                value = self._commands["adi"].get(str(piston["port"]).upper(), False)
+                target = float(piston.get("extended", 0.05) if value else piston.get("retracted", 0))
+                self._physics.setJointMotorControl2(self.robot, piston["index"], self._physics.POSITION_CONTROL, targetPosition=target,
+                                       force=float(piston.get("force", 40)), maxVelocity=float(piston.get("max_velocity", 1)),
+                                       positionGain=0.15, velocityGain=1, physicsClientId=self.client)
+        with self.performance.span('world.control.manual_joints'):
+            for name, command in self._commands["joints"].items():
+                if isinstance(command, (int, float)):
+                    command = {"mode": "position", "value": command}
+                info = self._require_joint(name)
+                mode = command.get("mode", "position")
+                value = float(command.get("value", 0))
+                if not math.isfinite(value):
+                    raise ValueError("Joint command must be finite")
+                force = min(abs(float(command.get("force", info[10] or 10))), info[10] or 1000)
+                if mode == "position":
+                    if info[8] <= info[9]:
+                        value = _clip(value, info[8], info[9])
+                    self._physics.setJointMotorControl2(self.robot, info[0], self._physics.POSITION_CONTROL, targetPosition=value, force=force, physicsClientId=self.client)
+                elif mode == "velocity":
+                    self._physics.setJointMotorControl2(self.robot, info[0], self._physics.VELOCITY_CONTROL, targetVelocity=value, force=force, physicsClientId=self.client)
+                elif mode == "torque":
+                    self._physics.setJointMotorControl2(self.robot, info[0], self._physics.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
+                    self._physics.setJointMotorControl2(self.robot, info[0], self._physics.TORQUE_CONTROL, force=_clip(value, -force, force), physicsClientId=self.client)
+                else:
+                    raise ValueError(f"Unknown joint control mode '{mode}'")
 
     def _servo_command(self, motor: dict[str, Any], position: float, velocity: float,
                        command: dict[str, Any]) -> tuple[float, float] | None:
@@ -694,6 +701,8 @@ class World:
         for wheel in self._wheels:
             world_direction = rotation @ np.array(wheel["direction"])
             contacts = self._physics.getContactPoints(bodyA=self.robot, linkIndexA=wheel["index"], physicsClientId=self.client)
+            if self.performance.enabled:
+                self.performance.increment("world.tire_contact_reports", len(contacts))
             for contact in contacts:
                 normal = np.array(contact[7])
                 normal_load = max(0., contact[9])
@@ -719,6 +728,7 @@ class World:
                 driven_force = _clip(driven_force, -stopping_force, stopping_force)
                 roller_force = -float(wheel.get("roller_friction", 0.025)) * normal_load * math.tanh(float(np.dot(relative, lateral)) / .1)
                 force = direction * driven_force + lateral * roller_force
+                self.performance.increment("world.tire_contacts_applied")
                 self._physics.applyExternalForce(self.robot, wheel["index"], force.tolist(), point.tolist(), self._physics.WORLD_FRAME, physicsClientId=self.client)
                 # Equal and opposite reaction preserves momentum for movable fields.
                 other = (contact[2], contact[4])
@@ -751,17 +761,29 @@ class World:
                         key = chr(64 + int(key)) if key.isdigit() and 1 <= int(key) <= 8 else key.upper()
                     self._commands[family][key] = deepcopy(value)
         self._apply_motors()
-        self._apply_omni_tires()
-        self._physics.stepSimulation(physicsClientId=self.client)
-        for index, group in self._servo_loads.items():
-            applied = self._physics.getJointState(self.robot, index, physicsClientId=self.client)[3]
-            for motor, share in group:
-                self._last_torques[motor["port"]] = applied * share / (motor["factor"] * motor["sign"] * motor["efficiency"])
+        with self.performance.span("world.control.tires"):
+            self._apply_omni_tires()
+        with self.performance.span("world.integrate"):
+            self._physics.stepSimulation(physicsClientId=self.client)
+        with self.performance.span('world.control.feedback'):
+            for index, group in self._servo_loads.items():
+                applied = self._physics.getJointState(self.robot, index, physicsClientId=self.client)[3]
+                for motor, share in group:
+                    self._last_torques[motor["port"]] = applied * share / (motor["factor"] * motor["sign"] * motor["efficiency"])
         self.tick += 1
         self.time = self.tick * self.dt
-        self._deactivate_bounded_rest()
-        self._observe()
-        return self.snapshot()
+        with self.performance.span("world.rest"):
+            self._deactivate_bounded_rest()
+        with self.performance.span("world.sensors"):
+            self._observe()
+        if self.performance.enabled:
+            self.performance.increment("world.steps")
+            self.performance.increment("world.motor_updates", len(self.motor_bindings))
+            self.performance.increment("world.pneumatic_updates", len(self._pneumatics))
+            self.performance.gauge("world.motor_bindings", len(self.motor_bindings))
+            self.performance.gauge("world.field_objects", len(self.field_objects))
+        with self.performance.span("world.snapshot"):
+            return self.snapshot()
 
     def disable(self) -> None:
         """Cut motor power immediately without advancing simulation time."""

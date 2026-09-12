@@ -22,7 +22,8 @@ def launch() -> int:
     # multiprocessing workers; has no effect on ordinary desktop launches.
     multiprocessing.freeze_support()
     helper = len(sys.argv) > 1 and sys.argv[1] == "--gpu-probe-output"
-    noninteractive = "--headless" in sys.argv[1:] or "--gpu-probe-output" in sys.argv[1:]
+    noninteractive = any(flag in sys.argv[1:] for flag in
+                         ("--headless", "--gpu-probe-output", "--diagnostics", "--diagnostic-case"))
     log_path = None
     try:
         from eersim.runtime_paths import ensure_console_streams

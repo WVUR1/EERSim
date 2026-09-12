@@ -14,6 +14,9 @@ def main(argv=None) -> int:
             return 2
         from .gpu_probe import write_probe_result
         return write_probe_result(arguments[1])
+    if '--diagnostics' in arguments or '--diagnostic-case' in arguments:
+        from .diagnostics import main as diagnostics_main
+        return diagnostics_main(arguments)
     from .runtime_paths import ensure_console_streams
     ensure_console_streams()
     import argparse

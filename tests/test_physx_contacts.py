@@ -250,7 +250,9 @@ def test_runtime_empty_contact_snapshot_and_unknown_robot():
 
 def test_worker_snapshot_uses_runtime_contacts_without_requesting_full_manifolds():
     from eersim.physx_worker import _Runtime
+    from eersim.performance import PerformanceRecorder
     runtime = _Runtime.__new__(_Runtime)
+    runtime.performance = PerformanceRecorder(False)
     runtime.np = np
     runtime.bindings = {}
     runtime.buffers = {'poses': np.zeros((1, 7)), 'velocities': np.zeros((1, 6))}

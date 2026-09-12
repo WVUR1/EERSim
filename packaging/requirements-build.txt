@@ -12,3 +12,6 @@ scipy==1.16.3
 # ovphysx requires packaging<24; newer wheel releases require packaging>=24.
 packaging==23.2
 wheel==0.45.1
+
+# PyInstaller converts the supplied PNG app logo to a Windows icon.
+pillow==12.3.0

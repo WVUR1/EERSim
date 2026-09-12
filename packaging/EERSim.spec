@@ -121,7 +121,7 @@ options = dict(
     console=False,
     disable_windowed_traceback=False,
     version=str(packaging / "version_info.txt"),
-    icon=None,
+    icon=str(checkout / "assets/logos/happy.png"),
 )
 if layout == "onedir":
     executable = EXE(pyz, analysis.scripts, [], exclude_binaries=True,

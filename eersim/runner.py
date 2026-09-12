@@ -11,6 +11,8 @@ import math
 from pathlib import Path
 from typing import Callable
 
+from .performance import PerformanceRecorder
+
 MODES = {
     "skills_driver": ("Skills Driver", "opcontrol", 60.0),
     "skills_auto": ("Skills Auto", "autonomous", 60.0),
@@ -52,7 +54,9 @@ class Session:
             runtime_factory = NativeRuntime
         self.config = copy.deepcopy(config)
         self.log = log or (lambda _: None)
-        self.world = world_factory(self.config)
+        self.performance = PerformanceRecorder()
+        with self.performance.span("session.setup.world"):
+            self.world = world_factory(self.config)
         # A configured, unstepped preview is already the initial scene.
         # PhysX may include its required bootstrap tick in this state.
         self._world_pristine = True
@@ -92,9 +96,11 @@ class Session:
         self._world_pristine = False
         self.stop()
         if not reuse_prepared:
-            self.world.reset(self.config)
+            with self.performance.span("session.setup.reset"):
+                self.world.reset(self.config)
             self._prepared_config = copy.deepcopy(self.config)
-        self.runtime = self.runtime_factory(self.executable)
+        with self.performance.span("session.setup.native"):
+            self.runtime = self.runtime_factory(self.executable)
         self.mode, self.phase = mode, "initialize"
         self.running, self.paused, self.initialized = True, False, False
         self.elapsed_ticks = self.init_ticks = 0
@@ -113,11 +119,13 @@ class Session:
     def stop(self) -> None:
         if self.runtime is not None:
             try:
-                self.runtime.step(self.world.snapshot(), "disabled", self.dt, {"analog": {}, "digital": {}})
+                with self.performance.span("session.native.disable_roundtrip"):
+                    self.runtime.step(self.world.snapshot(), "disabled", self.dt, {"analog": {}, "digital": {}})
             except Exception as exc:
                 self.log(f"Disable callback: {exc}")
             finally:
-                self.runtime.close()
+                with self.performance.span("session.native.close"):
+                    self.runtime.close()
                 self.runtime = None
         self.running, self.paused = False, False
         self.phase = "disabled"
@@ -129,7 +137,8 @@ class Session:
     def reset(self) -> None:
         self._world_pristine = False
         self.stop()
-        self.world.reset(self.config)
+        with self.performance.span("session.setup.reset"):
+            self.world.reset(self.config)
         self._prepared_config = copy.deepcopy(self.config)
         self._world_pristine = True
         self.elapsed_ticks = self.init_ticks = 0
@@ -142,7 +151,11 @@ class Session:
         self._world_pristine = False
         commands: dict = {"motors": {}, "adi": {}}
         if self.running and self.runtime is not None:
-            result = self.runtime.step(self.world.snapshot(), self.phase, self.dt, self.controller)
+            with self.performance.span("session.native.input_snapshot"):
+                native_input = self.world.snapshot()
+            with self.performance.span("session.native.roundtrip"):
+                result = self.runtime.step(native_input, self.phase, self.dt, self.controller)
+            self.performance.increment("session.native.calls")
             # Startup callbacks can home mechanisms using the same sensor/actuator
             # loop as competition callbacks; only the competition clock waits.
             commands = result
@@ -164,7 +177,9 @@ class Session:
                 self.elapsed_ticks += 1
         if self.manual_joints and not self.running:
             commands["joints"] = dict(self.manual_joints)
-        snapshot = self.world.step(commands)
+        with self.performance.span("session.world.step"):
+            snapshot = self.world.step(commands)
+        self.performance.increment("session.steps")
         if snapshot is None:
             snapshot = self.world.snapshot()
         for diagnostic in snapshot.get("diagnostics", []):
@@ -172,11 +187,13 @@ class Session:
             if message not in self._world_warnings:
                 self.log(message)
                 self._world_warnings.add(message)
-        self._record(snapshot)
+        with self.performance.span("session.telemetry"):
+            self._record(snapshot)
         if self.running and self.elapsed_ticks >= math.ceil(self.duration / self.dt - 1e-9):
             self.log("Mode time expired; robot disabled")
             self.stop()
-        return self.state(snapshot)
+        with self.performance.span("session.state"):
+            return self.state(snapshot)
 
     def _record(self, snapshot: dict) -> None:
         pose = snapshot.get("pose", [0, 0, 0, 0])

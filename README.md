@@ -16,7 +16,7 @@ is reported separately in the [validation notes](docs/validation.md).
 ## Start here
 
 Download **EERSim-Setup-x64.exe** from the private
-[0.1.1 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.1-windows-preview.1).
+[0.1.2 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.2-windows-preview.1).
 It bundles Python, the PhysX GPU runtime, simulator dependencies, default robots
 and fields, and the native robot compiler. It installs for your Windows account
 without administrator privileges; a desktop shortcut is optional. This private
@@ -144,6 +144,21 @@ Skills Auto; press **Start** to run it. The routine grips the preload, lifts it,
 drives to a red alliance goal using the serial odometry interface, and releases
 it. The viewport reports prototype pin placements. Driver mode also supports
 the claw and lift using R1/R2 and L1/L2.
+
+## Performance reports and app status
+
+In **Telemetry**, choose **Export performance diagnostics…** to create a local
+script for the selected robot, field, workspace, mode, and current settings.
+Run it on the slow machine to compare 240/120 Hz with per-stage physics/PROS
+timings, optional stationary rendering measurements, and NVIDIA utilization,
+clocks, power, and temperature. It creates a ZIP to send back; nothing uploads
+automatically, and raw source/assets and private compiler output are excluded.
+See [diagnostic instructions](docs/diagnostics.md).
+
+The supplied WVU mascot is the app icon and appears in the header. Its expression
+changes for loading, autonomous/driver runs, pause, success, imports, and errors.
+The launcher icon uses the happy logo; desktop/taskbar caching can retain that
+static launcher image while the window and header show the current state.
 
 ## Competition modes
 
