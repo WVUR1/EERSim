@@ -894,6 +894,20 @@ class Workbench(QMainWindow):
         layout.addWidget(label("Import a game pack JSON or a standard field URDF. URDF imports become static field geometry automatically. Game packs describe their visual sources and collision approximations; official scoring and referee rules are not simulated.", "Muted", True))
         layout.addWidget(label("PHYSICS & RENDERING", "Section"))
         form = QFormLayout()
+        self.physics_select = QComboBox()
+        self.physics_select.addItem("Auto · CUDA when available", "auto")
+        self.physics_select.addItem("Bullet · CPU", "bullet")
+        self.physics_select.addItem("PhysX · NVIDIA CUDA", "physx_gpu")
+        self.physics_select.addItem("PhysX · CPU", "physx_cpu")
+        self.physics_select.setToolTip("Selects the engine that computes motion and contacts. Auto uses CUDA when available and reports any Bullet fallback below. Explicit PhysX selections report an error if unavailable. Pin an engine in saved experiments for repeatable comparisons.")
+        self.physics_device = QSpinBox()
+        self.physics_device.setRange(0, 2147483647)
+        self.physics_device.setToolTip("Logical CUDA device index, starting at 0, after any CUDA_VISIBLE_DEVICES filtering. This selects the physics GPU independently of the graphics renderer.")
+        self.physics_iterations = QSpinBox()
+        self.physics_iterations.setRange(1, 255)
+        self.physics_iterations.setToolTip("Advanced contact and joint solver setting. Default 100. Reducing iterations changes solver convergence; validate grasping and stacking after changes. Equal counts in Bullet and PhysX do not imply equivalent solvers.")
+        self.physics_select.currentIndexChanged.connect(
+            lambda: self.physics_device.setEnabled(self.physics_select.currentData() in ("auto", "physx_gpu")))
         self.physics_hz = QSpinBox()
         self.physics_hz.setRange(120, 2000)
         self.physics_hz.setSuffix(" Hz")
@@ -904,13 +918,16 @@ class Workbench(QMainWindow):
         self.renderer_select.addItem("Auto · GPU when available", "auto")
         self.renderer_select.addItem("GPU · OpenGL", "gpu")
         self.renderer_select.addItem("CPU · Bullet TinyRenderer", "cpu")
-        self.renderer_select.setToolTip("GPU accelerates the viewport. Physics still uses the configured fixed step. Unsupported graphics fall back to CPU; Telemetry shows the active device and reason.")
+        self.renderer_select.setToolTip("Selects only viewport rendering. The Physics engine control independently selects motion and contact computation. Unsupported graphics fall back to CPU; Telemetry shows the active device and reason.")
         self.gravity = real_spin(0, 30, 9.80665, 5, " m/s²")
         self.friction = real_spin(0, 5, 0.9, 3)
         self.friction.setToolTip("Body coefficient for wheels and field tiles. Bullet multiplies the coefficients of the two touching bodies. Adjust from measured hardware behavior.")
         self.plastic_friction = real_spin(0, 5, 0.5, 3)
         self.plastic_friction.setToolTip("Body coefficient for pins, cups, goals, loaders and toggles. Bullet multiplies the two body coefficients: defaults give plastic/plastic μ = 0.25 and plastic/tile μ = 0.45. These are calibration assumptions, not official measured VEX values. Per-object game-pack overrides take precedence.")
         self.restitution = real_spin(0, 1, 0.05, 3)
+        form.addRow("Physics engine", self.physics_select)
+        form.addRow("CUDA physics device", self.physics_device)
+        form.addRow("Solver iterations · advanced", self.physics_iterations)
         form.addRow("Fixed physics rate", self.physics_hz)
         form.addRow("Viewport frame rate", self.render_fps)
         form.addRow("Graphics renderer", self.renderer_select)
@@ -919,6 +936,8 @@ class Workbench(QMainWindow):
         form.addRow("Plastic contact friction", self.plastic_friction)
         form.addRow("Restitution", self.restitution)
         layout.addLayout(form)
+        self.physics_field_status = label("Physics initialization pending…", "Muted", True)
+        layout.addWidget(self.physics_field_status)
         layout.addWidget(label("Physics uses a fixed time step, independent of viewport FPS. On slower hardware the simulation takes longer in wall time; it keeps every physics step. Real-time factor shows this slowdown.", "Muted", True))
         layout.addStretch()
 
@@ -991,6 +1010,8 @@ class Workbench(QMainWindow):
         layout.addWidget(label("LIVE ROBOT STATE", "Section"))
         self.pose_detail = label("Waiting for physics state…", "Muted", True)
         layout.addWidget(self.pose_detail)
+        self.physics_detail = label("Physics initialization pending…", "Muted", True)
+        layout.addWidget(self.physics_detail)
         self.renderer_detail = label("Graphics initialization pending…", "Muted", True)
         layout.addWidget(self.renderer_detail)
         self.telemetry_table = QTableWidget(0, 4)
@@ -1063,6 +1084,10 @@ class Workbench(QMainWindow):
         self.binding_path.setText(str(config.get("robot_config", "")))
         self.game_path.setText(str(config.get("game_pack", "")))
         self.physics_hz.setValue(int(config.get("physics_hz", 240)))
+        self.physics_select.setCurrentIndex(max(0, self.physics_select.findData(config.get("physics_backend", "auto"))))
+        self.physics_device.setValue(int(config.get("physics_device", 0)))
+        self.physics_device.setEnabled(self.physics_select.currentData() in ("auto", "physx_gpu"))
+        self.physics_iterations.setValue(int(config.get("physics_solver_iterations", 100)))
         self.render_fps.setValue(int(config.get("render_fps", 30)))
         self.renderer_select.setCurrentIndex(max(0, self.renderer_select.findData(config.get("renderer", "auto"))))
         self.gravity.setValue(float(config.get("gravity", 9.80665)))
@@ -1103,6 +1128,8 @@ class Workbench(QMainWindow):
         result.update(robot_urdf=self.urdf_path.text().strip(), robot_config=self.binding_path.text().strip(),
                       game_pack=self.game_path.text().strip(), workspace=self._workspace_key(),
                       physics_hz=self.physics_hz.value(), render_fps=self.render_fps.value(),
+                      physics_backend=self.physics_select.currentData(), physics_device=self.physics_device.value(),
+                      physics_solver_iterations=self.physics_iterations.value(),
                       renderer=self.renderer_select.currentData(),
                       gravity=self.gravity.value(), friction=self.friction.value(),
                       plastic_friction=self.plastic_friction.value(), restitution=self.restitution.value(),
@@ -1632,12 +1659,21 @@ class Workbench(QMainWindow):
         x, y, z, yaw = self._pose_values(state)
         self.metric_values["pose"].setText(f"{x:.2f} / {y:.2f} m")
         self.pose_detail.setText(f"X {x:+.3f} m    Y {y:+.3f} m    Z {z:.3f} m\nHeading {yaw:.2f}°  ·  physics {self.config.get('physics_hz', 240)} Hz\nBacklog {float(state.get('physics_backlog_s', 0)):.3f} s  ·  sensor age {float(state.get('sensor_age_ms', 0)):.1f} ms")
+        physics = state.get("physics") or {}
+        backend = {"bullet": "Bullet", "physx": "PhysX"}.get(physics.get("backend"), "Physics")
+        acceleration = "CUDA" if physics.get("hardware_accelerated") else "CPU"
+        physics_text = (f"Physics: {backend} · {acceleration} · {physics.get('device', 'unknown')}"
+                        if physics.get("backend") else "Physics initialization pending…")
+        if physics.get("reason"):
+            physics_text += "\n" + str(physics["reason"])
+        self.physics_detail.setText(physics_text)
+        self.physics_field_status.setText(physics_text)
         graphics = state.get("renderer") or {}
         device = graphics.get("device", "Graphics initialization pending")
         accelerated = bool(graphics.get("hardware_accelerated"))
         graphics_label = "GPU" if accelerated else "CPU" if graphics.get("backend") == "cpu" else "Graphics"
         reason = graphics.get("reason", "")
-        self.renderer_detail.setText(f"{graphics_label} · {device}" + (f"\n{reason}" if reason else ""))
+        self.renderer_detail.setText(f"Graphics: {graphics_label} · {device}" + (f"\n{reason}" if reason else ""))
         self.renderer_detail.setToolTip(str(graphics.get("version", "")))
         self.progress.setValue(round(min(1, mode_time / duration) * 1000) if duration else 0)
         status = "PAUSED" if paused else "RUNNING" if running else "SCENE READY"

@@ -78,6 +78,9 @@ class SimConfig:
     game_pack: str = field(default_factory=lambda: str(ASSETS / "games" / "override-2026-27.json"))
     start_pose: list[float] = field(default_factory=lambda: [-1.45, -0.90, 0.085, 0.0])
     physics_hz: int = 240
+    physics_backend: str = "auto"
+    physics_device: int = 0
+    physics_solver_iterations: int = 100
     gravity: float = 9.80665
     friction: float = 0.9
     plastic_friction: float = 0.5
@@ -108,6 +111,15 @@ class SimConfig:
         return config
 
     def validate(self) -> None:
+        if self.physics_backend not in ("auto", "bullet", "physx_gpu", "physx_cpu"):
+            raise ValueError("physics_backend must be auto, bullet, physx_gpu, or physx_cpu")
+        if (isinstance(self.physics_device, bool) or not isinstance(self.physics_device, int)
+                or self.physics_device < 0):
+            raise ValueError("physics_device must be a nonnegative integer CUDA device index")
+        if (isinstance(self.physics_solver_iterations, bool)
+                or not isinstance(self.physics_solver_iterations, int)
+                or not 1 <= self.physics_solver_iterations <= 255):
+            raise ValueError("physics_solver_iterations must be an integer between 1 and 255")
         if not isinstance(self.physics_hz, int) or not 120 <= self.physics_hz <= 2000:
             raise ValueError("physics_hz must be an integer between 120 and 2000")
         if len(self.start_pose) != 4 or not all(math.isfinite(float(x)) for x in self.start_pose):

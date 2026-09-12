@@ -1,25 +1,28 @@
 # EER SIM · WVU Autonomy Lab
 
 A standalone desktop hub for running EERKit/PROS robot source against an articulated robot
-in a 3D physics field. Python owns the PyBullet world and PySide6 desktop;
-a VTK OpenGL renderer uses the graphics hardware for the field and robot preview;
-a native C++ child process runs the workspace's existing competition callbacks.
+in a 3D physics field. Choose Bullet CPU or PhysX CUDA/CPU physics in the PySide6
+desktop; VTK/OpenGL independently renders the field and robot preview. The same
+VEX motor and sensor model connects each physics backend to a native C++ process
+running the workspace's existing PROS competition callbacks.
 
 ![EER SIM desktop](docs/screenshot.png)
 
 [Watch the 35-second sneak peek](docs/sneak-peek.mp4): field controls, live URDF
 motor setup, and a PROS routine physically gripping and placing a pin. The
-autonomous segment plays at one times simulation speed; wall-clock performance
+autonomous segment uses Bullet and plays at one times simulation speed; wall-clock performance
 is reported separately in the [validation notes](docs/validation.md).
 
 ## Start here
 
-For the Windows preview, download `EERSim-Setup-x64.exe` from the private
-[Releases page](https://github.com/WVUR1/EERSim/releases), run the installer,
-and open **EERSim** from the Start menu. The installer includes Python, the
-simulator dependencies, default robots and fields, and the native robot compiler.
-It installs for your Windows account without administrator privileges; a desktop
-shortcut is optional. Current previews are unsigned.
+The GPU-enabled Windows installer is being prepared; Windows CUDA validation and
+publication are pending. Earlier preview downloads do not establish that they
+contain the new backend. The planned `EERSim-Setup-x64.exe` bundles Python, the
+PhysX GPU runtime, the other simulator dependencies, default robots and fields,
+and the native robot compiler. It installs for your Windows account without
+administrator privileges; a desktop shortcut is optional. Private builds are
+unsigned. Published artifacts, when available, belong on the private
+[Releases page](https://github.com/WVUR1/EERSim/releases).
 
 Use **Robot → Import URDF…** and **Field → Import field…** to select custom
 designs from your own folders. The robot import preview supports motor setup and
@@ -47,6 +50,21 @@ required. It ignores global Python installations. Run setup once, then use
 `launch.ps1` for normal starts. Rerun setup to update or repair dependencies,
 including PySide6. **Setup does not install the desktop C++ compiler** needed to
 build robot code; compiler options are below.
+
+GPU physics is an optional source dependency. After setup, install it into the
+same environment:
+
+```powershell
+& .\.sim-tools\physics-env\python.exe -m pip install -e ".[gpu]"
+```
+
+In an activated Conda or virtual environment, use `python -m pip install -e
+".[gpu]"`. This pins `ovphysx==0.5.11`, `ovstage==0.1.1.355824`, and
+`scipy==1.16.3`. Source installs without these packages use Bullet under the
+default **Auto** physics selection. CUDA requires an NVIDIA GPU with compute
+capability 7.0 or newer and a driver exposing CUDA 12.8 or newer; the application
+checks both. See [physics backends](docs/gpu-physics.md) for device selection and
+the current validation limits.
 
 If launch reports `No module named 'PySide6'` or another missing dependency, run
 `setup.ps1` again, then inspect the selected Python and dependency checks with:
@@ -105,7 +123,8 @@ ignored CAD/tool downloads, and Git LFS instructions for future oversized assets
    or use the on-screen controls. **Driver station** in the Workspace tab lists key bindings.
 5. Pause/resume, advance one physics tick, reset, or export pose telemetry to CSV.
    Save an experiment profile to retain the workspace, asset paths, bindings,
-   starting pose, sensor seed, timing settings, and camera view. CSV export is in **Telemetry**.
+   starting pose, sensor seed, physics backend/device/iterations, timing settings,
+   and camera view. CSV export is in **Telemetry**.
 
 An optional USB gamepad uses pygame (`python -m pip install 'eerkit-simulator[gamepad]'`).
 The robot receives ordinary `pros::Controller` values, including button edges.
@@ -114,6 +133,7 @@ Keyboard input is released when the viewport loses focus.
 Both the field view and import preview support left-drag orbit, right/middle-drag
 or Shift-left-drag pan, and mouse-wheel zoom. The import preview fixes the robot
 base so a wheel test stays in view; joints and their motor loads still simulate.
+This setup preview uses Bullet independently of the main field's physics engine.
 
 For an immediately runnable mechanism example, click **Load claw scoring demo** in the
 Workspace tab. This loads a separate six-motor X-drive, a lift and claw, one
@@ -188,6 +208,35 @@ exposes direct coordinates to Python experiments and other odometry adapters.
 
 ## Physics and repeatability
 
+**Field → Physics engine** selects the engine computing motion and contacts:
+
+| Selection | Behavior |
+| --- | --- |
+| Auto · CUDA when available | Tries PhysX CUDA; uses Bullet if dependencies, the device, or scene initialization are unavailable. The reason is shown in Field, Telemetry, and the log. |
+| Bullet · CPU | Uses the existing Bullet solver. |
+| PhysX · NVIDIA CUDA | Requires the selected CUDA device and runtime; initialization errors stop the load instead of changing engines. |
+| PhysX · CPU | Uses PhysX CPU dynamics and requires the same PhysX runtime packages. |
+
+Click **Apply settings & reset scene** after changing engines. Save an explicit
+engine selection when comparing experiments across machines: **Auto** can select
+different solvers on different computers. **CUDA physics device** is a logical
+ordinal starting at 0 after `CUDA_VISIBLE_DEVICES` filtering, not necessarily the
+physical index printed by `nvidia-smi`.
+
+The CLI exposes the same settings independently of graphics:
+
+```sh
+python -m eersim --physics-backend physx_gpu --physics-device 0 --solver-iterations 100
+python -m eersim --physics-backend bullet --renderer gpu
+```
+
+PhysX advances the authoritative robot articulation, field bodies, and contacts
+in a separate process. The shared VEX model applies motor and omni-wheel forces,
+then supplies encoder, IMU, distance, and OTOS observations to the unchanged PROS
+runtime. Rendering consumes those PhysX poses; it does not advance another
+physics world. CPU work remains in robot code, control/sensor calculations, and
+state exchange. See [backend details and limits](docs/gpu-physics.md).
+
 Graphics default to **Auto**, which probes the OpenGL driver in an isolated
 process and enables GPU rendering when a hardware context is available. The
 active graphics device is reported in the desktop log and **Telemetry**. Select
@@ -198,26 +247,35 @@ Use `python -m eersim --renderer cpu` to select Bullet's CPU renderer, or
 `--renderer gpu` to request OpenGL explicitly. Unsupported graphics drivers or
 visual formats fall back to CPU rendering with a reason in the status/log.
 
-Rigid-body physics and robot code remain on the CPU. GPU rendering does not
-change the contact solver, motor model, timestep, or sensor observations.
+The **Physics** and **Graphics** status lines are separate. An OpenGL GPU device
+does not imply CUDA physics, and CUDA physics can run with CPU graphics.
 
-A separate [PhysX/CUDA research prototype](tools/physx_prototype/README.md)
-provides reproducible A100 and CPU benchmarks, geometry audits, and joint checks.
-It is a source-checkout tool; it does not enable GPU physics in this application
-or establish equivalent robot behavior.
+The [earlier PhysX/CUDA study](tools/physx_prototype/README.md) remains a separate
+passive benchmark with geometry and joint audits. Its A100 timings exclude PROS,
+motors, tire forces, sensors, and rendering. They are historical prototype
+measurements, not performance results for this integrated backend.
 
-Bullet integrates gravity, inertia, articulated joints, contact impulses, and
-collisions at **240 Hz** by default. The timestep is independent of display FPS.
+Both engines use a **240 Hz** fixed timestep by default, independent of display FPS.
 Rendering never increases the timestep or discards pending physics steps. When
 a machine falls behind, the renderer refreshes less often and the simulation
 can run slower than wall time. The GUI reports real-time factor and backlog.
 PROS delays, timestamps, and competition timers use the same simulation clock.
+**Solver iterations · advanced** defaults to 100. It controls Bullet's iteration
+limit or PhysX TGS position iterations; PhysX velocity iterations remain 1.
+Reducing the count changes solver convergence, and equal counts across engines
+do not imply equivalent numerical behavior.
 
-**The full dynamic Override field is currently expensive:** it measured about
+**Earlier Bullet measurements found the full dynamic Override field expensive:** about
 0.02× real time on the tested machine. The optional fixed-piece Override preset
 measured 0.90× and the practice field 1.20× in headless runs of the existing robot
-code. Choose the fixed-piece layout for route iteration and the full scene for
-movable game-piece interactions. See [measurement conditions](docs/validation.md).
+code. These are Bullet measurements; integrated PhysX performance has not yet
+been reported here. Choose the fixed-piece layout for route iteration and the
+full scene for movable game-piece interactions. See [measurement conditions](docs/validation.md).
+
+There is no Tensor Core toggle. This integration uses PhysX rigid-body contact
+and constraint kernels, not a matrix-inference workload with a supported Tensor
+Core path. DLPack tensor exchange is a buffer interface; it does not enable
+Tensor Cores.
 
 The C++ runtime schedules runnable robot tasks until they yield at PROS calls
 before returning motor outputs for the next physics tick. A watchdog reports
@@ -242,6 +300,9 @@ The physical cartridge is selected in the GUI. A different gearset configured
 in robot code cannot change physical gearing; a mismatch is reported. The
 external reduction acts after the cartridge: a 2:1 reduction doubles ideal joint
 torque and halves joint speed. Transmission efficiency applies separately.
+PhysX's implicit motor-drive torque feedback is currently a bounded estimate,
+not measured solver reaction torque; reported motor current is derived from that
+estimate. Do not treat it as validated load-cell or electrical-current telemetry.
 
 X-drive wheels use
 a contact-dependent friction model for free omni rollers; the tank sample uses
@@ -252,7 +313,7 @@ wheel/material pair and is adjustable for wheel tread, wear, and contamination;
 the default is a calibration parameter, not a published universal VEX coefficient.
 The Field tab separately exposes **Plastic contact friction** for game pieces
 and fixtures. Its default body coefficient is 0.5, while the tile coefficient
-is 0.9. Bullet multiplies contacting body coefficients, giving 0.25 for two
+is 0.9. Both backends use multiplication of contacting body coefficients, giving 0.25 for two
 plastic bodies and 0.45 for plastic on the tile. These are adjustable starting
 assumptions; VEX has not supplied measured coefficients for this model.
 
@@ -268,8 +329,9 @@ of the team's competition robot. Battery sag, temperature, drivetrain compliance
 vision, and full game scoring are not implemented. Use measured robot URDF
 properties and compare straight-line acceleration, stopping distance, rotation,
 and mechanism loads against hardware before trusting quantitative predictions.
-Identical seeds and inputs are repeatable on the tested engine/platform;
-cross-platform bitwise determinism is not promised.
+Repeatability depends on the engine, solver settings, platform, and input stream.
+Matching seeds do not guarantee identical Bullet/PhysX trajectories or
+cross-platform bitwise determinism.
 
 ## Robots and programmable joints
 
@@ -312,15 +374,25 @@ In Python, `World.step()` accepts motor, pneumatic, and direct joint commands:
 
 ```python
 from eersim.config import default_config
-from eersim.physics import World
+from eersim.physics_backend import create_world
 
-with World(default_config()) as world:
-    for _ in range(240):
-        observation = world.step({
-            "joints": {"intake": {"mode": "velocity", "value": 8.0, "force": 0.3}},
-            "adi": {"B": True},
-        })
+def main():
+    config = default_config()
+    config["physics_backend"] = "physx_gpu"  # or "bullet" / "physx_cpu" / "auto"
+    with create_world(config) as world:
+        for _ in range(240):
+            observation = world.step({
+                "joints": {"intake": {"mode": "velocity", "value": 8.0, "force": 0.3}},
+                "adi": {"B": True},
+            })
+
+if __name__ == "__main__":
+    main()
 ```
+
+Use the main guard when creating a PhysX world from a Python script, because it
+spawns an isolated worker. Direct `eersim.physics.World` construction always uses
+Bullet; `create_world` applies the configured backend selection.
 
 Joint position/velocity use radians and rad/s for rotary joints, metres and m/s
 for sliders. Torque control uses N·m or N. Direct joint commands are useful for
@@ -398,6 +470,10 @@ python -m eersim --headless --workspace "$robot_workspace" --mode skills_auto --
 # Bundled PROS claw experiment on the current field
 python -m eersim --headless --demo claw --seconds 30 --csv claw.csv
 
+# Explicit CUDA physics; stop with an error if it cannot initialize
+python -m eersim --headless --demo claw --physics-backend physx_gpu \
+  --physics-device 0 --solver-iterations 100 --seconds 30 --csv claw-cuda.csv
+
 # Saved noise/start-pose experiment, optional fixed driver input JSON
 python -m eersim --headless --workspace "$robot_workspace" --config experiment.json \
   --mode skills_driver --seconds 10 --controller controller.json --csv driver.csv
@@ -429,6 +505,7 @@ GPU measurements, installed-package checks, and their limits.
 - [PyBullet guide](https://github.com/bulletphysics/bullet3/blob/master/docs/pybullet_quickstart_guide/PyBulletQuickstartGuide.md.html): rigid-body API, URDF, explicit stepping, CPU rendering.
 - [Qt for Python](https://doc.qt.io/qtforpython-6/): desktop widgets and cross-thread signals.
 - [VTK OpenGL render window](https://vtk.org/doc/nightly/html/classvtkOpenGLRenderWindow.html): GPU graphics and driver capability reporting.
+- [Pinned PhysX runtime](https://github.com/NVIDIA-Omniverse/PhysX/tree/ovphysx-0.5.11/ovphysx) and [tensor bindings](https://github.com/NVIDIA-Omniverse/PhysX/blob/ovphysx-0.5.11/ovphysx/docs/tutorials/tensor_bindings.md): CUDA/CPU dynamics and state exchange.
 - [PROS motor API](https://pros.cs.purdue.edu/v5/pros-4/motors.html): host API behavior, validated against EERKit's vendored PROS headers.
 - [VEX V5 motor performance](https://kb.vex.com/hc/en-us/articles/360044325872-Understanding-V5-Smart-Motor-11W-Performance): cartridge torque, speed, and power references.
 - [Official Override manual PDF](https://link.vex.com/docs/26-27/v5rc/game-manual), [2026–27 manual versions](https://www.vexrobotics.com/26-27-manuals), and [official field CAD](https://link.vex.com/docs/26-27/v5rc/field-cad): field-pack provenance. Consult the current manual for rules; the simulator does not adjudicate official scores or legality.

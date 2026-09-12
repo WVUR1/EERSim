@@ -1,4 +1,4 @@
-"""Thread-safe desktop facade. Bullet and the robot process stay on one worker."""
+"""Thread-safe desktop facade. Physics and robot commands share one worker."""
 from __future__ import annotations
 
 import copy

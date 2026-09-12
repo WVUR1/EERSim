@@ -71,17 +71,19 @@ class HardwareRenderer:
     ``base_inertial_frames`` maps body IDs to local ``(position, quaternion)``
     frames captured when each body was loaded. It is required for Bullet rigid
     bodies, whose getDynamicsInfo inertial-frame fields are not initialized in
-    some supported engine versions.
+    some supported engine versions. ``physics_api`` supplies authoritative live
+    poses; imported visual geometry remains in the non-stepping Bullet scene.
     """
 
     def __init__(self, client: int, body_ids: Iterable[int],
-                 base_inertial_frames: dict[int, tuple] | None = None):
+                 base_inertial_frames: dict[int, tuple] | None = None, physics_api=None):
         import vtk
         from vtk.util.numpy_support import vtk_to_numpy
 
         self.vtk = vtk
         self._vtk_to_numpy = vtk_to_numpy
         self.client = client
+        self._physics = p if physics_api is None else physics_api
         self._owner = threading.get_ident()
         self._closed = False
         self._geometry = {}
@@ -290,10 +292,10 @@ class HardwareRenderer:
             key = (visual.body, visual.link)
             if key not in transforms:
                 if visual.link < 0:
-                    position, rotation = p.getBasePositionAndOrientation(visual.body, physicsClientId=self.client)
+                    position, rotation = self._physics.getBasePositionAndOrientation(visual.body, physicsClientId=self.client)
                     transforms[key] = _matrix(position, rotation) @ self._base_inertials[visual.body]
                 else:
-                    state = p.getLinkState(visual.body, visual.link, computeForwardKinematics=1,
+                    state = self._physics.getLinkState(visual.body, visual.link, computeForwardKinematics=1,
                                            physicsClientId=self.client)
                     transforms[key] = _matrix(state[4], state[5])
             matrix = transforms[key] @ visual.local

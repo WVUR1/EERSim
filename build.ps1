@@ -82,6 +82,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Could not install the pinned EXE build tools.' }
     $env:EERSIM_BUNDLE_MODE = if ($Layout -eq 'OneFile') { 'onefile' } else { 'onedir' }
     $env:EERSIM_BUNDLE_COMPILER = if ($WithoutCompiler) { '' } else { $CompilerPath }
+    $probeArguments = @('-m', 'eersim.physx_probe_build', '--output', (Join-Path $simRoot 'build/native/physx_scene_probe.dll'),
+                        '--cache', (Join-Path $simRoot 'build/native/cache'))
+    if ($CompilerPath) { $probeArguments += @('--cxx', (Join-Path $CompilerPath 'bin/clang++.exe')) }
+    & $python @probeArguments
+    if ($LASTEXITCODE -ne 0) { throw 'Could not build the native GPU verification helper; GPU fallback detection must be included in the release.' }
     $output = Join-Path $simRoot ("dist/windows-" + $env:EERSIM_BUNDLE_MODE)
     $work = Join-Path $simRoot ("build/pyinstaller-" + $env:EERSIM_BUNDLE_MODE)
     Push-Location -LiteralPath $simRoot

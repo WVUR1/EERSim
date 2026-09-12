@@ -1,6 +1,6 @@
 """Headless session orchestration, shared by the desktop and batch runner.
 
-Robot code and Bullet advance in lockstep. Rendering never supplies a physics
+Robot code and the selected physics engine advance in lockstep. Rendering never supplies a physics
 dt; every step represents exactly 1 / physics_hz simulated seconds.
 """
 from __future__ import annotations
@@ -45,14 +45,18 @@ class Session:
     def __init__(self, config: dict, log: Callable[[str], None] | None = None,
                  world_factory=None, runtime_factory=None):
         if world_factory is None:
-            from .physics import World
-            world_factory = World
+            from .physics_backend import create_world
+            world_factory = create_world
         if runtime_factory is None:
             from .bridge import NativeRuntime
             runtime_factory = NativeRuntime
         self.config = copy.deepcopy(config)
         self.log = log or (lambda _: None)
         self.world = world_factory(self.config)
+        physics = getattr(self.world, "physics_status", {})
+        if physics:
+            self.log(f"Physics: {physics.get('backend', 'unknown')} · {physics.get('device', 'unknown')}"
+                     + (f" · {physics['reason']}" if physics.get("reason") else ""))
         self.runtime_factory = runtime_factory
         self.runtime = None
         self.executable: Path | None = None
@@ -184,6 +188,7 @@ class Session:
                 "mode_time": self.elapsed_ticks * self.dt, "duration": self.duration,
                 "remaining": max(0.0, self.duration - self.elapsed_ticks * self.dt),
                 "joints": self.world.joints, "motor_bindings": self.world.motor_bindings,
+                "physics": copy.deepcopy(getattr(self.world, "physics_status", {})),
                 "renderer": getattr(self.world, "renderer_status", {}),
                 "telemetry_samples": len(self.samples), "dropped_samples": self.dropped_samples}
 

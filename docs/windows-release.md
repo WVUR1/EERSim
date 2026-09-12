@@ -1,11 +1,21 @@
 # Windows installer and EXE builds
 
-Download `EERSim-Setup-x64.exe` from the private
-[Releases page](https://github.com/WVUR1/EERSim/releases), run the wizard, and
-start **EERSim** from the Start menu. The installer includes Python, PySide6,
-PyBullet, VTK, the default robot and field assets, and the desktop LLVM-MinGW
-compiler for selected PROS workspaces. Recipients do not need Python, Conda,
-PROS tooling, a separate compiler, or WSL installed.
+The GPU-enabled installer is configured but still awaits Windows CUDA runtime
+validation and publication. Earlier preview artifacts do not validate the new
+backend. The planned `EERSim-Setup-x64.exe` includes Python, PySide6, PyBullet,
+VTK, PhysX/OVStage, SciPy, the default robot and field assets, and the desktop
+LLVM-MinGW compiler for selected PROS workspaces. Recipients do not need Python,
+Conda, PROS tooling, a separate compiler, or WSL installed. Published builds,
+when available, are distributed through the private
+[Releases page](https://github.com/WVUR1/EERSim/releases).
+
+CUDA physics requires an NVIDIA GPU with compute capability 7.0 or newer and a
+driver exposing CUDA 12.8 or newer. The x64 PhysX wheel also requires an
+AVX-capable CPU. A separate CUDA toolkit or Isaac Sim installation is unnecessary.
+**Field → Physics engine** defaults to **Auto**, which reports its reason when
+falling back to Bullet. Explicit **PhysX · NVIDIA CUDA** selection fails visibly
+if unavailable. **Graphics renderer** is an independent setting; OpenGL support
+alone does not imply CUDA physics. See [backend details](gpu-physics.md).
 
 The installer targets 64-bit Windows and installs for the current account under
 `%LOCALAPPDATA%\Programs\EERSim` by default. It does not request administrator
@@ -64,6 +74,14 @@ complete directory payload with Inno Setup. Output is
 `build-manifest.json`. Generated files remain ignored by Git; publish them as
 private release assets, which support files larger than Git's normal limit.
 
+`packaging/requirements-build.txt` installs the GPU runtime by default:
+`ovphysx==0.5.11`, `ovstage==0.1.1.355824`, and `scipy==1.16.3`. It also pins
+`packaging==23.2` and `wheel==0.45.1` to keep the runtime and build-tool dependency
+requirements compatible. The spec preserves the complete NVIDIA package trees,
+USD schemas, plugin DLLs, metadata, and licenses. Missing or mismatched runtime
+packages fail the build. These large binary inputs and generated artifacts stay
+under ignored environment/build directories; do not commit them to Git.
+
 To package an already built and validated directory without rebuilding:
 
 ```powershell
@@ -81,8 +99,7 @@ desktop compiler through `CXX` or `PATH`.
 
 ## Other distribution layouts
 
-These build options remain available; the current private preview distributes
-the installer described above.
+These build options remain available in addition to the planned installer.
 
 ```powershell
 .\build.ps1 -Layout Directory

@@ -68,7 +68,8 @@ class World:
     """
 
     def __init__(self, config: dict[str, Any] | SimConfig | None = None):
-        self.client = p.connect(p.DIRECT)
+        self._physics = p
+        self.client = self._physics.connect(self._physics.DIRECT)
         if self.client < 0:
             raise RuntimeError("Could not create a PyBullet physics connection")
         try:
@@ -104,18 +105,22 @@ class World:
         self._gear_mismatches: set[tuple[int, int]] = set()
         self._scoring_cache: dict[str, Any] | None = None
         c = self.client
-        p.resetSimulation(physicsClientId=c)
-        p.setGravity(0, 0, -self.config.gravity, physicsClientId=c)
-        p.setTimeStep(self.dt, physicsClientId=c)
-        p.setRealTimeSimulation(0, physicsClientId=c)
-        p.setPhysicsEngineParameter(
-            fixedTimeStep=self.dt, numSolverIterations=100, numSubSteps=0,
+        self._physics.resetSimulation(physicsClientId=c)
+        self._physics.setGravity(0, 0, -self.config.gravity, physicsClientId=c)
+        self._physics.setTimeStep(self.dt, physicsClientId=c)
+        self._physics.setRealTimeSimulation(0, physicsClientId=c)
+        iterations = int(getattr(self.config, "physics_solver_iterations", 100))
+        self._physics.setPhysicsEngineParameter(
+            fixedTimeStep=self.dt, numSolverIterations=iterations, numSubSteps=0,
             deterministicOverlappingPairs=1, enableConeFriction=1,
             # A 1 mm cache threshold in Bullet 3.25 repeatedly rebuilds rolling
             # contacts and injects energy in a friction-only sphere fixture.
             # 2 mm retains those contacts without changing collision geometry.
             contactBreakingThreshold=0.002, physicsClientId=c,
         )
+        self.physics_status = {"backend": "bullet", "engine": "PyBullet", "device": "CPU",
+                               "hardware_accelerated": False, "solver_iterations": iterations}
+        self._export_items: list[tuple[int, dict[str, Any], Path]] = []
         self.field_objects: list[dict[str, Any]] = []
         self.base_inertial_frames: dict[int, tuple] = {}
         self._rest_bodies: dict[int, dict[str, Any]] = {}
@@ -128,23 +133,23 @@ class World:
             raise ValueError(f"Robot URDF does not exist: {robot_path}")
         self.robot_settings = _read_json(self.config.robot_config) if self.config.robot_config else {}
         pose = self.config.start_pose
-        self.robot = p.loadURDF(
+        self.robot = self._physics.loadURDF(
             str(robot_path), basePosition=pose[:3],
-            baseOrientation=p.getQuaternionFromEuler([0, 0, math.radians(pose[3])]),
+            baseOrientation=self._physics.getQuaternionFromEuler([0, 0, math.radians(pose[3])]),
             useFixedBase=bool(self.config.extra.get("fixed_base", self.robot_settings.get("fixed_base", False))),
-            flags=p.URDF_USE_INERTIA_FROM_FILE | p.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT,
+            flags=self._physics.URDF_USE_INERTIA_FROM_FILE | self._physics.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT,
             physicsClientId=c,
         )
         self._joint_info: dict[str, tuple] = {}
         self._link_indices = {"base_link": -1}
-        for idx in range(p.getNumJoints(self.robot, physicsClientId=c)):
-            info = p.getJointInfo(self.robot, idx, physicsClientId=c)
+        for idx in range(self._physics.getNumJoints(self.robot, physicsClientId=c)):
+            info = self._physics.getJointInfo(self.robot, idx, physicsClientId=c)
             self._joint_info[info[1].decode()] = info
             self._link_indices[info[12].decode()] = idx
-            if info[2] in (p.JOINT_REVOLUTE, p.JOINT_PRISMATIC):
-                p.setJointMotorControl2(self.robot, idx, p.VELOCITY_CONTROL, force=0, physicsClientId=c)
-        for idx in range(-1, p.getNumJoints(self.robot, physicsClientId=c)):
-            p.changeDynamics(
+            if info[2] in (self._physics.JOINT_REVOLUTE, self._physics.JOINT_PRISMATIC):
+                self._physics.setJointMotorControl2(self.robot, idx, self._physics.VELOCITY_CONTROL, force=0, physicsClientId=c)
+        for idx in range(-1, self._physics.getNumJoints(self.robot, physicsClientId=c)):
+            self._physics.changeDynamics(
                 self.robot, idx, lateralFriction=self.config.friction,
                 restitution=self.config.restitution, linearDamping=0.02,
                 angularDamping=0.02, jointDamping=0.001,
@@ -153,13 +158,13 @@ class World:
         for name, friction in self.robot_settings.get("link_friction", {}).items():
             if name not in self._link_indices or not 0 <= float(friction) <= 5:
                 raise ValueError(f"Invalid link_friction entry for '{name}'")
-            p.changeDynamics(self.robot, self._link_indices[name], lateralFriction=float(friction), physicsClientId=c)
+            self._physics.changeDynamics(self.robot, self._link_indices[name], lateralFriction=float(friction), physicsClientId=c)
         self.motor_bindings = self._load_motors()
         self._wheels = self.robot_settings.get("drive", {}).get("wheels", [])
         for wheel in self._wheels:
             info = self._require_joint(wheel["joint"])
             wheel["index"] = info[0]
-            dynamics = p.getDynamicsInfo(self.robot, info[0], physicsClientId=c)
+            dynamics = self._physics.getDynamicsInfo(self.robot, info[0], physicsClientId=c)
             # Conservative local wheel inertia bounds the explicit tire impulse;
             # it prevents a 240 Hz contact force from reversing slip in one tick.
             wheel["inertia"] = max(1e-7, min(dynamics[2]))
@@ -168,14 +173,14 @@ class World:
                 if np.linalg.norm(direction) < 0.001:
                     raise ValueError("Wheel direction cannot be zero")
                 wheel["direction"] = (direction / np.linalg.norm(direction)).tolist()
-                p.changeDynamics(self.robot, info[0], lateralFriction=0,
+                self._physics.changeDynamics(self.robot, info[0], lateralFriction=0,
                                  rollingFriction=0, spinningFriction=0, jointDamping=0.0001, physicsClientId=c)
         self._pneumatics = self.robot_settings.get("pneumatics", [])
         for piston in self._pneumatics:
             piston["index"] = self._require_joint(piston["joint"])[0]
         for name, position in self.robot_settings.get("initial_joints", {}).items():
-            p.resetJointState(self.robot, self._require_joint(name)[0], float(position), physicsClientId=c)
-        p.performCollisionDetection(physicsClientId=c)
+            self._physics.resetJointState(self.robot, self._require_joint(name)[0], float(position), physicsClientId=c)
+        self._physics.performCollisionDetection(physicsClientId=c)
         self._observe()
         return self.snapshot()
 
@@ -183,7 +188,7 @@ class World:
         if name not in self._joint_info:
             raise ValueError(f"Binding refers to missing URDF joint '{name}'")
         info = self._joint_info[name]
-        if info[2] not in (p.JOINT_REVOLUTE, p.JOINT_PRISMATIC):
+        if info[2] not in (self._physics.JOINT_REVOLUTE, self._physics.JOINT_PRISMATIC):
             raise ValueError(f"Joint '{name}' must be revolute, continuous or prismatic")
         return info
 
@@ -220,7 +225,7 @@ class World:
             if motor["efficiency"] > 1 or not 0 <= motor["current_limit"] <= 2.5:
                 raise ValueError(f"Motor {port}: external efficiency cannot exceed 1; current limit must be 0–2.5 A")
             motor["factor"] = motor["gear_ratio"]
-            if info[2] == p.JOINT_PRISMATIC:
+            if info[2] == self._physics.JOINT_PRISMATIC:
                 lead = float(motor.get("lead_m", 0.01))
                 if not math.isfinite(lead) or lead <= 0:
                     raise ValueError("A prismatic motor lead_m must be positive metres/revolution")
@@ -230,8 +235,8 @@ class World:
 
     def _shape(self, item: dict[str, Any], visual: bool = False) -> int:
         shape = item.get("shape", "box")
-        geometry = {"box": p.GEOM_BOX, "sphere": p.GEOM_SPHERE,
-                    "cylinder": p.GEOM_CYLINDER, "capsule": p.GEOM_CAPSULE}
+        geometry = {"box": self._physics.GEOM_BOX, "sphere": self._physics.GEOM_SPHERE,
+                    "cylinder": self._physics.GEOM_CYLINDER, "capsule": self._physics.GEOM_CAPSULE}
         if shape not in geometry:
             raise ValueError(f"Unknown game object shape '{shape}'")
         kwargs: dict[str, Any] = {"shapeType": geometry[shape], "physicsClientId": self.client}
@@ -252,8 +257,8 @@ class World:
                 kwargs["length" if visual else "height"] = length
         if visual:
             kwargs["rgbaColor"] = _vec(item.get("color", [0.45, 0.5, 0.55, 1]), 4, "object.color")
-            return p.createVisualShape(**kwargs)
-        return p.createCollisionShape(**kwargs)
+            return self._physics.createVisualShape(**kwargs)
+        return self._physics.createCollisionShape(**kwargs)
 
     def _load_field(self, directory: Path) -> None:
         field = self.game.get("field", {})
@@ -296,7 +301,7 @@ class World:
     def _add_object(self, item: dict[str, Any], directory: Path) -> int:
         position = _vec(item.get("position", [0, 0, 0]), 3, "object.position")
         rotation = _vec(item.get("rotation", [0, 0, 0]), 3, "object.rotation (radians)")
-        orientation = p.getQuaternionFromEuler(rotation)
+        orientation = self._physics.getQuaternionFromEuler(rotation)
         mass = float(item.get("mass", 0))
         if not math.isfinite(mass) or mass < 0:
             raise ValueError("Object mass must be finite and nonnegative")
@@ -310,17 +315,17 @@ class World:
             # let this Bullet version set the leaf margins of STL hulls; its
             # maximal-coordinate margin API only changes the outer compound.
             rigid = ET.parse(path).getroot().find("joint") is None
-            body = p.loadURDF(str(path), position, orientation, useFixedBase=bool(item.get("fixed", mass == 0)),
+            body = self._physics.loadURDF(str(path), position, orientation, useFixedBase=bool(item.get("fixed", mass == 0)),
                               useMaximalCoordinates=False, globalScaling=float(item.get("scale", 1)),
-                              flags=p.URDF_USE_INERTIA_FROM_FILE | p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES |
-                                    (p.URDF_ENABLE_SLEEPING if rigid else 0),
+                              flags=self._physics.URDF_USE_INERTIA_FROM_FILE | self._physics.URDF_ENABLE_CACHED_GRAPHICS_SHAPES |
+                                    (self._physics.URDF_ENABLE_SLEEPING if rigid else 0),
                               physicsClientId=self.client)
             # For URDF objects omit mass to use fixed=True by default; set
             # fixed=False to retain all masses/inertias authored in the URDF.
             if "mass" in item and not item.get("fixed", mass == 0):
-                p.changeDynamics(body, -1, mass=mass, physicsClientId=self.client)
+                self._physics.changeDynamics(body, -1, mass=mass, physicsClientId=self.client)
         else:
-            body = p.createMultiBody(baseMass=mass, basePosition=position, baseOrientation=orientation,
+            body = self._physics.createMultiBody(baseMass=mass, basePosition=position, baseOrientation=orientation,
                                      useMaximalCoordinates=mass > 0,
                                      baseCollisionShapeIndex=self._shape(item) if item.get("collision", True) else -1,
                                      baseVisualShapeIndex=self._shape(item, True), physicsClientId=self.client)
@@ -328,42 +333,43 @@ class World:
         # maximal-coordinate bodies. Capture the actual local inertial transform
         # at import time, including any scaling/principal-axis rotation, so GPU
         # rendering can safely transform link-local visuals from the COM pose.
-        self.base_inertial_frames[body] = p.multiplyTransforms(
-            *p.invertTransform(position, orientation),
-            *p.getBasePositionAndOrientation(body, physicsClientId=self.client))
-        for index in range(-1, p.getNumJoints(body, physicsClientId=self.client)):
+        self.base_inertial_frames[body] = self._physics.multiplyTransforms(
+            *self._physics.invertTransform(position, orientation),
+            *self._physics.getBasePositionAndOrientation(body, physicsClientId=self.client))
+        for index in range(-1, self._physics.getNumJoints(body, physicsClientId=self.client)):
             kind = item.get("kind", item.get("scoring", {}).get("type"))
             plastic = kind in ("pin", "cup", "goal", "loader", "toggle")
             margin = item.get("collision_margin", .0001 if kind in ("pin", "cup", "goal") else None)
             contact = {} if margin is None else {"collisionMargin": max(0., float(margin))}
             friction = self.config.plastic_friction if plastic else self.config.friction
-            p.changeDynamics(body, index, lateralFriction=float(item.get("friction", friction)),
+            self._physics.changeDynamics(body, index, lateralFriction=float(item.get("friction", friction)),
                              # Persistent friction anchors inject energy into
                              # freely rolling shapes in this Bullet build.
                              frictionAnchor=int(bool(item.get("friction_anchor", False))),
                              restitution=float(item.get("restitution", self.config.restitution)),
                              rollingFriction=float(item.get("rolling_friction", 0.001)),
                              physicsClientId=self.client, **contact)
-            if p.getDynamicsInfo(body, index, physicsClientId=self.client)[0] > 0:
+            if self._physics.getDynamicsInfo(body, index, physicsClientId=self.client)[0] > 0:
                 self._dynamic_field_bodies.add(body)
                 # Static field inventories should become cheap once settled;
                 # Bullet automatically wakes them again on physical contact.
-                p.changeDynamics(body, index, activationState=p.ACTIVATION_STATE_ENABLE_SLEEPING,
+                self._physics.changeDynamics(body, index, activationState=self._physics.ACTIVATION_STATE_ENABLE_SLEEPING,
                                  sleepThreshold=float(item.get("sleep_speed", .01)) ** 2,
                                  physicsClientId=self.client)
-            if index >= 0 and p.getJointInfo(body, index, physicsClientId=self.client)[2] in (p.JOINT_REVOLUTE, p.JOINT_PRISMATIC):
-                p.setJointMotorControl2(body, index, p.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
+            if index >= 0 and self._physics.getJointInfo(body, index, physicsClientId=self.client)[2] in (self._physics.JOINT_REVOLUTE, self._physics.JOINT_PRISMATIC):
+                self._physics.setJointMotorControl2(body, index, self._physics.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
         score = deepcopy(item.get("scoring", {}))
         if not score and item.get("kind") == "pin":
             score = {"type": "pin", "length": .165, "radius": .0178}
         self.field_objects.append({"id": body, "name": item.get("name", ""), "mass": mass,
                                    "scoring": score})
-        if body in self._dynamic_field_bodies and p.getNumJoints(body, physicsClientId=self.client) == 0:
-            position, quaternion = p.getBasePositionAndOrientation(body, physicsClientId=self.client)
+        if body in self._dynamic_field_bodies and self._physics.getNumJoints(body, physicsClientId=self.client) == 0:
+            position, quaternion = self._physics.getBasePositionAndOrientation(body, physicsClientId=self.client)
             self._rest_bodies[body] = {
                 "since": self.tick, "minimum": list(position), "maximum": list(position),
                 "quaternion": quaternion, "qminimum": list(quaternion), "qmaximum": list(quaternion), "still": False,
             }
+        self._export_items.append((body, deepcopy(item), Path(directory)))
         return body
 
     def _deactivate_bounded_rest(self) -> None:
@@ -383,13 +389,13 @@ class World:
         stationary: set[int] = set()
         angular_chord_squared = (2 * math.sin(math.radians(.2) / 4)) ** 2
         for body, state in self._rest_bodies.items():
-            velocity = p.getBaseVelocity(body, physicsClientId=self.client)
+            velocity = self._physics.getBaseVelocity(body, physicsClientId=self.client)
             speed_squared = sum(v*v for vector in velocity for v in vector)
             if speed_squared == 0:
                 state["still"] = True
                 stationary.add(body)
                 continue
-            position, quaternion = p.getBasePositionAndOrientation(body, physicsClientId=self.client)
+            position, quaternion = self._physics.getBasePositionAndOrientation(body, physicsClientId=self.client)
             if sum(a*b for a, b in zip(state["quaternion"], quaternion)) < 0:
                 quaternion = tuple(-q for q in quaternion)
             minimum = [min(a, b) for a, b in zip(state["minimum"], position)]
@@ -416,7 +422,7 @@ class World:
         pending = set(candidates)
         while pending:
             body = pending.pop()
-            contacts = [c for c in p.getContactPoints(body, physicsClientId=self.client)
+            contacts = [c for c in self._physics.getContactPoints(body, physicsClientId=self.client)
                         if c[8] < .001]
             # Unsupported bodies must continue to fall, however small their
             # instantaneous speed may be (including near the top of a throw).
@@ -428,7 +434,7 @@ class World:
                 other, link = ((contact[2], contact[4]) if contact[1] == body
                                else (contact[1], contact[3]))
                 if (other == self.robot or other in self._dynamic_field_bodies or
-                        p.getDynamicsInfo(other, link, physicsClientId=self.client)[0] > 0):
+                        self._physics.getDynamicsInfo(other, link, physicsClientId=self.client)[0] > 0):
                     adjacent.add(other)
             neighbours[body] = adjacent
             # Exact-zero velocity alone does not establish a resting contact
@@ -447,8 +453,8 @@ class World:
             # Bullet 3.25, so its next activation check can immediately wake it.
             # Native island deactivation normally performs this zeroing later;
             # do it here only after the strict supported-rest checks above.
-            p.resetBaseVelocity(body, [0, 0, 0], [0, 0, 0], physicsClientId=self.client)
-            p.changeDynamics(body, -1, activationState=p.ACTIVATION_STATE_SLEEP,
+            self._physics.resetBaseVelocity(body, [0, 0, 0], [0, 0, 0], physicsClientId=self.client)
+            self._physics.changeDynamics(body, -1, activationState=self._physics.ACTIVATION_STATE_SLEEP,
                              physicsClientId=self.client)
             self._rest_bodies[body]["still"] = True
             self._rest_sleep_count += 1
@@ -457,11 +463,11 @@ class World:
     def joints(self) -> list[dict[str, Any]]:
         result = []
         for name, info in self._joint_info.items():
-            if info[2] not in (p.JOINT_REVOLUTE, p.JOINT_PRISMATIC):
+            if info[2] not in (self._physics.JOINT_REVOLUTE, self._physics.JOINT_PRISMATIC):
                 continue
-            state = p.getJointState(self.robot, info[0], physicsClientId=self.client)
+            state = self._physics.getJointState(self.robot, info[0], physicsClientId=self.client)
             result.append({"name": name, "index": info[0],
-                           "type": "prismatic" if info[2] == p.JOINT_PRISMATIC else ("continuous" if info[8] > info[9] else "revolute"),
+                           "type": "prismatic" if info[2] == self._physics.JOINT_PRISMATIC else ("continuous" if info[8] > info[9] else "revolute"),
                            "position": state[0], "velocity": state[1], "lower": info[8], "upper": info[9]})
         return result
 
@@ -533,7 +539,7 @@ class World:
         servos: dict[int, list[tuple[dict[str, Any], float, float]]] = {}
         self._servo_loads = {}
         for motor in self.motor_bindings:
-            position, velocity, _, _ = p.getJointState(self.robot, motor["index"], physicsClientId=self.client)
+            position, velocity, _, _ = self._physics.getJointState(self.robot, motor["index"], physicsClientId=self.client)
             factor = motor["factor"] * motor["sign"]
             command = self._commands["motors"].get(str(motor["port"]), {})
             servo = self._servo_command(motor, position * factor, velocity * factor, command)
@@ -548,7 +554,7 @@ class World:
             torque = _clip(torque, -bound, bound)
             self._last_torques[motor["port"]] = torque
             torques[motor["index"]] = torques.get(motor["index"], 0) + torque * factor * motor["efficiency"]
-            if self._joint_info[motor["joint"]][2] == p.JOINT_PRISMATIC:
+            if self._joint_info[motor["joint"]][2] == self._physics.JOINT_PRISMATIC:
                 limit = motor["rpm"] * math.pi / 30 / abs(factor)
                 linear_limits[motor["index"]] = min(linear_limits.get(motor["index"], limit), limit)
         for index, torque in torques.items():
@@ -556,12 +562,12 @@ class World:
                 # Screw reductions can produce a very stiff actuator. Bullet's
                 # implicit finite-force motor enforces the V5 speed bound without
                 # an explicit force overshooting many revolutions in one tick.
-                p.setJointMotorControl2(self.robot, index, p.VELOCITY_CONTROL,
+                self._physics.setJointMotorControl2(self.robot, index, self._physics.VELOCITY_CONTROL,
                                        targetVelocity=math.copysign(linear_limits[index], torque),
                                        force=abs(torque), physicsClientId=self.client)
             else:
-                p.setJointMotorControl2(self.robot, index, p.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
-                p.setJointMotorControl2(self.robot, index, p.TORQUE_CONTROL, force=torque, physicsClientId=self.client)
+                self._physics.setJointMotorControl2(self.robot, index, self._physics.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
+                self._physics.setJointMotorControl2(self.robot, index, self._physics.TORQUE_CONTROL, force=torque, physicsClientId=self.client)
         for index, group in servos.items():
             total = sum(force for _, _, force in group)
             if total == 0 and index in torques:
@@ -569,13 +575,13 @@ class World:
                     self._last_torques[motor["port"]] = 0
                 continue
             target = sum(target * force for _, target, force in group) / total if total > 0 else 0
-            p.setJointMotorControl2(self.robot, index, p.VELOCITY_CONTROL, targetVelocity=target,
+            self._physics.setJointMotorControl2(self.robot, index, self._physics.VELOCITY_CONTROL, targetVelocity=target,
                                    force=total, velocityGain=1, physicsClientId=self.client)
             self._servo_loads[index] = [(motor, force / total if total else 0) for motor, _, force in group]
         for piston in self._pneumatics:
             value = self._commands["adi"].get(str(piston["port"]).upper(), False)
             target = float(piston.get("extended", 0.05) if value else piston.get("retracted", 0))
-            p.setJointMotorControl2(self.robot, piston["index"], p.POSITION_CONTROL, targetPosition=target,
+            self._physics.setJointMotorControl2(self.robot, piston["index"], self._physics.POSITION_CONTROL, targetPosition=target,
                                    force=float(piston.get("force", 40)), maxVelocity=float(piston.get("max_velocity", 1)),
                                    positionGain=0.15, velocityGain=1, physicsClientId=self.client)
         for name, command in self._commands["joints"].items():
@@ -590,12 +596,12 @@ class World:
             if mode == "position":
                 if info[8] <= info[9]:
                     value = _clip(value, info[8], info[9])
-                p.setJointMotorControl2(self.robot, info[0], p.POSITION_CONTROL, targetPosition=value, force=force, physicsClientId=self.client)
+                self._physics.setJointMotorControl2(self.robot, info[0], self._physics.POSITION_CONTROL, targetPosition=value, force=force, physicsClientId=self.client)
             elif mode == "velocity":
-                p.setJointMotorControl2(self.robot, info[0], p.VELOCITY_CONTROL, targetVelocity=value, force=force, physicsClientId=self.client)
+                self._physics.setJointMotorControl2(self.robot, info[0], self._physics.VELOCITY_CONTROL, targetVelocity=value, force=force, physicsClientId=self.client)
             elif mode == "torque":
-                p.setJointMotorControl2(self.robot, info[0], p.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
-                p.setJointMotorControl2(self.robot, info[0], p.TORQUE_CONTROL, force=_clip(value, -force, force), physicsClientId=self.client)
+                self._physics.setJointMotorControl2(self.robot, info[0], self._physics.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
+                self._physics.setJointMotorControl2(self.robot, info[0], self._physics.TORQUE_CONTROL, force=_clip(value, -force, force), physicsClientId=self.client)
             else:
                 raise ValueError(f"Unknown joint control mode '{mode}'")
 
@@ -660,10 +666,10 @@ class World:
         key = (body, link)
         if key not in self._point_motion_cache:
             if link < 0:
-                pos, _ = p.getBasePositionAndOrientation(body, physicsClientId=self.client)
-                linear, angular = p.getBaseVelocity(body, physicsClientId=self.client)
+                pos, _ = self._physics.getBasePositionAndOrientation(body, physicsClientId=self.client)
+                linear, angular = self._physics.getBaseVelocity(body, physicsClientId=self.client)
             else:
-                state = p.getLinkState(body, link, computeLinkVelocity=1, physicsClientId=self.client)
+                state = self._physics.getLinkState(body, link, computeLinkVelocity=1, physicsClientId=self.client)
                 pos, linear, angular = state[0], state[6], state[7]
             self._point_motion_cache[key] = (np.asarray(pos), np.asarray(linear), angular)
         pos, linear, angular = self._point_motion_cache[key]
@@ -676,11 +682,11 @@ class World:
         # every contact on a link can reuse this tick's rigid motion.
         self._point_motion_cache = {}
         contact_masses = {}
-        _, quaternion = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client)
-        rotation = np.array(p.getMatrixFromQuaternion(quaternion)).reshape(3, 3)
+        _, quaternion = self._physics.getBasePositionAndOrientation(self.robot, physicsClientId=self.client)
+        rotation = np.array(self._physics.getMatrixFromQuaternion(quaternion)).reshape(3, 3)
         for wheel in self._wheels:
             world_direction = rotation @ np.array(wheel["direction"])
-            contacts = p.getContactPoints(bodyA=self.robot, linkIndexA=wheel["index"], physicsClientId=self.client)
+            contacts = self._physics.getContactPoints(bodyA=self.robot, linkIndexA=wheel["index"], physicsClientId=self.client)
             for contact in contacts:
                 normal = np.array(contact[7])
                 normal_load = max(0., contact[9])
@@ -706,13 +712,13 @@ class World:
                 driven_force = _clip(driven_force, -stopping_force, stopping_force)
                 roller_force = -float(wheel.get("roller_friction", 0.025)) * normal_load * math.tanh(float(np.dot(relative, lateral)) / .1)
                 force = direction * driven_force + lateral * roller_force
-                p.applyExternalForce(self.robot, wheel["index"], force.tolist(), point.tolist(), p.WORLD_FRAME, physicsClientId=self.client)
+                self._physics.applyExternalForce(self.robot, wheel["index"], force.tolist(), point.tolist(), self._physics.WORLD_FRAME, physicsClientId=self.client)
                 # Equal and opposite reaction preserves momentum for movable fields.
                 other = (contact[2], contact[4])
                 if other not in contact_masses:
-                    contact_masses[other] = p.getDynamicsInfo(*other, physicsClientId=self.client)[0]
+                    contact_masses[other] = self._physics.getDynamicsInfo(*other, physicsClientId=self.client)[0]
                 if contact_masses[other] > 0:
-                    p.applyExternalForce(contact[2], contact[4], (-force).tolist(), point.tolist(), p.WORLD_FRAME, physicsClientId=self.client)
+                    self._physics.applyExternalForce(contact[2], contact[4], (-force).tolist(), point.tolist(), self._physics.WORLD_FRAME, physicsClientId=self.client)
 
     def step(self, commands: dict[str, Any] | None = None) -> dict[str, Any]:
         if commands is not None:
@@ -739,9 +745,9 @@ class World:
                     self._commands[family][key] = deepcopy(value)
         self._apply_motors()
         self._apply_omni_tires()
-        p.stepSimulation(physicsClientId=self.client)
+        self._physics.stepSimulation(physicsClientId=self.client)
         for index, group in self._servo_loads.items():
-            applied = p.getJointState(self.robot, index, physicsClientId=self.client)[3]
+            applied = self._physics.getJointState(self.robot, index, physicsClientId=self.client)[3]
             for motor, share in group:
                 self._last_torques[motor["port"]] = applied * share / (motor["factor"] * motor["sign"] * motor["efficiency"])
         self.tick += 1
@@ -765,13 +771,13 @@ class World:
         self._servo_loads.clear()
         self._hold_targets.clear()
         for info in self._joint_info.values():
-            if info[2] in (p.JOINT_REVOLUTE, p.JOINT_PRISMATIC):
-                p.setJointMotorControl2(self.robot, info[0], p.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
+            if info[2] in (self._physics.JOINT_REVOLUTE, self._physics.JOINT_PRISMATIC):
+                self._physics.setJointMotorControl2(self.robot, info[0], self._physics.VELOCITY_CONTROL, force=0, physicsClientId=self.client)
         self._last_torques = {motor["port"]: 0 for motor in self.motor_bindings}
 
     def _distances(self) -> dict[str, float]:
-        position, quaternion = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client)
-        rot = np.array(p.getMatrixFromQuaternion(quaternion)).reshape(3, 3)
+        position, quaternion = self._physics.getBasePositionAndOrientation(self.robot, physicsClientId=self.client)
+        rot = np.array(self._physics.getMatrixFromQuaternion(quaternion)).reshape(3, 3)
         result = {}
         for sensor in self.robot_settings.get("distance_sensors", []):
             offset = np.array(_vec(sensor.get("position", [.22, 0, .07]), 3, "distance.position"))
@@ -783,14 +789,14 @@ class World:
             limit = float(sensor.get("max_range", 2.0))
             if not math.isfinite(limit) or limit <= 0:
                 raise ValueError("Distance sensor max_range must be positive metres")
-            hit = p.rayTest(origin.tolist(), (origin + limit * ray_direction).tolist(), physicsClientId=self.client)[0]
+            hit = self._physics.rayTest(origin.tolist(), (origin + limit * ray_direction).tolist(), physicsClientId=self.client)[0]
             distance = 9999.0 if hit[0] < 0 else max(0, hit[2] * limit * 1000)
             result[str(sensor["port"])] = distance
         return result
 
     def _observe(self) -> None:
-        position, quaternion = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client)
-        yaw = p.getEulerFromQuaternion(quaternion)[2]
+        position, quaternion = self._physics.getBasePositionAndOrientation(self.robot, physicsClientId=self.client)
+        yaw = self._physics.getEulerFromQuaternion(quaternion)[2]
         delta = math.atan2(math.sin(yaw - self._last_yaw), math.cos(yaw - self._last_yaw))
         self._rotation += delta
         self._last_yaw = yaw
@@ -810,7 +816,7 @@ class World:
             "motors": {}, "distance": self._distances(),
         }
         for motor in self.motor_bindings:
-            pos, velocity, _, _ = p.getJointState(self.robot, motor["index"], physicsClientId=self.client)
+            pos, velocity, _, _ = self._physics.getJointState(self.robot, motor["index"], physicsClientId=self.client)
             frame["motors"][str(motor["port"])] = {
                 "position": pos * motor["factor"] * motor["sign"] + math.radians(self.rng.normal(0, noise["encoder_std_deg"])),
                 "velocity": velocity * motor["factor"] * motor["sign"],
@@ -830,7 +836,7 @@ class World:
             if self.rng.random() >= noise["dropout"]:
                 self._delivered = ready
         self._snapshot = deepcopy(self._delivered)
-        linear, angular = p.getBaseVelocity(self.robot, physicsClientId=self.client)
+        linear, angular = self._physics.getBaseVelocity(self.robot, physicsClientId=self.client)
         if self._scoring_cache is None or self.tick % max(1, self.config.physics_hz // 30) == 0:
             self._scoring_cache = self._scoring()
         self._snapshot.update({"time": self.time, "tick": self.tick,
@@ -851,15 +857,15 @@ class World:
         pins = [item for item in self.field_objects if item["scoring"].get("type") == "pin"]
         placed = []
         for pin in pins:
-            xyz, quat = p.getBasePositionAndOrientation(pin["id"], physicsClientId=self.client)
-            axis = np.array(p.getMatrixFromQuaternion(quat)).reshape(3, 3)[:, 2]
+            xyz, quat = self._physics.getBasePositionAndOrientation(pin["id"], physicsClientId=self.client)
+            axis = np.array(self._physics.getMatrixFromQuaternion(quat)).reshape(3, 3)[:, 2]
             if abs(axis[2]) < .94:
                 continue
             bottom = np.array(xyz) - np.sign(axis[2]) * axis * float(pin["scoring"].get("length", .165)) / 2
-            if p.getContactPoints(pin["id"], self.robot, physicsClientId=self.client):
+            if self._physics.getContactPoints(pin["id"], self.robot, physicsClientId=self.client):
                 continue
             for goal in goals:
-                centre, _ = p.getBasePositionAndOrientation(goal["id"], physicsClientId=self.client)
+                centre, _ = self._physics.getBasePositionAndOrientation(goal["id"], physicsClientId=self.client)
                 spec = goal["scoring"]
                 top = float(spec["height"]) + float(spec.get("base_z", 0))
                 clearance = float(spec.get("socket_radius", .027)) - float(pin["scoring"].get("radius", .020)) + .003
@@ -867,7 +873,7 @@ class World:
                     continue
                 if not top - float(spec.get("socket_depth", .055)) - .008 <= bottom[2] <= top + .002:
                     continue
-                if p.getContactPoints(pin["id"], goal["id"], physicsClientId=self.client):
+                if self._physics.getContactPoints(pin["id"], goal["id"], physicsClientId=self.client):
                     placed.append({"pin": pin["name"], "goal": goal["name"], "alliance": spec.get("alliance", "neutral")})
                     break
         return {"label": "Prototype placed pins · contact detection, not official points",
@@ -875,7 +881,7 @@ class World:
 
     def snapshot(self) -> dict[str, Any]:
         """Cached sensor sample: rendering/read frequency cannot affect noise."""
-        return deepcopy(self._snapshot)
+        return {**deepcopy(self._snapshot), "physics": deepcopy(self.physics_status)}
 
     def render(self, width: int = 960, height: int = 720, yaw: float = -45,
                pitch: float = -55, distance: float = 5, target: list[float] | None = None) -> np.ndarray:
@@ -886,16 +892,17 @@ class World:
         if self._render_backend is None:
             from .render_backend import RenderBackend
             self._render_backend = RenderBackend(self.client, self.config.extra.get("renderer", "auto"),
-                                                 base_inertial_frames=self.base_inertial_frames)
+                                                 base_inertial_frames=self.base_inertial_frames,
+                                                 physics_api=self._physics)
         pixels = self._render_backend.render(width, height, yaw, pitch, distance, target)
         self.renderer_status = dict(self._render_backend.status)
         if pixels is not None:
             return pixels
-        view = p.computeViewMatrixFromYawPitchRoll(target, max(.1, distance), yaw, pitch, 0, 2)
-        projection = p.computeProjectionMatrixFOV(52, width / height, .02, 30)
-        camera = p.getCameraImage(width, height, view, projection,
-                                 renderer=p.ER_TINY_RENDERER, lightDirection=[-2, -3, 6],
-                                 shadow=1, flags=p.ER_NO_SEGMENTATION_MASK, physicsClientId=self.client)
+        view = self._physics.computeViewMatrixFromYawPitchRoll(target, max(.1, distance), yaw, pitch, 0, 2)
+        projection = self._physics.computeProjectionMatrixFOV(52, width / height, .02, 30)
+        camera = self._physics.getCameraImage(width, height, view, projection,
+                                 renderer=self._physics.ER_TINY_RENDERER, lightDirection=[-2, -3, 6],
+                                 shadow=1, flags=self._physics.ER_NO_SEGMENTATION_MASK, physicsClientId=self.client)
         pixels = np.asarray(camera[2], dtype=np.uint8).reshape(height, width, 4).copy()
         depth = np.asarray(camera[3]).reshape(height, width)
         pixels[depth >= .99999] = [9, 20, 32, 255]
@@ -906,8 +913,8 @@ class World:
             self._render_backend.close()
             self._render_backend = None
         if getattr(self, "client", -1) >= 0:
-            if p.isConnected(self.client):
-                p.disconnect(physicsClientId=self.client)
+            if self._physics.isConnected(self.client):
+                self._physics.disconnect(physicsClientId=self.client)
             self.client = -1
 
     def __enter__(self) -> "World":

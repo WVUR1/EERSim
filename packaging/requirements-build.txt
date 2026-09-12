@@ -4,3 +4,11 @@ pyinstaller==6.22.2
 pyinstaller-hooks-contrib==2026.7
 # The standalone app includes USB game-controller support.
 pygame==2.6.1
+# Every distributed EXE includes the pinned CUDA physics runtime. Source
+# installations can opt in separately with the project's gpu extra.
+ovphysx==0.5.11
+ovstage==0.1.1.355824
+scipy==1.16.3
+# ovphysx requires packaging<24; newer wheel releases require packaging>=24.
+packaging==23.2
+wheel==0.45.1

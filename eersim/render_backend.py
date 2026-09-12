@@ -1,4 +1,4 @@
-"""Select GPU rendering independently of the fixed-step CPU physics engine."""
+"""Select GPU rendering independently of the fixed-step physics backend."""
 from __future__ import annotations
 
 import os
@@ -7,13 +7,14 @@ from .gpu_probe import probe_gpu
 
 
 class RenderBackend:
-    def __init__(self, client: int, mode: str = "auto", base_inertial_frames: dict | None = None):
+    def __init__(self, client: int, mode: str = "auto", base_inertial_frames: dict | None = None, physics_api=None):
         # The environment override also gives headless CI a deliberate CPU path.
         mode = os.environ.get("EERSIM_RENDERER", mode).lower()
         if mode not in ("auto", "gpu", "cpu"):
             raise ValueError("renderer must be auto, gpu, or cpu")
         self.client, self.mode = client, mode
         self.base_inertial_frames = base_inertial_frames
+        self.physics_api = physics_api
         self.renderer = None
         self.initialized = False
         self.status = {"backend": "cpu", "device": "Bullet TinyRenderer", "hardware_accelerated": False,
@@ -31,7 +32,8 @@ class RenderBackend:
                         bodies = [bullet.getBodyUniqueId(i, physicsClientId=self.client)
                                   for i in range(bullet.getNumBodies(physicsClientId=self.client))]
                         self.renderer = HardwareRenderer(self.client, bodies,
-                                                         base_inertial_frames=self.base_inertial_frames)
+                                                         base_inertial_frames=self.base_inertial_frames,
+                                                         physics_api=self.physics_api)
                         self.status = {"backend": "opengl", "device": info.get("device", "OpenGL"),
                                        "hardware_accelerated": info.get("hardware_accelerated", False),
                                        "version": info.get("version", ""), "reason": ""}

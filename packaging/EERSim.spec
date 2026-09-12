@@ -6,6 +6,7 @@ EERSIM_BUNDLE_COMPILER: optional complete LLVM-MinGW distribution directory.
 """
 import os
 from pathlib import Path
+import runpy
 import sys
 
 from PyInstaller.building.datastruct import Tree
@@ -30,6 +31,11 @@ if layout not in {"onefile", "onedir"}:
 # Keep these beside eersim/ inside the bundle. The same __file__-relative
 # paths work in a checkout, a directory bundle, and a one-file extraction.
 datas = []
+scene_probe = checkout / "build/native/physx_scene_probe.dll"
+if not scene_probe.is_file():
+    raise SystemExit("Build the GPU verification helper through build.ps1 before freezing EERSim.")
+datas += [(str(scene_probe), "eersim/_native"),
+          (str(checkout / "eersim/_native/physx/LICENSE.md"), "eersim/_native/physx")]
 for folder in ("assets", "native", "examples", "docs"):
     source = checkout / folder
     if not source.is_dir():
@@ -45,7 +51,8 @@ for name in ("README.md", "environment.yml", "LICENSE", "LICENSE.txt", "LICENSE.
 
 # Include package metadata and its license files, also useful for diagnostics.
 for distribution in ("eerkit-simulator", "numpy", "pybullet", "PySide6",
-                     "PySide6_Essentials", "PySide6_Addons", "shiboken6", "vtk"):
+                     "PySide6_Essentials", "PySide6_Addons", "shiboken6", "vtk",
+                     "ovphysx", "ovstage", "scipy", "packaging"):
     datas += copy_metadata(distribution)
 
 binaries = []
@@ -70,9 +77,10 @@ if is_pure_conda:
 # Qt's platform/image plugins, and VTK 9.6's extension-module dependencies.
 # OpenGL backend registration and app modules also used by helper invocations
 # must survive import analysis even though they are loaded lazily.
-hiddenimports = collect_submodules("eersim") + [
+gpu_payload, gpu_hiddenimports = runpy.run_path(str(packaging / "gpu_payload.py"))["collect_gpu_payload"]()
+hiddenimports = collect_submodules("eersim") + gpu_hiddenimports + [
     "PySide6.QtCore", "PySide6.QtGui", "PySide6.QtWidgets",
-    "vtk", "vtk.util.numpy_support", "vtkmodules.vtkRenderingOpenGL2",
+    "vtk", "vtkmodules.util.numpy_support", "vtkmodules.vtkRenderingOpenGL2",
     "vtkmodules.vtkInteractionStyle", "pygame",
 ]
 
@@ -118,8 +126,8 @@ options = dict(
 if layout == "onedir":
     executable = EXE(pyz, analysis.scripts, [], exclude_binaries=True,
                      contents_directory="_internal", **options)
-    COLLECT(executable, analysis.binaries, analysis.datas, toolchain,
+    COLLECT(executable, analysis.binaries, analysis.datas, gpu_payload, toolchain,
             strip=False, upx=False, name="EERSim")
 else:
-    EXE(pyz, analysis.scripts, analysis.binaries, analysis.datas, toolchain, [],
+    EXE(pyz, analysis.scripts, analysis.binaries, analysis.datas, gpu_payload, toolchain, [],
         runtime_tmpdir=None, **options)

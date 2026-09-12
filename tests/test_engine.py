@@ -25,7 +25,7 @@ def test_failed_configuration_blocks_queued_start(monkeypatch, deferred):
     # Exercise queue/error recovery with real physics without making its deadline
     # depend on importing the current season's detailed CAD assembly.
     scene = default_config()
-    scene.update(game_pack=str(ASSETS / "games" / "practice.json"), renderer="cpu")
+    scene.update(game_pack=str(ASSETS / "games" / "practice.json"), renderer="cpu", physics_backend="bullet")
     monkeypatch.setattr(engine, "default_config", lambda: copy.deepcopy(scene))
     worker = engine.SimulationEngine(defer_configuration=deferred)
     failures = []

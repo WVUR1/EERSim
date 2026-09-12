@@ -1,6 +1,15 @@
 # Local validation
 
-Validated on September 10, 2026, on Windows with Intel Iris Xe graphics.
+The measurements below were recorded on September 10, 2026, using Bullet CPU
+physics and Intel Iris Xe OpenGL graphics on Windows. They are historical
+baseline results, not integrated PhysX performance or Windows CUDA validation.
+
+The source now includes a [PhysX backend](gpu-physics.md) connected to the shared
+motor, sensor, and native PROS flow. Its selection/configuration checks and
+packaging preparation do not replace full contact, joint, motor, sensor, native
+routine, and frozen-runtime acceptance. Integrated performance measurements and
+Windows CUDA validation have not yet been recorded here; GPU-enabled installer
+publication remains pending.
 
 The local environment uses Python 3.11.16, conda-forge Bullet 3.25 (Python
 distribution version 3.2.5), NumPy 2.4.6, PySide6 6.8.3, VTK 9.6.2, and
@@ -81,7 +90,7 @@ The full dynamic Override scene is substantially slower: a two-simulated-second
 interval after the recording process closed took 107.8 wall seconds, about
 0.019× real time. Many complex cup/pin contacts remained numerically active even
 after the scoring robot had stopped. The physics timestep and solver iterations
-were preserved. This is a material limitation of the current CPU implementation;
+were preserved. This is a material limitation measured in the Bullet implementation;
 GPU graphics does not remove that contact cost. Use the fixed-piece layout for
 route iteration and the full scene when movable game-piece interactions matter.
 
@@ -106,13 +115,16 @@ that does not accelerate a single field's timeline.
 An experimental maximal-coordinate prop representation improved the short
 profile only to 0.0256x and changes how leaf collision margins are applied.
 It was not adopted. Alternative SAT contacts and larger solver batches did
-not establish a useful improvement. The production timestep, 100 solver
-iterations, collision geometry, and rest thresholds remain unchanged.
+not establish a useful improvement. These baseline measurements used the fixed
+240 Hz timestep, 100 Bullet solver iterations, and the recorded collision
+geometry and rest thresholds. The new backend selector does not make their
+timings applicable to PhysX.
 
-GPU dynamics would require a backend adapter and renewed contact, joint, motor,
-and sensor validation. The [PhysX GPU backend](https://nvidia-omniverse.github.io/PhysX/physx/5.6.1/docs/GPURigidBodies.html)
-supports CUDA physics and articulations on Windows, but does not guarantee a
-particular speedup for this scene. This release does not implement that backend.
+The integrated PhysX adapter now uses authoritative PhysX poses, contacts and
+articulation state, with the shared VEX controller/sensor model. A separate
+[passive PhysX study](../tools/physx_prototype/README.md) measured A100/EPYC
+stepping and audited exported geometry. It excluded PROS, motors, tire forces,
+sensors and rendering, so its numbers cannot establish integrated speedups.
 
 The source GUI now measures RTF using the wall-clock timestamp after its counted
 ticks finish and resets the measurement across lifecycle changes. This corrects

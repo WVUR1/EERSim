@@ -22,6 +22,7 @@ def test_repository_driver_moves_robot_and_disables_at_time_limit(tmp_path):
         pytest.skip("Native C++ compiler required for repository integration")
     executable = build_workspace(workspace)
     config = default_config()
+    config["physics_backend"] = "bullet"
     config["duration_overrides"] = {"skills_driver": 0.75}
     session = Session(config)
     try:
@@ -54,6 +55,9 @@ def test_native_claw_demo_grips_lifts_and_places_its_preload():
     import pybullet as bullet
 
     config = claw_demo_config()
+    # This regression reads authoritative Bullet poses directly. GPU backends
+    # need their own integration checks through the public snapshot contract.
+    config["physics_backend"] = "bullet"
     executable = build_workspace(Path(config["workspace"]))
     logs = []
     session = Session(config, log=logs.append)

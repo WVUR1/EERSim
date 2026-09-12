@@ -19,7 +19,13 @@ def main(argv=None) -> int:
     import argparse
     parser = argparse.ArgumentParser(description="EERKit Autonomy Lab")
     parser.add_argument("--headless", action="store_true", help="Run without the desktop")
-    parser.add_argument("--renderer", choices=["auto", "gpu", "cpu"], help="Graphics backend (physics always uses fixed CPU steps)")
+    parser.add_argument("--renderer", choices=["auto", "gpu", "cpu"], help="Graphics renderer; independent of the physics engine")
+    parser.add_argument("--physics-backend", choices=["auto", "bullet", "physx_gpu", "physx_cpu"],
+                        help="Physics engine: auto selects CUDA when available, otherwise Bullet; explicit selections do not fall back")
+    parser.add_argument("--physics-device", type=int,
+                        help="Logical CUDA device index (0 or greater, after CUDA_VISIBLE_DEVICES filtering)")
+    parser.add_argument("--solver-iterations", type=int,
+                        help="Physics solver iterations (1–255; default 100)")
     parser.add_argument("--workspace", type=Path, help="PROS workspace to compile")
     experiments = parser.add_mutually_exclusive_group()
     experiments.add_argument("--config", type=Path, help="Saved simulator configuration")
@@ -30,7 +36,7 @@ def main(argv=None) -> int:
     parser.add_argument("--controller", type=Path, help="JSON analog/digital controller values for headless driver runs")
     args = parser.parse_args(arguments)
     try:
-        from .config import default_config, load_config
+        from .config import SimConfig, default_config, load_config
         if args.demo:
             from .demos import claw_demo_config
             config = claw_demo_config()
@@ -40,6 +46,13 @@ def main(argv=None) -> int:
             config["workspace"] = str(args.workspace.resolve())
         if args.renderer:
             config["renderer"] = args.renderer
+        if args.physics_backend is not None:
+            config["physics_backend"] = args.physics_backend
+        if args.physics_device is not None:
+            config["physics_device"] = args.physics_device
+        if args.solver_iterations is not None:
+            config["physics_solver_iterations"] = args.solver_iterations
+        config = SimConfig.from_dict(config).to_dict()
         if not args.headless:
             from .gui import run
             return run(config, str(args.workspace) if args.workspace else None)
