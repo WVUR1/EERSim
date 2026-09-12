@@ -128,3 +128,92 @@ def test_injected_world_factory_remains_supported_without_backend_module(monkeyp
         assert isinstance(session.world, SelectedWorld)
     finally:
         session.close()
+
+
+@pytest.mark.parametrize("failure", ["runtime_missing", "cuda_unavailable"])
+def test_auto_fallback_reason_survives_resets_and_explicit_bullet_clears_it(tmp_path, monkeypatch, failure):
+    """Exercise real World.reset with one fixed link; no GPU, steps, or meshes."""
+    pytest.importorskip("pybullet")
+    from eersim import physics_backend
+
+    robot = tmp_path / "single-link.urdf"
+    robot.write_text('''<robot name="single-link"><link name="base_link">
+      <inertial><mass value="1"/><inertia ixx=".01" iyy=".01" izz=".01"
+        ixy="0" ixz="0" iyz="0"/></inertial>
+      <collision><geometry><box size=".1 .1 .1"/></geometry></collision>
+      </link></robot>''')
+    field = tmp_path / "empty-field.json"
+    field.write_text(json.dumps({"field": {"size": [2, 2], "floor": False, "walls": False}, "objects": []}))
+    selected = {"physics_backend": "auto", "robot_urdf": str(robot), "robot_config": "",
+                "game_pack": str(field), "fixed_base": True, "motors": []}
+    before = copy.deepcopy(selected)
+    monkeypatch.setattr(physics_backend, "find_spec", lambda _: None if failure == "runtime_missing" else object())
+    monkeypatch.setattr(physics_backend, "cuda_device_info",
+                        lambda _: {"available": False, "reason": "No CUDA device available for this test"})
+    world = physics_backend.create_world(selected)
+    try:
+        reason = world.physics_status["reason"]
+        assert reason
+        if failure == "runtime_missing":
+            assert "not installed" in reason
+        else:
+            assert reason == "No CUDA device available for this test"
+        assert world.config.physics_backend == "auto"
+        assert world.physics_status["backend"] == "bullet"
+        assert not world.physics_status["hardware_accelerated"]
+        for settings in (None, copy.deepcopy(selected)):
+            world.reset(settings)
+            assert world.physics_status["reason"] == reason
+            assert world.snapshot()["physics"]["reason"] == reason
+        world.reset({**selected, "physics_backend": "bullet"})
+        assert world.config.physics_backend == "bullet"
+        assert not world.physics_status.get("reason")
+        assert selected == before
+    finally:
+        world.close()
+
+
+def test_failed_auto_physx_initialization_restores_auto_selection_before_bullet_fallback(monkeypatch):
+    """The failed attempt's temporary physx_gpu selection must not leak into resets."""
+    from eersim import physics_backend
+
+    attempts, fallbacks = [], []
+
+    def fail(selected):
+        attempts.append(copy.deepcopy(selected))
+        raise RuntimeError("GPU scene cooking rejected the fixture")
+
+    class FallbackWorld:
+        def __init__(self, selected):
+            fallbacks.append(copy.deepcopy(selected))
+            self.config = config.SimConfig.from_dict(selected)
+            self.physics_status = {"backend": "bullet", "hardware_accelerated": False}
+
+    monkeypatch.setattr(physics_backend, "find_spec", lambda _: object())
+    monkeypatch.setattr(physics_backend, "cuda_device_info", lambda _: {"available": True})
+    monkeypatch.setitem(sys.modules, "eersim.physx_world", SimpleNamespace(PhysXWorld=fail))
+    monkeypatch.setattr(physics_backend, "World", FallbackWorld)
+    selected = {"physics_backend": "auto", "physics_device": 2, "physics_solver_iterations": 64}
+    before = copy.deepcopy(selected)
+    world = physics_backend.create_world(selected)
+    assert len(attempts) == len(fallbacks) == 1
+    assert attempts[0]["physics_backend"] == "physx_gpu"
+    assert fallbacks[0]["physics_backend"] == world.config.physics_backend == "auto"
+    assert fallbacks[0]["physics_device"] == 2
+    assert fallbacks[0]["physics_solver_iterations"] == 64
+    assert world.physics_status["reason"] == "PhysX initialization failed: GPU scene cooking rejected the fixture"
+    assert selected == before
+
+
+def test_explicit_physx_failure_does_not_silently_fall_back_to_bullet(monkeypatch):
+    from eersim import physics_backend
+
+    def fail(selected):
+        raise RuntimeError("GPU scene cooking rejected the fixture")
+
+    monkeypatch.setattr(physics_backend, "find_spec", lambda _: object())
+    monkeypatch.setattr(physics_backend, "cuda_device_info", lambda _: {"available": True})
+    monkeypatch.setitem(sys.modules, "eersim.physx_world", SimpleNamespace(PhysXWorld=fail))
+    monkeypatch.setattr(physics_backend, "World", lambda _: pytest.fail("Explicit PhysX selection must fail visibly"))
+    with pytest.raises(RuntimeError, match="GPU scene cooking rejected"):
+        physics_backend.create_world({"physics_backend": "physx_gpu"})

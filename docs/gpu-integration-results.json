@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "validation_scope": "native_claw_placement",
+  "request": {
+    "backend": "physx_gpu",
+    "device": 0,
+    "iterations": 100,
+    "fixture": "claw",
+    "physics_hz": 240,
+    "ticks": 7200,
+    "seconds": 30.0,
+    "pros": true
+  },
+  "physics": {
+    "backend": "physx",
+    "device": "NVIDIA A100-SXM4-40GB",
+    "hardware_accelerated": true,
+    "reason": "",
+    "scene_gpu_flags": 11,
+    "logical_cuda_device": 0,
+    "cuda_device_name": "NVIDIA A100-SXM4-40GB",
+    "direct_gpu_api": false,
+    "physx_header_version": 84541440,
+    "solver": "TGS",
+    "solver_iterations": 100,
+    "tensor_cores": false,
+    "state_exchange": "batched CPU observations",
+    "initialization_steps": 1,
+    "motor_torque_observation": "bounded implicit-drive estimate",
+    "scene_query_identity": "native opaque IDs, not Bullet body/link IDs"
+  },
+  "checks": {
+    "fixed_clock": true,
+    "finite_state": true,
+    "requested_backend": true,
+    "full_claw_placement": true,
+    "source_unchanged": true
+  },
+  "timing_seconds": {
+    "configuration": 0.013648238964378834,
+    "native_build": 3.5540935527533293,
+    "session_construction": 28.078374261967838,
+    "session_start": 0.008094346150755882,
+    "observation": 5.581462016329169,
+    "initialization_steps": 2.3309848783537745,
+    "competition_steps": 704.6720984037966,
+    "validation": 0.013637818861752748,
+    "close": 0.9649945232085884
+  },
+  "steps": {
+    "initialization": 25,
+    "competition": 7200,
+    "passive": 0,
+    "total": 7225
+  },
+  "simulation_seconds": {
+    "initialization": 0.10416666666666667,
+    "competition": 30.0,
+    "passive": 0,
+    "total_advanced": 30.104166666666668,
+    "prepared_world_time": 0.004166666666666667
+  },
+  "step_realtime_factor": 0.04257299255633245,
+  "loop_realtime_factor": 0.04223610978381649,
+  "preload": {
+    "initial_height_m": 0.08282977342605591,
+    "maximum_height_m": 0.28248488903045654,
+    "lift_m": 0.19965511560440063,
+    "final_scoring": {
+      "label": "Prototype placed pins \u00b7 contact detection, not official points",
+      "placed_pins": 6,
+      "placements": [
+        {
+          "pin": "pin_goal_2",
+          "goal": "goal_neutral_2",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_0",
+          "goal": "goal_center_0",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_4",
+          "goal": "goal_neutral_4",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_1",
+          "goal": "goal_neutral_1",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_3",
+          "goal": "goal_neutral_3",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "demo_preload",
+          "goal": "goal_red_5",
+          "alliance": "red"
+        }
+      ]
+    },
+    "final_robot_contact": false
+  },
+  "source_before_sha256": {
+    "include/main.h": "25682a23ef4fa6cc8f512e07a3c0110d5ff4acff05a6517ec1f283677318c6bc",
+    "src/main.cpp": "fe9ae615f0d848c23102ef11cc63fdebc625081c67dfbf18076dc0210292b526"
+  },
+  "source_after_sha256": {
+    "include/main.h": "25682a23ef4fa6cc8f512e07a3c0110d5ff4acff05a6517ec1f283677318c6bc",
+    "src/main.cpp": "fe9ae615f0d848c23102ef11cc63fdebc625081c67dfbf18076dc0210292b526"
+  },
+  "logs": [
+    "Compiling 1 unchanged source files with clang++\u2026",
+    "Native robot ready: robot",
+    "Physics: physx \u00b7 NVIDIA A100-SXM4-40GB",
+    "Initializing robot for Skills Auto (30 simulated seconds)",
+    "LCD | {'0': 'Claw demo: R1 close/R2 open; L1 lift/L2 lower'}",
+    "Robot initialized; running Skills Auto",
+    "LCD | {'0': '1/4: Grip the red/yellow preload'}",
+    "LCD | {'0': '2/4: Lift and navigate to red goal'}",
+    "LCD | {'0': '3/4: Lower above the goal socket'}",
+    "LCD | {'0': '4/4: Release the pin into the goal'}",
+    "LCD | {'0': 'Placement complete: inspect the placed-pin count'}",
+    "Mode time expired; robot disabled"
+  ],
+  "total_wall_seconds": 745.423534580972,
+  "recorded_date": "2026-09-11",
+  "machine": {
+    "gpu": "NVIDIA A100-SXM4-40GB",
+    "cpu": "AMD EPYC 7H12",
+    "os": "Ubuntu 24.04",
+    "driver": "595.71.05"
+  },
+  "runtime": {
+    "python": "3.11",
+    "ovphysx": "0.5.11",
+    "ovstage": "0.1.1.355824",
+    "numpy": "2.4.6",
+    "scipy": "1.16.3",
+    "pybullet_geometry_loader": "3.2.7"
+  },
+  "source_unchanged_after_shutdown": true,
+  "raw_evidence_archive_sha256": "0d119ead9707da785bccf15125d764ec7d8659f9eabe413a3afca4ec2bf13300",
+  "limits": [
+    "Headless Linux GPU execution; Windows CUDA execution unverified",
+    "No established speedup over CPU physics",
+    "Prototype placement detection, not official scoring",
+    "No Tensor Core acceleration",
+    "Source harness and rendered GUI performance are distinct"
+  ]
+}

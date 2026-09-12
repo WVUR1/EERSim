@@ -216,8 +216,25 @@ class PhysXAdapter:
             self._contacts_by_pair.setdefault(pair, []).append(index)
         self._indexed_contacts = contacts
 
+    def has_contact(self, body_a, body_b):
+        """Contact presence for subscribed bodies, without materializing points."""
+        if 'contact_body_pairs' not in self._state:
+            return bool(self.getContactPoints(body_a, body_b))
+        if self.__dict__.get('_contact_pairs_state') is not self._state:
+            self._contact_pairs = {tuple(pair) for pair in self._state['contact_body_pairs']}
+            self._contact_pairs_state = self._state
+        pair = (body_a, body_b) if body_a <= body_b else (body_b, body_a)
+        return pair in self._contact_pairs
+
     def getContactPoints(self, bodyA=-1, bodyB=-1, linkIndexA=-2, linkIndexB=-2, **kwargs):
         contacts = self._state['contacts']
+        if 'contact_body_pairs' in self._state and bodyA != self.world.robot and bodyB != self.world.robot:
+            # Scoring uses has_contact(). Full subscribed manifolds remain
+            # available on demand for inspection, without a physics step.
+            if self.__dict__.get('_full_contacts_state') is not self._state:
+                self._full_contacts = self.process.call('contacts')
+                self._full_contacts_state = self._state
+            contacts = self._full_contacts
         if bodyA < 0 and bodyB < 0 and linkIndexA == -2 and linkIndexB == -2:
             return list(contacts)
         self._index_contacts(contacts)
@@ -365,6 +382,11 @@ class PhysXWorld(World):
         self.rng = np.random.default_rng(self.config.seed)
         self._observe()
         return self.snapshot()
+
+    def _has_contact(self, body_a: int, body_b: int) -> bool:
+        if isinstance(self._physics, PhysXAdapter):
+            return self._physics.has_contact(body_a, body_b)
+        return super()._has_contact(body_a, body_b)
 
     def _deactivate_bounded_rest(self):
         # Bullet-specific rest heuristics do not mutate authoritative PhysX

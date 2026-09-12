@@ -1,13 +1,14 @@
 # Windows installer and EXE builds
 
-The GPU-enabled installer is configured but still awaits Windows CUDA runtime
-validation and publication. Earlier preview artifacts do not validate the new
-backend. The planned `EERSim-Setup-x64.exe` includes Python, PySide6, PyBullet,
-VTK, PhysX/OVStage, SciPy, the default robot and field assets, and the desktop
+The private [0.1.1 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.1-windows-preview.1)
+includes GPU physics. Its `EERSim-Setup-x64.exe` contains Python, PySide6,
+PyBullet, VTK, PhysX/OVStage, SciPy, default robots and fields, and the desktop
 LLVM-MinGW compiler for selected PROS workspaces. Recipients do not need Python,
-Conda, PROS tooling, a separate compiler, or WSL installed. Published builds,
-when available, are distributed through the private
-[Releases page](https://github.com/WVUR1/EERSim/releases).
+Conda, PROS tooling, a separate compiler, or WSL installed.
+The frozen application passed headless native compilation, Bullet/PhysX CPU,
+automatic fallback, and explicit missing-CUDA checks. Linux A100 execution
+validated the integrated GPU backend; actual Windows CUDA execution remains
+unverified. See [validation](validation.md).
 
 CUDA physics requires an NVIDIA GPU with compute capability 7.0 or newer and a
 driver exposing CUDA 12.8 or newer. The x64 PhysX wheel also requires an
@@ -91,7 +92,10 @@ To package an already built and validated directory without rebuilding:
 
 `-BundleDirectory` requires `-SkipBundleBuild`. It must point at the folder
 containing `EERSim.exe` and `_internal`. The wrapper validates the runtime,
-default assets, native adapter, and compiler before packaging. Stop running
+default assets, native adapter, and compiler before packaging. Both fresh builds
+and `-SkipBundleBuild` reject missing GPU DLLs, the native scene-verification
+helper, and absent or mismatched runtime metadata. The build manifest records
+the actual bundled runtime versions and helper checksum. Stop running
 copies and their native compiler processes before rebuilding the bundle.
 `-PythonPath` selects another complete Windows Python build environment.
 `-WithoutCompiler` is an advanced option for recipients who supply their own
@@ -99,7 +103,7 @@ desktop compiler through `CXX` or `PATH`.
 
 ## Other distribution layouts
 
-These build options remain available in addition to the planned installer.
+These build options remain available in addition to the installer.
 
 ```powershell
 .\build.ps1 -Layout Directory

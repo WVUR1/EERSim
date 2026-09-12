@@ -53,6 +53,10 @@ class Session:
         self.config = copy.deepcopy(config)
         self.log = log or (lambda _: None)
         self.world = world_factory(self.config)
+        # A configured, unstepped preview is already the initial scene.
+        # PhysX may include its required bootstrap tick in this state.
+        self._world_pristine = True
+        self._prepared_config = copy.deepcopy(self.config)
         physics = getattr(self.world, "physics_status", {})
         if physics:
             self.log(f"Physics: {physics.get('backend', 'unknown')} · {physics.get('device', 'unknown')}"
@@ -83,8 +87,13 @@ class Session:
             self.executable = Path(executable)
         if self.executable is None:
             raise RuntimeError("Select and build a PROS workspace before starting")
+        reuse_prepared = self._world_pristine and self.config == self._prepared_config
+        # Consume before callbacks/runtime creation: a failed start must reset next time.
+        self._world_pristine = False
         self.stop()
-        self.world.reset(self.config)
+        if not reuse_prepared:
+            self.world.reset(self.config)
+            self._prepared_config = copy.deepcopy(self.config)
         self.runtime = self.runtime_factory(self.executable)
         self.mode, self.phase = mode, "initialize"
         self.running, self.paused, self.initialized = True, False, False
@@ -118,14 +127,19 @@ class Session:
             self.world.disable()
 
     def reset(self) -> None:
+        self._world_pristine = False
         self.stop()
         self.world.reset(self.config)
+        self._prepared_config = copy.deepcopy(self.config)
+        self._world_pristine = True
         self.elapsed_ticks = self.init_ticks = 0
         self.initialized = False
         self.mode = "disabled"
         self.samples.clear()
 
     def step(self) -> dict:
+        # Manual steps/jogs and competition both consume the prepared state.
+        self._world_pristine = False
         commands: dict = {"motors": {}, "adi": {}}
         if self.running and self.runtime is not None:
             result = self.runtime.step(self.world.snapshot(), self.phase, self.dt, self.controller)

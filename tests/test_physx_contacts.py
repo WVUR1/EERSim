@@ -169,3 +169,103 @@ def test_invalid_contact_subscription_fails_before_native_binding(requested):
         ContactReader(physics, {'actors': [actor('/World/wheel', 2), actor('/World/floor', 0, mass=0)],
                                'contact_sensor_paths': requested})
     assert physics.arguments is None
+
+
+def test_runtime_contacts_preserve_robot_manifold_and_compress_scoring_pairs():
+    point = (1, 2, 3)
+    binding = Binding(['/World/pin', '/World/wheel'], {
+        '/World/wheel': [(20, point, (0, 0, 1), -.002, 7.),
+                         (20, point, (0, 0, 1), -.002, 7.),
+                         (11, (0, 0, 0), (0, 0, 1), 0., 2.)],
+        '/World/pin': [(30, point, (0, 0, 1), -.002, -7.),
+                       (30, point, (0, 0, 1), -.002, -7.),
+                       (40, (3, 2, 1), (1, 0, 0), -.001, 0.)] * 1
+                      + [(41, (i, 0, 0), (1, 0, 0), -.001, 5.) for i in range(1000)],
+    }, {11: '/World/floor/collider', 20: '/World/pin', 30: '/World/wheel',
+        40: '/World/goal/collider_0', 41: '/World/goal/collider_1'}, capacity=1100)
+    reader = make_reader(binding, [actor('/World/wheel', 9, link=2), actor('/World/pin', 6),
+                                   actor('/World/floor', 1, mass=0), actor('/World/goal', 4, mass=0)])
+    full = reader.capture()
+    snapshot = reader.capture_runtime(9)
+    assert snapshot['contacts'] == [contact for contact in full if 9 in contact[1:3]]
+    assert len(snapshot['contacts']) == 3  # Coincident robot points remain distinct.
+    assert snapshot['contact_body_pairs'] == [(1, 9), (4, 6), (6, 9)]
+    assert reader.capture() == full  # The compact read does not consume the report.
+    assert len(binding.resolutions) == 1
+
+
+def test_runtime_does_not_materialize_large_nonrobot_manifold(monkeypatch):
+    binding = Binding(['/World/pin', '/World/wheel'], {
+        '/World/pin': [(11, (i, 0, 0), (0, 0, 1), 0., 1.) for i in range(5000)]},
+        {11: '/World/goal/collider'}, capacity=5100)
+    reader = make_reader(binding, [actor('/World/pin', 2), actor('/World/wheel', 3),
+                                   actor('/World/goal', 4, mass=0)])
+    materialize = reader._materialize_contacts
+    selected_counts = []
+
+    def checked(selected=None):
+        selected_counts.append(int(np.count_nonzero(selected)))
+        return materialize(selected)
+
+    monkeypatch.setattr(reader, '_materialize_contacts', checked)
+    assert reader.capture_runtime(3) == {'contacts': [], 'contact_body_pairs': [(2, 4)]}
+    assert selected_counts == [0]
+
+
+@pytest.mark.parametrize('defect', ['nonfinite', 'normal', 'unmapped', 'self'])
+def test_runtime_validates_unmaterialized_nonrobot_contacts(defect):
+    point = (float('nan'), 0, 0) if defect == 'nonfinite' else (0, 0, 0)
+    normal = (0, 0, 0) if defect == 'normal' else (0, 0, 1)
+    other_path = '' if defect == 'unmapped' else '/World/pin' if defect == 'self' else '/World/goal'
+    binding = Binding(['/World/pin', '/World/wheel'], {
+        '/World/pin': [(11, point, normal, 0., 1.)]}, {11: other_path})
+    reader = make_reader(binding, [actor('/World/pin', 2), actor('/World/wheel', 3),
+                                   actor('/World/goal', 4, mass=0)])
+    with pytest.raises(RuntimeError, match='nonfinite|not unit|no resolvable|colliding with itself'):
+        reader.capture_runtime(3)
+
+
+def test_runtime_robot_manifold_still_requires_matching_mirrors():
+    binding = Binding(['/World/pin', '/World/wheel'], {
+        '/World/pin': [(11, (0, 0, 0), (0, 0, 1), 0., -2.)]}, {11: '/World/wheel'})
+    reader = make_reader(binding, [actor('/World/pin', 2), actor('/World/wheel', 3)])
+    with pytest.raises(RuntimeError, match='Mirrored contact reports disagree'):
+        reader.capture_runtime(3)
+
+
+def test_runtime_overflow_cannot_hide_in_scoring_only_points():
+    binding = Binding(['/World/pin', '/World/wheel'], {
+        '/World/pin': [(11, (0, 0, 0), (0, 0, 1), 0., 1.)] * 3}, capacity=2)
+    reader = make_reader(binding, [actor('/World/pin', 2), actor('/World/wheel', 3)])
+    with pytest.raises(RuntimeError, match='capacity=2, required=3'):
+        reader.capture_runtime(3)
+
+
+def test_runtime_empty_contact_snapshot_and_unknown_robot():
+    reader = make_reader(Binding(['/World/wheel']), [actor('/World/wheel', 3)])
+    assert reader.capture_runtime(3) == {'contacts': [], 'contact_body_pairs': []}
+    with pytest.raises(ValueError, match='absent'):
+        reader.capture_runtime(99)
+
+
+def test_worker_snapshot_uses_runtime_contacts_without_requesting_full_manifolds():
+    from eersim.physx_worker import _Runtime
+    runtime = _Runtime.__new__(_Runtime)
+    runtime.np = np
+    runtime.bindings = {}
+    runtime.buffers = {'poses': np.zeros((1, 7)), 'velocities': np.zeros((1, 6))}
+    runtime.manifest = {'robot': {'body_id': 7}}
+
+    class Contacts:
+        def capture_runtime(self, robot):
+            assert robot == 7
+            return {'contacts': ['robot point'], 'contact_body_pairs': [(1, 7), (2, 3)]}
+
+        def capture(self):
+            pytest.fail('Ordinary worker snapshot must not fetch every pin point')
+
+    runtime.contacts = Contacts()
+    snapshot = runtime.state()
+    assert snapshot['contacts'] == ['robot point']
+    assert snapshot['contact_body_pairs'] == [(1, 7), (2, 3)]
+    assert snapshot['poses'] is not runtime.buffers['poses']

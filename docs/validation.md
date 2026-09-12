@@ -1,15 +1,78 @@
 # Local validation
 
-The measurements below were recorded on September 10, 2026, using Bullet CPU
+## Integrated PhysX acceptance
+
+The integrated PhysX CUDA backend completed the bundled, unchanged PROS claw
+routine on September 11, 2026, using an NVIDIA A100-SXM4-40GB, AMD EPYC 7H12,
+Ubuntu 24.04, driver 595.71.05, Python 3.11, ovphysx 0.5.11, and OVStage
+0.1.1.355824. The full dynamic Override scene used the normal geometry, VEX
+motors, tire forces, sensor model, 240 Hz timestep, and 100 TGS position / one
+velocity iteration. No rendering was performed.
+
+| Check | Result |
+| --- | --- |
+| Live native scene | GPU dynamics, GPU broadphase, valid CUDA context (flags 11) |
+| Fixed simulation clock | 25 PROS initialization ticks + 7,200 competition ticks |
+| Physical preload lift | 0.199655 m above its initial height |
+| Final placement | Released into red goal `goal_red_5`, no remaining robot contact |
+| Native routine | Completion message, no route timeout, mode disabled on time |
+| Workspace | Source/header SHA-256 unchanged, checked again after shutdown |
+| State | Finite rigid-body and joint state throughout |
+
+Stepping took **707.003 seconds** for 30.104 simulated seconds including PROS
+initialization: **0.042573× realtime**. Competition stepping alone took 704.672
+seconds for 30 simulated seconds. Scene construction took 28.078 seconds, native
+compilation 3.554 seconds, and observation/export 5.581 seconds; these are excluded
+from the step-only factor. Total elapsed time was 745.424 seconds. The backend's
+one prepared initialization tick precedes these PROS ticks.
+
+These numbers do **not** establish an advantage over CPU physics or predict the
+user's Ryzen/GeForce performance. The full dynamic field remains slow. Profiling
+identified contact conversion overhead, which now uses compact contact pairs
+for scoring and preserves detailed robot-contact forces. Native PhysX solving
+remains the dominant cost. Solver defaults and collision geometry were retained.
+Tensor Cores are not used; the pinned rigid-body solver exposes no supported
+Tensor Core path. The optional solver-partition experiment was not executed and
+did not change production settings.
+
+The portable [acceptance summary](gpu-integration-results.json) records the
+measured configuration, checks, timings, source hashes, and evidence hashes.
+To reproduce the integrated run from an environment with the GPU extra and a
+desktop C++ compiler:
+
+```sh
+python tools/benchmark_integration.py --backend physx_gpu --iterations 100 \
+  --seconds 30 --output .sim-tools/claw-gpu.json
+```
+
+The harness writes adjacent CSV and log files and exits unsuccessfully if the
+full claw placement, exact clock, finite state, selected backend, or unchanged
+source checks fail. Short runs validate startup/stepping only. `--fixture
+practice` and `--backend bullet` or `physx_cpu` support separate comparisons.
+
+The Windows directory executable was tested with a system-only PATH and fresh
+per-test user data. Its bundled compiler built an external PROS motor fixture;
+Bullet, PhysX CPU, and automatic CPU fallback each moved the joint and completed
+exactly 24 competition ticks. Explicit CUDA selection without an NVIDIA driver
+exited promptly with an actionable error. The tests opened no GUI or OpenGL
+context and left no owned processes. Packaging guards verify both NVIDIA native
+runtime trees, exact package metadata versions, and the scene-verification DLL.
+Actual **Windows CUDA execution and interactive GUI acceptance for this release
+remain unverified**; the Linux run establishes actual GPU execution. The installer
+wizard was not run against the active installation. Release assets include the
+frozen acceptance report and build manifest.
+
+A separate headless regression reproduced Bullet trajectory changes caused by
+extra graphics pose queries. Refreshing forward kinematics before tire point
+velocity calculations fixes that dependency. The test injects the same queries
+without opening an OpenGL context. Existing CPU-only physical claw and resting
+contact tests also passed locally; this does not replace Linux CI results.
+
+## Earlier Bullet and desktop baseline
+
+The remaining measurements were recorded on September 10, 2026, using Bullet CPU
 physics and Intel Iris Xe OpenGL graphics on Windows. They are historical
 baseline results, not integrated PhysX performance or Windows CUDA validation.
-
-The source now includes a [PhysX backend](gpu-physics.md) connected to the shared
-motor, sensor, and native PROS flow. Its selection/configuration checks and
-packaging preparation do not replace full contact, joint, motor, sensor, native
-routine, and frozen-runtime acceptance. Integrated performance measurements and
-Windows CUDA validation have not yet been recorded here; GPU-enabled installer
-publication remains pending.
 
 The local environment uses Python 3.11.16, conda-forge Bullet 3.25 (Python
 distribution version 3.2.5), NumPy 2.4.6, PySide6 6.8.3, VTK 9.6.2, and

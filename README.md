@@ -15,14 +15,15 @@ is reported separately in the [validation notes](docs/validation.md).
 
 ## Start here
 
-The GPU-enabled Windows installer is being prepared; Windows CUDA validation and
-publication are pending. Earlier preview downloads do not establish that they
-contain the new backend. The planned `EERSim-Setup-x64.exe` bundles Python, the
-PhysX GPU runtime, the other simulator dependencies, default robots and fields,
-and the native robot compiler. It installs for your Windows account without
-administrator privileges; a desktop shortcut is optional. Private builds are
-unsigned. Published artifacts, when available, belong on the private
-[Releases page](https://github.com/WVUR1/EERSim/releases).
+Download **EERSim-Setup-x64.exe** from the private
+[0.1.1 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.1-windows-preview.1).
+It bundles Python, the PhysX GPU runtime, simulator dependencies, default robots
+and fields, and the native robot compiler. It installs for your Windows account
+without administrator privileges; a desktop shortcut is optional. This private
+build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
+The integrated backend completed the full PROS claw routine on a Linux A100;
+Windows packaging, CPU execution, and fallback were checked headlessly. Actual
+Windows CUDA execution remains unverified. See [validation](docs/validation.md).
 
 Use **Robot → Import URDF…** and **Field → Import field…** to select custom
 designs from your own folders. The robot import preview supports motor setup and
@@ -268,8 +269,10 @@ do not imply equivalent numerical behavior.
 **Earlier Bullet measurements found the full dynamic Override field expensive:** about
 0.02× real time on the tested machine. The optional fixed-piece Override preset
 measured 0.90× and the practice field 1.20× in headless runs of the existing robot
-code. These are Bullet measurements; integrated PhysX performance has not yet
-been reported here. Choose the fixed-piece layout for route iteration and the
+code. The integrated PhysX CUDA claw run on an A100 completed 30 competition
+seconds in about 707 seconds of stepping, **0.043×** at 240 Hz and 100 iterations.
+That result verifies operation, but does not establish a CPU speedup or predict
+GeForce performance. Choose the fixed-piece layout for route iteration and the
 full scene for movable game-piece interactions. See [measurement conditions](docs/validation.md).
 
 There is no Tensor Core toggle. This integration uses PhysX rigid-body contact

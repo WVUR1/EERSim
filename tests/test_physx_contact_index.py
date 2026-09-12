@@ -113,3 +113,28 @@ def test_repeated_wheel_query_visits_only_matching_candidates():
     for _ in range(4):
         assert world.getContactPoints(9, linkIndexA=3) == [reverse(target)]
     assert contacts.traversed == 4
+
+
+def test_compact_contacts_keep_presence_and_defer_full_point_queries():
+    robot_contact, pin_contact = point(1, 9, right=0), point(4, 5)
+    world = adapter([robot_contact])
+    world.world = SimpleNamespace(robot=9)
+    world._state['contact_body_pairs'] = [(1, 9), (4, 5)]
+    calls = []
+    def full(command):
+        calls.append(command)
+        return [robot_contact, pin_contact]
+    world.process = SimpleNamespace(call=full)
+    assert world.has_contact(5, 4) and world.has_contact(9, 1)
+    assert not world.has_contact(4, 9)
+    assert world.getContactPoints(9) == [reverse(robot_contact)]
+    assert calls == []
+    assert world.getContactPoints(5, 4) == [reverse(pin_contact)]
+    assert world.getContactPoints() == [robot_contact, pin_contact]
+    assert calls == ['contacts']
+    world._state = {'contacts': [], 'contact_body_pairs': []}
+    assert not world.has_contact(4, 5)
+    assert not world.getContactPoints(9)
+    assert calls == ['contacts']
+    world.getContactPoints(4, 5)
+    assert calls == ['contacts', 'contacts']

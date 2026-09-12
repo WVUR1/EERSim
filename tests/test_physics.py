@@ -544,3 +544,31 @@ def test_no_load_cartridge_speed_in_a_physical_flywheel(tmp_path, cartridge, rpm
         for _ in range(60):
             snapshot = world.step({"motors": {"1": {"mode": "torque", "value": -.1*stall}}})
         assert snapshot["motors"]["1"]["velocity"] < .9*rpm*math.pi/30
+
+
+def test_forward_kinematics_pose_reads_do_not_change_contact_physics():
+    """The OpenGL renderer's pose queries must not alter the next tire impulse.
+
+    Run the actual native link queries without importing VTK or opening a
+    graphics context. Cached sensor reads alone did not expose this defect.
+    """
+    import pybullet as bullet
+    config = clean_config()
+    config["renderer"] = "cpu"
+    config["noise"].update(position_std_m=.003, heading_std_deg=.3, encoder_std_deg=.2,
+                           distance_std_mm=3, latency_ms=25, dropout=.2)
+    with World(config) as observed, World(deepcopy(config)) as unread:
+        bodies = [observed.robot] + [item["id"] for item in observed.field_objects]
+        links = sorted({(body, shape[1]) for body in bodies
+                        for shape in bullet.getVisualShapeData(body, physicsClientId=observed.client)
+                        if shape[1] >= 0})
+        assert links, "Fixture must contain articulated visuals"
+        for tick in range(60):
+            state = observed.step(drive_commands(observed, forward=2500))
+            if tick % 20 == 0:
+                for body, link in links:
+                    bullet.getLinkState(body, link, computeForwardKinematics=1,
+                                        physicsClientId=observed.client)
+                assert observed.snapshot() == state
+            reference = unread.step(drive_commands(unread, forward=2500))
+            assert state == reference

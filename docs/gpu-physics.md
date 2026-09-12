@@ -10,9 +10,14 @@ The native robot code does not need a different control API for each backend.
 This integration is separate from the earlier passive
 [A100 benchmark study](../tools/physx_prototype/README.md). Those measurements
 excluded robot controllers, tire forces, sensors, and rendering. They do not
-establish the integrated simulator's throughput or accuracy. Windows CUDA and
-the GPU-enabled installer still require validation; no integrated performance
-numbers or newly published GPU installer are claimed here.
+establish the integrated simulator's throughput or accuracy. The integrated
+backend has now completed the unchanged PROS claw program on a Linux A100,
+including physical grip, lift, navigation, release, and a red-goal placement.
+The 30-second run measured **0.0426× realtime** at 240 Hz and 100 TGS iterations.
+This establishes functionality, not a speed advantage over CPU physics.
+The Windows preview bundles the runtime and passed headless CPU/fallback checks;
+actual Windows CUDA execution still needs validation on supported hardware.
+See the [measurement record](validation.md#integrated-physx-acceptance).
 
 ## Install and select
 
@@ -68,7 +73,14 @@ require GPU rendering to be enabled.
 
 Each PhysX world runs in a private process because the pinned runtime has one
 attached scene per process. The parent computes motor commands and sensor
-observations on the CPU and exchanges batched state with that worker. Rendered
+observations on the CPU and exchanges batched state with that worker. Startup
+verifies the live scene's GPU dynamics, GPU broadphase, and valid CUDA context;
+it does not infer acceleration from a requested setting or a device name.
+Robot contact manifolds and compact scoring contact pairs are transferred each
+tick; complete contact details remain available on demand for that same state.
+This avoids converting thousands of unused game-piece contact points into
+Python objects on every tick. A pristine prepared scene is reused for the first
+native start; reset or configuration changes still rebuild it. Rendered
 geometry follows the authoritative PhysX poses; the retained Bullet geometry
 is not stepped as a second physical simulation. The fixed-base URDF motor setup
 preview remains an independent Bullet scene.

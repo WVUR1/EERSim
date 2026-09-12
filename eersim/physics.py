@@ -118,8 +118,11 @@ class World:
             # 2 mm retains those contacts without changing collision geometry.
             contactBreakingThreshold=0.002, physicsClientId=c,
         )
+        fallback_reason = getattr(self, "physics_status", {}).get("reason", "")
         self.physics_status = {"backend": "bullet", "engine": "PyBullet", "device": "CPU",
                                "hardware_accelerated": False, "solver_iterations": iterations}
+        if self.config.physics_backend == "auto" and fallback_reason:
+            self.physics_status["reason"] = fallback_reason
         self._export_items: list[tuple[int, dict[str, Any], Path]] = []
         self.field_objects: list[dict[str, Any]] = []
         self.base_inertial_frames: dict[int, tuple] = {}
@@ -669,7 +672,11 @@ class World:
                 pos, _ = self._physics.getBasePositionAndOrientation(body, physicsClientId=self.client)
                 linear, angular = self._physics.getBaseVelocity(body, physicsClientId=self.client)
             else:
-                state = self._physics.getLinkState(body, link, computeLinkVelocity=1, physicsClientId=self.client)
+                # Bullet's integration updates collider poses before cached link
+                # frames. Refresh the COM used by tire forces independently of
+                # whether the renderer has requested forward kinematics.
+                state = self._physics.getLinkState(body, link, computeLinkVelocity=1,
+                                                     computeForwardKinematics=1, physicsClientId=self.client)
                 pos, linear, angular = state[0], state[6], state[7]
             self._point_motion_cache[key] = (np.asarray(pos), np.asarray(linear), angular)
         pos, linear, angular = self._point_motion_cache[key]
@@ -847,6 +854,9 @@ class World:
                                "scoring": deepcopy(self._scoring_cache),
                                "sensor_age_ms": (self.time - self._delivered["sample_time"]) * 1000})
 
+    def _has_contact(self, body_a: int, body_b: int) -> bool:
+        return bool(self._physics.getContactPoints(body_a, body_b, physicsClientId=self.client))
+
     def _scoring(self) -> dict[str, Any]:
         """Prototype pin placement detection using insertion and actual contacts.
 
@@ -862,7 +872,7 @@ class World:
             if abs(axis[2]) < .94:
                 continue
             bottom = np.array(xyz) - np.sign(axis[2]) * axis * float(pin["scoring"].get("length", .165)) / 2
-            if self._physics.getContactPoints(pin["id"], self.robot, physicsClientId=self.client):
+            if self._has_contact(pin["id"], self.robot):
                 continue
             for goal in goals:
                 centre, _ = self._physics.getBasePositionAndOrientation(goal["id"], physicsClientId=self.client)
@@ -873,7 +883,7 @@ class World:
                     continue
                 if not top - float(spec.get("socket_depth", .055)) - .008 <= bottom[2] <= top + .002:
                     continue
-                if self._physics.getContactPoints(pin["id"], goal["id"], physicsClientId=self.client):
+                if self._has_contact(pin["id"], goal["id"]):
                     placed.append({"pin": pin["name"], "goal": goal["name"], "alliance": spec.get("alliance", "neutral")})
                     break
         return {"label": "Prototype placed pins · contact detection, not official points",

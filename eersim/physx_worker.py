@@ -16,8 +16,16 @@ import traceback
 
 def cuda_device_info(index: int = 0) -> dict:
     """Query the CUDA driver without importing PhysX or creating a GL window."""
+    library = 'nvcuda.dll' if sys.platform == 'win32' else 'libcuda.so.1'
     try:
-        driver = ctypes.WinDLL('nvcuda.dll') if sys.platform == 'win32' else ctypes.CDLL('libcuda.so.1')
+        driver = ctypes.WinDLL(library) if sys.platform == 'win32' else ctypes.CDLL(library)
+    except (OSError, ImportError):
+        # This is supplied by the system NVIDIA driver, not by the application.
+        # Frozen ctypes loaders can otherwise misreport it as a missing bundle DLL.
+        return {'available': False, 'ordinal': index,
+                'reason': f'NVIDIA CUDA driver is unavailable or could not be loaded ({library}). '
+                          'Install a compatible NVIDIA driver or select Bullet physics.'}
+    try:
         def check(result):
             if result:
                 raise RuntimeError(f'CUDA driver returned error {result}')
@@ -219,7 +227,7 @@ class _Runtime:
         return {'poses': self.buffers['poses'].copy(), 'velocities': self.buffers['velocities'].copy(),
                 'q': self.buffers.get('q', self.np.empty((1, 0))).copy(),
                 'qd': self.buffers.get('qd', self.np.empty((1, 0))).copy(),
-                'contacts': self.contacts.capture()}
+                **self.contacts.capture_runtime(self.manifest['robot']['body_id'])}
 
     def step(self, controls):
         for key in ('target_velocity', 'target_position', 'max_force', 'stiffness', 'damping', 'effort'):
@@ -289,6 +297,10 @@ def _worker_main(connection, scene, manifest, config, work):
                 result = runtime.step(payload)
             elif command == 'raycast':
                 result = runtime.raycast(payload)
+            elif command == 'contacts':
+                # Explicit diagnostics fetch full manifolds from this same
+                # completed tick; the normal snapshot sends only robot points.
+                result = runtime.contacts.capture()
             else:
                 raise ValueError(f'Unknown physics request {command}')
             connection.send((True, result))

@@ -109,6 +109,41 @@ class ContactReader:
         unknown actor mappings and native buffer overflow raise rather than
         silently dropping contact information.
         """
+        self._read_payload()
+        return self._materialize_contacts()
+
+    def capture_runtime(self, robot_body_id):
+        """Return complete robot manifolds plus body-pair presence for scoring.
+
+        Validate every native point and resolve every actor ID. Only contacts
+        touching the robot become Python point tuples; the many pin/field
+        manifold points are reduced to body-pair presence in NumPy first.
+        ``capture()`` remains the explicit full-manifold compatibility read.
+        """
+        if not isinstance(robot_body_id, Integral) or isinstance(robot_body_id, bool) or robot_body_id < 0:
+            raise ValueError("Robot body ID must be a nonnegative integer")
+        if not any(actor.body == robot_body_id for actor in self._actors.values()):
+            raise ValueError("Robot body ID is absent from the contact manifest")
+        total, unique_actors, inverse = self._read_payload()
+        other_is_robot = np.asarray([actor.body == robot_body_id for actor in unique_actors], dtype=bool)
+        selected = other_is_robot[inverse] if total else np.zeros(0, dtype=bool)
+        body_pairs = set()
+        for sensor, start, count in zip(self._sensors, self._starts, self._counts):
+            start, end = int(start), int(start + count)
+            # Compound collider IDs and repeated contact points may all resolve
+            # to the same body. Iterate unique IDs, never individual pin points.
+            for code in np.unique(inverse[start:end]):
+                other = unique_actors[int(code)]
+                if sensor.endpoint == other.endpoint:
+                    raise RuntimeError(f"Contact reports an actor colliding with itself: {sensor.path}")
+                body_pairs.add(tuple(sorted((sensor.body, other.body))))
+            if sensor.body == robot_body_id:
+                selected[start:end] = True
+        return {"contacts": self._materialize_contacts(selected),
+                "contact_body_pairs": sorted(body_pairs)}
+
+    def _read_payload(self):
+        """Read and validate the complete report once, retaining numeric arrays."""
         if self._closed:
             raise RuntimeError("ContactReader is closed")
         self._counts.fill(0)
@@ -135,20 +170,25 @@ class ContactReader:
                 raise RuntimeError("Native contact payload contains nonfinite values")
         if total and not np.allclose(np.linalg.norm(self._normals[:total], axis=1), 1, atol=1e-3, rtol=0):
             raise RuntimeError("Native contact normals are not unit vectors")
-        missing = sorted({int(value) for value in self._other_ids[:total]} - self._id_cache.keys())
+        unique_ids, inverse = np.unique(self._other_ids[:total], return_inverse=True)
+        missing = [int(value) for value in unique_ids if int(value) not in self._id_cache]
         if missing:
             paths = self._binding.get_other_actor_paths_from_ids(np.asarray(missing, dtype=np.uint64))
             if len(paths) != len(missing):
                 raise RuntimeError("Native contact ID resolver returned an incomplete path list")
             resolved = {key: self._actor_at_path(path) for key, path in zip(missing, paths)}
             self._id_cache.update(resolved)
+        return total, [self._id_cache[int(value)] for value in unique_ids], inverse
 
+    def _materialize_contacts(self, selected=None):
         # Each bucket contains all reports of one unordered body/link pair,
         # separated by reporting endpoint. Keep contact multiplicity, not merely
         # a set of positions: compound leaves can have distinct coincident hits.
         pairs = {}
         for sensor, start, count in zip(self._sensors, self._starts, self._counts):
-            for index in range(int(start), int(start + count)):
+            start, end = int(start), int(start + count)
+            indices = range(start, end) if selected is None else start + np.flatnonzero(selected[start:end])
+            for index in indices:
                 other = self._id_cache[int(self._other_ids[index])]
                 if sensor.endpoint == other.endpoint:
                     raise RuntimeError(f"Contact reports an actor colliding with itself: {sensor.path}")

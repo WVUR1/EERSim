@@ -31,6 +31,7 @@ def create_world(config=None):
             reason = f'PhysX initialization failed: {exc}'
     elif selected != 'auto':
         raise RuntimeError(reason)
+    values['physics_backend'] = selected
     world = World(values)
     world.physics_status['reason'] = reason
     return world

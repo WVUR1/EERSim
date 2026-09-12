@@ -99,6 +99,15 @@ try {
         & $signHelper @signing -FilePath $executable
         if ($LASTEXITCODE -ne 0) { throw 'Signing or signature verification failed. This build is not a signed release.' }
     }
+    . (Join-Path $simRoot 'packaging/check-gpu-payload.ps1')
+    if ($Layout -eq 'Directory') {
+        $gpuPayload = Get-EERSimGpuPayload -PayloadRoot (Join-Path $output 'EERSim/_internal')
+    } else {
+        # Read the one-file archive directly; never launch an app or GPU probe.
+        $gpuJson = & $python (Join-Path $simRoot 'packaging/inspect_gpu_archive.py') $executable
+        if ($LASTEXITCODE -ne 0) { throw 'The one-file archive is missing its pinned GPU physics payload.' }
+        $gpuPayload = ($gpuJson | Out-String) | ConvertFrom-Json
+    }
     $artifact = $executable
     if ($Layout -eq 'Directory' -and -not $SkipArchive) {
         $artifact = Join-Path $output 'EERSim-windows-x64.zip'
@@ -124,11 +133,15 @@ try {
         layout = $env:EERSIM_BUNDLE_MODE
         archive = ($Layout -eq 'Directory' -and -not $SkipArchive)
         includes_compiler = -not $WithoutCompiler
+        includes_gpu_physics = [bool]$gpuPayload.includes_gpu_physics
+        gpu_runtime_versions = $gpuPayload.gpu_runtime_versions
+        gpu_runtime_versions_source = $gpuPayload.gpu_runtime_versions_source
+        gpu_verification_helper_sha256 = $gpuPayload.gpu_verification_helper_sha256
         signed = [bool]$CertificateThumbprint
         signature_status = [string](Get-AuthenticodeSignature -LiteralPath $executable).Status
         built_utc = [DateTime]::UtcNow.ToString('o')
     }
-    [IO.File]::WriteAllText((Join-Path $output 'build-manifest.json'), ($manifest | ConvertTo-Json) + "`n", $utf8)
+    [IO.File]::WriteAllText((Join-Path $output 'build-manifest.json'), ($manifest | ConvertTo-Json -Depth 5) + "`n", $utf8)
     Write-Host "Build ready: $artifact" -ForegroundColor Green
     Write-Host "SHA256: $hash"
     if (-not $CertificateThumbprint) { Write-Host 'Unsigned preview: Windows does not have a verified publisher identity for this EXE.' }

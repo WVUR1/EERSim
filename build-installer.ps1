@@ -111,6 +111,9 @@ try {
             throw "Incomplete directory bundle: missing $relative. Rebuild with .\build.ps1 -Layout Directory -SkipArchive."
         }
     }
+    # Also applies to -SkipBundleBuild: an old CPU-only bundle cannot become a GPU release.
+    . (Join-Path $simRoot 'packaging/check-gpu-payload.ps1')
+    $gpuPayload = Get-EERSimGpuPayload -PayloadRoot (Join-Path $bundle '_internal')
     $includesCompiler = (Test-Path -LiteralPath (Join-Path $bundle '_internal/compiler/bin/clang++.exe') -PathType Leaf) -and
         (Test-Path -LiteralPath (Join-Path $bundle '_internal/compiler/x86_64-w64-mingw32') -PathType Container)
     if (-not $includesCompiler -and -not $WithoutCompiler) { throw 'The bundle is missing the native compiler. Rebuild it, or explicitly use -WithoutCompiler for a package requiring an external CXX compiler.' }
@@ -161,6 +164,10 @@ try {
         installer_compiler_version = $inno.Version
         install_scope = 'current_user'
         includes_compiler = [bool]$includesCompiler
+        includes_gpu_physics = [bool]$gpuPayload.includes_gpu_physics
+        gpu_runtime_versions = $gpuPayload.gpu_runtime_versions
+        gpu_runtime_versions_source = $gpuPayload.gpu_runtime_versions_source
+        gpu_verification_helper_sha256 = $gpuPayload.gpu_verification_helper_sha256
         signed = [bool]$CertificateThumbprint
         signature_status = [string]$signature.Status
         uninstaller_signed = [bool]$CertificateThumbprint
@@ -170,7 +177,7 @@ try {
     }
     $utf8 = [Text.UTF8Encoding]::new($false)
     [IO.File]::WriteAllText($artifact + '.sha256', ($hash + '  EERSim-Setup-x64.exe' + "`n"), $utf8)
-    [IO.File]::WriteAllText((Join-Path $output 'build-manifest.json'), ($manifest | ConvertTo-Json) + "`n", $utf8)
+    [IO.File]::WriteAllText((Join-Path $output 'build-manifest.json'), ($manifest | ConvertTo-Json -Depth 5) + "`n", $utf8)
     Write-Host "Installer ready: $artifact" -ForegroundColor Green
     Write-Host "SHA256: $hash"
     if (-not $CertificateThumbprint) { Write-Host 'Unsigned preview: Windows does not have a verified publisher identity for this installer.' }

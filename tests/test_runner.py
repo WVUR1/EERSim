@@ -84,7 +84,7 @@ def test_mode_lifecycle_and_duration_excludes_initialization(mode, callback):
     assert session.world.commands[0]["motors"]["1"]["value"] == 12000
     assert session.world.commands[1]["motors"]
     assert runtime.closed
-    assert session.world.disable_calls == 1
+    assert session.world.disable_calls == 2
     session.close()
 
 
@@ -183,6 +183,6 @@ void disabled() {}
         assert len(competition) == session.elapsed_ticks == 6
         assert all(command["motors"]["1"]["value"] == 1200 for command in competition)
         assert session.world.time == pytest.approx((session.init_ticks + 6) / 240)
-        assert session.world.disable_calls == 1
+        assert session.world.disable_calls == 2
     finally:
         session.close()
