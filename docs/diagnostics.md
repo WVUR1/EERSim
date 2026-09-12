@@ -34,7 +34,7 @@ solver iteration count.
 
 Physics and native robot code run without display-rate pacing during measurement.
 An optional separate render check then measures a stationary scene for up to
-12 frames or 30 seconds, recording first-frame and subsequent-frame costs and
+12 frames, stopping after a frame when 30 seconds have elapsed. It records first-frame and subsequent-frame costs and
 the active or fallback renderer. It saves no images and opens no interactive GUI.
 These measurements describe physics capacity and rendering cost separately;
 they are not an end-to-end measurement of the interactive GUI's real-time factor.
