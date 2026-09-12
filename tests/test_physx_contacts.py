@@ -256,11 +256,14 @@ def test_worker_snapshot_uses_runtime_contacts_without_requesting_full_manifolds
     runtime.np = np
     runtime.bindings = {}
     runtime.buffers = {'poses': np.zeros((1, 7)), 'velocities': np.zeros((1, 6))}
+    runtime.actor_paths = ['/World/robot']
     runtime.manifest = {'robot': {'body_id': 7}}
 
     class Contacts:
-        def capture_runtime(self, robot):
+        def capture_runtime(self, robot, poses_by_actor=None):
             assert robot == 7
+            assert set(poses_by_actor) == {'/World/robot'}
+            np.testing.assert_array_equal(poses_by_actor['/World/robot'], runtime.buffers['poses'][0])
             return {'contacts': ['robot point'], 'contact_body_pairs': [(1, 7), (2, 3)]}
 
         def capture(self):

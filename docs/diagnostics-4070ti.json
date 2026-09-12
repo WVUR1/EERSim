@@ -1,0 +1,403 @@
+{
+  "schema_version": 1,
+  "archive": {
+    "name": "EERSim-diagnostics.zip.temp",
+    "sha256": "cdd940dc4414dfbffc5563b3493a9c94645d5297464f46bb944a0cdfbdc0195c",
+    "bytes": 50143,
+    "member_count": 15,
+    "uncompressed_bytes": 192671,
+    "all_member_crc_verified": true,
+    "read_in_memory_only": true
+  },
+  "hardware": {
+    "os": {
+      "system": "Windows",
+      "release": "10",
+      "version": "10.0.26220",
+      "architecture": "AMD64"
+    },
+    "cpu": {
+      "model": "AMD Ryzen 9 5900XT 16-Core Processor",
+      "logical_cores": 32,
+      "physical_cores": 16
+    },
+    "memory": {
+      "total_bytes": 34264162304,
+      "available_bytes": 16556429312
+    },
+    "gpu_count": 1,
+    "gpu_name": "NVIDIA GeForce RTX 4070 Ti",
+    "gpu_memory_total_mib": 12282.0,
+    "nvidia_driver": "616.56"
+  },
+  "runtime": {
+    "eersim_version": "0.1.2",
+    "python": {
+      "version": "3.11.16",
+      "implementation": "CPython",
+      "bits": 64
+    },
+    "packages": {
+      "eerkit-simulator": "0.1.2",
+      "numpy": "2.4.6",
+      "pybullet": "3.2.5",
+      "PySide6": "6.8.3",
+      "vtk": "9.6.2",
+      "ovphysx": "0.5.11",
+      "ovstage": "0.1.1.355824",
+      "scipy": "1.16.3"
+    }
+  },
+  "capture": {
+    "status": "complete",
+    "rate_order": [
+      240,
+      120
+    ],
+    "wall_seconds_per_case": 120.0,
+    "instrumented": true,
+    "interactive_gui": false
+  },
+  "cases": [
+    {
+      "rate_hz": 240,
+      "status": "complete",
+      "child_exit_code": 0,
+      "watchdog_timeout": false,
+      "stop_reason": "wall_budget",
+      "steps": 1816,
+      "simulation_seconds": 7.566666666666666,
+      "physics": {
+        "backend": "physx",
+        "device": "NVIDIA GeForce RTX 4070 Ti",
+        "hardware_accelerated": true,
+        "reason": "",
+        "scene_gpu_flags": 11,
+        "logical_cuda_device": 0,
+        "cuda_device_name": "NVIDIA GeForce RTX 4070 Ti",
+        "direct_gpu_api": false,
+        "solver": "TGS",
+        "solver_iterations": 100,
+        "tensor_cores": false,
+        "state_exchange": "batched CPU observations"
+      },
+      "timing": {
+        "native_step_ms": 60.48502725770932,
+        "contact_conversion_ms": 1.6848465859030861,
+        "state_read_ms": 0.13972846916299556,
+        "control_write_ms": 0.18739895374449328,
+        "total_step_ms": 65.7609230726722,
+        "remaining_ms": 3.263921806152304,
+        "native_step_share_percent": 91.97715669359978,
+        "step_realtime_factor": 0.06336082998807811,
+        "loop_realtime_factor": 0.06303157802811563,
+        "physics_loop_seconds": 120.04564860000028,
+        "scene_load_seconds": 26.250242299999627
+      },
+      "mean_raw_contact_reports": 11353.206497797357,
+      "raw_contact_reports_total": 20617423,
+      "scene": {
+        "scene.collision_shapes": 4459,
+        "scene.dynamic_actors": 88,
+        "scene.articulation_links": 11,
+        "scene.dofs": 8
+      },
+      "no_pros": true,
+      "gpu_physics_phase": {
+        "physics_phase_samples": 120,
+        "pstates": {
+          "P5": 53,
+          "P2": 28,
+          "P3": 39
+        },
+        "all_samples_match_selected_logical_device": true,
+        "sampler_status": "stopped",
+        "sampler_errors": [],
+        "total_sampler_rows": 123,
+        "gpu_utilization_percent": {
+          "count": 120,
+          "mean": 35.983333333333334,
+          "min": 18.0,
+          "median": 35.0,
+          "max": 60.0
+        },
+        "memory_utilization_percent": {
+          "count": 120,
+          "mean": 14.575,
+          "min": 2.0,
+          "median": 6.0,
+          "max": 47.0
+        },
+        "memory_used_mib": {
+          "count": 120,
+          "mean": 3357.9166666666665,
+          "min": 3108.0,
+          "median": 3355.5,
+          "max": 3411.0
+        },
+        "memory_total_mib": {
+          "count": 120,
+          "mean": 12282.0,
+          "min": 12282.0,
+          "median": 12282.0,
+          "max": 12282.0
+        },
+        "power_draw_w": {
+          "count": 120,
+          "mean": 34.98175,
+          "min": 25.01,
+          "median": 33.965,
+          "max": 53.6
+        },
+        "power_limit_w": {
+          "count": 120,
+          "mean": 339.15,
+          "min": 339.15,
+          "median": 339.15,
+          "max": 339.15
+        },
+        "temperature_c": {
+          "count": 120,
+          "mean": 52.041666666666664,
+          "min": 51.0,
+          "median": 52.0,
+          "max": 53.0
+        },
+        "graphics_clock_mhz": {
+          "count": 120,
+          "mean": 2021.625,
+          "min": 210.0,
+          "median": 2040.0,
+          "max": 2700.0
+        },
+        "memory_clock_mhz": {
+          "count": 120,
+          "mean": 4374.975,
+          "min": 810.0,
+          "median": 5001.0,
+          "max": 10251.0
+        }
+      },
+      "render": {
+        "frames": 12,
+        "stationary": true,
+        "resolution": [
+          960,
+          720
+        ],
+        "first_frame_ms": 3546.841100000165,
+        "steady_mean_ms": 9.181409091070236,
+        "renderer": {
+          "backend": "opengl",
+          "device": "NVIDIA GeForce RTX 4070 Ti/PCIe/SSE2",
+          "hardware_accelerated": true,
+          "vendor": "NVIDIA Corporation",
+          "version": "4.5.0 NVIDIA 616.56",
+          "reason": ""
+        }
+      }
+    },
+    {
+      "rate_hz": 120,
+      "status": "complete",
+      "child_exit_code": 0,
+      "watchdog_timeout": false,
+      "stop_reason": "wall_budget",
+      "steps": 1869,
+      "simulation_seconds": 15.575000000000001,
+      "physics": {
+        "backend": "physx",
+        "device": "NVIDIA GeForce RTX 4070 Ti",
+        "hardware_accelerated": true,
+        "reason": "",
+        "scene_gpu_flags": 11,
+        "logical_cuda_device": 0,
+        "cuda_device_name": "NVIDIA GeForce RTX 4070 Ti",
+        "direct_gpu_api": false,
+        "solver": "TGS",
+        "solver_iterations": 100,
+        "tensor_cores": false,
+        "state_exchange": "batched CPU observations"
+      },
+      "timing": {
+        "native_step_ms": 58.57479336543605,
+        "contact_conversion_ms": 1.6201035313001615,
+        "state_read_ms": 0.1420344569288388,
+        "control_write_ms": 0.1847998394863567,
+        "total_step_ms": 63.88176356340838,
+        "remaining_ms": 3.3600323702569668,
+        "native_step_share_percent": 91.69251144310586,
+        "step_realtime_factor": 0.13044933120955174,
+        "loop_realtime_factor": 0.1297309640350664,
+        "physics_loop_seconds": 120.05614940000032,
+        "scene_load_seconds": 27.211051000000225
+      },
+      "mean_raw_contact_reports": 11338.185660781166,
+      "raw_contact_reports_total": 21191069,
+      "scene": {
+        "scene.collision_shapes": 4459,
+        "scene.dynamic_actors": 88,
+        "scene.articulation_links": 11,
+        "scene.dofs": 8
+      },
+      "no_pros": true,
+      "gpu_physics_phase": {
+        "physics_phase_samples": 120,
+        "pstates": {
+          "P5": 8,
+          "P2": 59,
+          "P3": 53
+        },
+        "all_samples_match_selected_logical_device": true,
+        "sampler_status": "stopped",
+        "sampler_errors": [],
+        "total_sampler_rows": 123,
+        "gpu_utilization_percent": {
+          "count": 120,
+          "mean": 34.9,
+          "min": 22.0,
+          "median": 34.0,
+          "max": 52.0
+        },
+        "memory_utilization_percent": {
+          "count": 120,
+          "mean": 5.983333333333333,
+          "min": 2.0,
+          "median": 5.0,
+          "max": 39.0
+        },
+        "memory_used_mib": {
+          "count": 120,
+          "mean": 3380.275,
+          "min": 3050.0,
+          "median": 3350.5,
+          "max": 3702.0
+        },
+        "memory_total_mib": {
+          "count": 120,
+          "mean": 12282.0,
+          "min": 12282.0,
+          "median": 12282.0,
+          "max": 12282.0
+        },
+        "power_draw_w": {
+          "count": 120,
+          "mean": 41.545,
+          "min": 25.37,
+          "median": 40.89,
+          "max": 64.97
+        },
+        "power_limit_w": {
+          "count": 120,
+          "mean": 339.15,
+          "min": 339.15,
+          "median": 339.15,
+          "max": 339.15
+        },
+        "temperature_c": {
+          "count": 120,
+          "mean": 52.875,
+          "min": 51.0,
+          "median": 53.0,
+          "max": 55.0
+        },
+        "graphics_clock_mhz": {
+          "count": 120,
+          "mean": 2272.875,
+          "min": 315.0,
+          "median": 2235.0,
+          "max": 2790.0
+        },
+        "memory_clock_mhz": {
+          "count": 120,
+          "mean": 7337.775,
+          "min": 810.0,
+          "median": 5001.0,
+          "max": 10251.0
+        }
+      },
+      "render": {
+        "frames": 12,
+        "stationary": true,
+        "resolution": [
+          960,
+          720
+        ],
+        "first_frame_ms": 3450.503399999434,
+        "steady_mean_ms": 10.244981818356212,
+        "renderer": {
+          "backend": "opengl",
+          "device": "NVIDIA GeForce RTX 4070 Ti/PCIe/SSE2",
+          "hardware_accelerated": true,
+          "vendor": "NVIDIA Corporation",
+          "version": "4.5.0 NVIDIA 616.56",
+          "reason": ""
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "stage_ms": "1000 * stage total seconds / case steps; each four-stage count verified equal to case steps",
+    "native_step_share_percent": "100 * worker.native.step total / timing_seconds.physics_steps",
+    "remaining_ms": "total_step_ms - native_step_ms - contact_conversion_ms - state_read_ms - control_write_ms",
+    "mean_raw_contact_reports": "performance.worker.counters.worker.contacts.raw_reports / steps; includes subscribed reports before materialization",
+    "gpu_physics_phase": "CSV timestamp_utc inclusively between physics_started_utc and physics_finished_utc; rendering rows excluded",
+    "gpu_stats": "Arithmetic per-sample mean, min, median and max; utilization is device-wide and may include other applications"
+  },
+  "limitations": [
+    "Native step is a synchronous SDK wall-time span; CPU work, GPU kernels and synchronization are not separately resolved.",
+    "Remaining time includes unlisted worker work, raycasts, IPC and parent-side work; it is not an isolated CPU or transport measurement.",
+    "Native, contact, state and control are sequential worker spans nested inside total session-step time; arbitrary other nested spans must not be added.",
+    "GPU telemetry contains no kernel occupancy, per-process utilization, CPU-core utilization or throttling-reason data.",
+    "The report measures neutral scene simulation without a selected PROS workspace, not an autonomy run.",
+    "Stationary offscreen rendering capacity is not interactive GUI FPS.",
+    "Changing from 240 Hz to 120 Hz changes the physics discretization; this capture does not establish equal physics accuracy."
+  ],
+  "evidence_keys": {
+    "hardware": [
+      "system.json:cpu",
+      "system.json:memory",
+      "system.json:nvidia.gpus[0].gpu_name",
+      "system.json:nvidia.gpus[0].memory_total_mib",
+      "system.json:nvidia.gpus[0].driver_version"
+    ],
+    "authority": [
+      "<rate>hz/case.json:physics.backend",
+      "<rate>hz/case.json:physics.hardware_accelerated",
+      "<rate>hz/case.json:physics.scene_gpu_flags",
+      "<rate>hz/case.json:physics.logical_cuda_device",
+      "<rate>hz/case.json:physics.direct_gpu_api"
+    ],
+    "timing": [
+      "<rate>hz/case.json:steps",
+      "<rate>hz/case.json:timing_seconds.physics_steps",
+      "<rate>hz/case.json:performance.worker.spans.worker.native.step.total",
+      "<rate>hz/case.json:performance.worker.spans.worker.contacts.read_convert.total",
+      "<rate>hz/case.json:performance.worker.spans.worker.state.read.total",
+      "<rate>hz/case.json:performance.worker.spans.worker.control.write.total",
+      "<rate>hz/case.json:step_realtime_factor",
+      "<rate>hz/case.json:loop_realtime_factor"
+    ],
+    "geometry_and_contacts": [
+      "<rate>hz/case.json:performance.worker.counters.worker.contacts.raw_reports",
+      "<rate>hz/case.json:performance.worker.gauges.scene.collision_shapes"
+    ],
+    "no_pros": [
+      "<rate>hz/case.json:requested.workspace_selected",
+      "<rate>hz/case.json:native_initialization_ticks",
+      "<rate>hz/case.json:native_competition_ticks"
+    ],
+    "gpu_samples": [
+      "<rate>hz/gpu-samples.csv",
+      "<rate>hz/case.json:physics_started_utc",
+      "<rate>hz/case.json:physics_finished_utc",
+      "<rate>hz/gpu-summary.json:status",
+      "<rate>hz/gpu-summary.json:errors"
+    ],
+    "render": [
+      "<rate>hz/case.json:render_probe.steady_mean_seconds",
+      "<rate>hz/case.json:renderer",
+      "<rate>hz/case.json:render_frames"
+    ]
+  }
+}

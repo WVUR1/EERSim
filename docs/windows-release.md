@@ -1,6 +1,6 @@
 # Windows installer and EXE builds
 
-The private [0.1.2 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.2-windows-preview.1)
+The private [0.1.3 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.3-windows-preview.1)
 includes GPU physics. Its `EERSim-Setup-x64.exe` contains Python, PySide6,
 PyBullet, VTK, PhysX/OVStage, SciPy, default robots and fields, and the desktop
 LLVM-MinGW compiler for selected PROS workspaces. Recipients do not need Python,

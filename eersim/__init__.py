@@ -18,4 +18,4 @@ if os.name == "nt":
     if _library_dirs:
         os.environ["PATH"] = os.pathsep.join(_library_dirs + [os.environ.get("PATH", "")])
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"

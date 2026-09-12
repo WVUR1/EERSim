@@ -245,7 +245,8 @@ class _Runtime:
                       'q': self.buffers.get('q', self.np.empty((1, 0))).copy(),
                       'qd': self.buffers.get('qd', self.np.empty((1, 0))).copy()}
         with self.performance.span("worker.contacts.read_convert"):
-            contacts = self.contacts.capture_runtime(self.manifest['robot']['body_id'])
+            contacts = self.contacts.capture_runtime(self.manifest['robot']['body_id'],
+                poses_by_actor=dict(zip(self.actor_paths, self.buffers['poses'])))
         result.update(contacts)
         if self.performance.enabled:
             self.performance.increment("worker.state.tensor_reads", reads)
@@ -254,6 +255,7 @@ class _Runtime:
             self.performance.gauge("worker.contacts.raw_reports_last", raw)
             self.performance.gauge("worker.contacts.materialized_last", len(contacts['contacts']))
             self.performance.gauge("worker.contacts.body_pairs_last", len(contacts['contact_body_pairs']))
+            self.performance.gauge("worker.contacts.retained_body_pairs_last", self.contacts.retained_pair_count)
         return result
 
     def diagnostics(self, payload=None):
@@ -264,27 +266,41 @@ class _Runtime:
         return {'performance': self.performance.snapshot(reset=payload.get('reset', False))}
 
     def step(self, controls):
+        writes = submitted_rows = skipped_rows = 0
         with self.performance.span('worker.control.write'):
             for key in ('target_velocity', 'target_position', 'max_force', 'stiffness', 'damping', 'effort'):
                 if key in self.bindings:
                     self.buffers[key][...] = controls[key]
                     self.bindings[key].write(self.buffers[key])
+                    writes += 1
             wrenches = controls['wrenches']
             if 'body_wrenches' in self.bindings:
                 values = self.buffers['body_wrenches']
                 for row, path in enumerate(self.regular_paths):
                     values[row] = wrenches[self.actor_rows[path]]
-                self.bindings['body_wrenches'].write(values)
+                # The pinned SDK autowakes every selected regular body even
+                # for an all-zero wrench. Forces clear after each step, so
+                # submit only active force/torque rows and let idle props sleep.
+                # Application-point coordinates alone do not apply a force.
+                indices = self.np.flatnonzero(self.np.any(values[:, :6] != 0, axis=1)).astype(self.np.int32)
+                submitted_rows = len(indices)
+                skipped_rows = len(values) - submitted_rows
+                if submitted_rows:
+                    # Partial writes still require the binding's full buffer.
+                    self.bindings['body_wrenches'].write(values, indices=indices)
+                    writes += 1
             if 'link_wrenches' in self.bindings:
                 self.buffers['link_wrenches'][0, ...] = wrenches[self.articulation_actor_rows]
                 self.bindings['link_wrenches'].write(self.buffers['link_wrenches'])
+                writes += 1
+        if self.performance.enabled:
+            self.performance.increment("worker.control.tensor_writes", writes)
+            self.performance.increment("worker.control.regular_wrench_rows_submitted", submitted_rows)
+            self.performance.increment("worker.control.regular_wrench_rows_skipped", skipped_rows)
         with self.performance.span("worker.native.step"):
             self.physx.step_sync(self.dt)
         if self.performance.enabled:
             self.performance.increment("worker.steps")
-            self.performance.increment("worker.control.tensor_writes", sum(
-                key in self.bindings for key in ("target_velocity", "target_position", "max_force",
-                    "stiffness", "damping", "effort", "body_wrenches", "link_wrenches")))
         return self.state()
 
     def raycast(self, rays):

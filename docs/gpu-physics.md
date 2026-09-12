@@ -15,8 +15,12 @@ backend has now completed the unchanged PROS claw program on a Linux A100,
 including physical grip, lift, navigation, release, and a red-goal placement.
 The 30-second run measured **0.0426× realtime** at 240 Hz and 100 TGS iterations.
 This establishes functionality, not a speed advantage over CPU physics.
-The Windows preview bundles the runtime and passed headless CPU/fallback checks;
-actual Windows CUDA execution still needs validation on supported hardware.
+The Windows preview bundles the runtime and passed headless CPU/fallback checks.
+A supplied RTX 4070 Ti capture verifies GPU dynamics, GPU broadphase, a valid CUDA
+context, and OpenGL rendering on Windows. It had no PROS workspace selected;
+Windows GPU autonomy execution remains unverified. The
+[4070 Ti analysis](diagnostics-4070ti.md) separates its measured baseline from
+the subsequent fix for unnecessary field-object wakeups.
 See the [measurement record](validation.md#integrated-physx-acceptance).
 
 ## Install and select

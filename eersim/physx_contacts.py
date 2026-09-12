@@ -12,6 +12,7 @@ are placeholders, not measured zero friction.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 import math
 from numbers import Integral
@@ -41,6 +42,9 @@ class ContactReader:
         self._binding = None
         self._closed = False
         self._id_cache = {}
+        self._presence_poses = None
+        self._presence_pairs = set()
+        self.retained_pair_count = 0
         self._actors = {}
         endpoints = set()
         for item in manifest["actors"]:
@@ -63,6 +67,7 @@ class ContactReader:
             endpoints.add(actor.endpoint)
         self._prefixes = sorted(self._actors, key=len, reverse=True)
         dynamics = {path for path, actor in self._actors.items() if actor.dynamic}
+        self._presence_paths = sorted(dynamics)
         requested = manifest.get('contact_sensor_paths', sorted(dynamics))
         if not isinstance(requested, list) or len(requested) != len(set(requested)) or not set(requested) <= dynamics:
             raise ValueError('Contact subscriptions must name unique dynamic manifest actors')
@@ -112,13 +117,20 @@ class ContactReader:
         self._read_payload()
         return self._materialize_contacts()
 
-    def capture_runtime(self, robot_body_id):
+    def capture_runtime(self, robot_body_id, poses_by_actor=None):
         """Return complete robot manifolds plus body-pair presence for scoring.
 
         Validate every native point and resolve every actor ID. Only contacts
         touching the robot become Python point tuples; the many pin/field
         manifold points are reduced to body-pair presence in NumPy first.
         ``capture()`` remains the explicit full-manifold compatibility read.
+
+        Native sleeping actors stop reporting contacts. When poses_by_actor
+        supplies every dynamic actor's [x,y,z,qx,qy,qz,qw] pose each step,
+        preserve non-robot pair presence only while all dynamic links of both
+        bodies stay exactly unchanged. Geometry, static transforms and collision
+        filters must remain immutable for this reader's lifetime. Never reuse
+        forces or point manifolds; omitting poses clears the presence history.
         """
         if not isinstance(robot_body_id, Integral) or isinstance(robot_body_id, bool) or robot_body_id < 0:
             raise ValueError("Robot body ID must be a nonnegative integer")
@@ -139,8 +151,34 @@ class ContactReader:
                 body_pairs.add(tuple(sorted((sensor.body, other.body))))
             if sensor.body == robot_body_id:
                 selected[start:end] = True
-        return {"contacts": self._materialize_contacts(selected),
-                "contact_body_pairs": sorted(body_pairs)}
+        contacts = self._materialize_contacts(selected)
+        body_pairs = self._stationary_presence(body_pairs, robot_body_id, poses_by_actor)
+        return {"contacts": contacts, "contact_body_pairs": sorted(body_pairs)}
+
+    def _stationary_presence(self, fresh_pairs, robot_body_id, poses_by_actor):
+        previous_poses, previous_pairs = self._presence_poses, self._presence_pairs
+        # An omitted/invalid observation breaks continuity, so it cannot leave
+        # history available for a later call that missed intervening movement.
+        self._presence_poses, self._presence_pairs = None, set()
+        self.retained_pair_count = 0
+        if poses_by_actor is None:
+            return fresh_pairs
+        if not isinstance(poses_by_actor, Mapping) or set(poses_by_actor) != set(self._presence_paths):
+            raise ValueError('Contact presence requires exactly all dynamic actor poses')
+        poses = np.asarray([poses_by_actor[path] for path in self._presence_paths], dtype=np.float64)
+        if poses.shape != (len(self._presence_paths), 7) or not np.isfinite(poses).all():
+            raise ValueError('Contact presence poses must have seven finite components')
+        retained = set()
+        if previous_poses is not None:
+            changed_rows = np.flatnonzero(np.any(poses != previous_poses, axis=1))
+            changed_bodies = {self._actors[self._presence_paths[int(row)]].body for row in changed_rows}
+            retained = {pair for pair in previous_pairs - fresh_pairs
+                        if robot_body_id not in pair and not changed_bodies.intersection(pair)}
+        result = fresh_pairs | retained
+        self._presence_poses = poses.copy()
+        self._presence_pairs = {pair for pair in result if robot_body_id not in pair}
+        self.retained_pair_count = len(retained)
+        return result
 
     def _read_payload(self):
         """Read and validate the complete report once, retaining numeric arrays."""
