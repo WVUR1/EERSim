@@ -16,17 +16,19 @@ is reported separately in the [validation notes](docs/validation.md).
 ## Start here
 
 Download **EERSim-Setup-x64.exe** from the private
-[0.1.4 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.4-windows-preview.1).
+[0.1.5 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.5-windows-preview.1).
 It bundles Python, the PhysX GPU runtime, simulator dependencies, default robots
 and fields, and the native robot compiler. It installs for your Windows account
 without administrator privileges; a desktop shortcut is optional. This private
 build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
-Version 0.1.4 reduces repeated CPU work in contact conversion, force transforms,
-and scoring observations while retaining the same physics settings and field
-geometry. The [matched A100 results and artifact checks](docs/diagnostics-a100-0.1.4.md)
-record a 4.98% step-throughput gain and the remaining validation limits.
-The integrated backend completed the full PROS claw routine on a Linux A100;
-Windows packaging, CPU execution, and fallback were checked headlessly. A supplied
+Version 0.1.5 adds recorded-run replay with a clickable, draggable timeline and
+Play/Pause, plus lower Python overhead in joint readings and force calculations.
+See [performance and replay validation](docs/performance-0.1.5.md) for measured
+scope and remaining limits. The earlier
+[0.1.4 results and artifact checks](docs/diagnostics-a100-0.1.4.md) remain available
+as historical evidence.
+Earlier validation completed the full PROS claw routine on a Linux A100
+and checked Windows packaging, CPU execution, and fallback headlessly. A supplied
 RTX 4070 Ti capture also verifies Windows CUDA physics and GPU rendering. A
 follow-up capture of 0.1.3 runs the native PROS claw demo, records preload placement,
 and completes its 30-second mode at 120 Hz in 87.1 wall seconds (0.346x including
@@ -76,6 +78,40 @@ default **Auto** physics selection. CUDA requires an NVIDIA GPU with compute
 capability 7.0 or newer and a driver exposing CUDA 12.8 or newer; the application
 checks both. See [physics backends](docs/gpu-physics.md) for device selection and
 the current validation limits.
+
+### Try the measured CPU settings
+
+The server CPU result used PhysX with zero dispatcher workers, which runs those
+tasks inline. The app still defaults to two workers. To try that configuration,
+close EERSim first and open PowerShell in the folder containing `EERSim.exe`:
+
+```powershell
+$env:EERSIM_PHYSX_THREADS = '0'
+.\EERSim.exe
+```
+
+For a source checkout, use the same environment-variable line and run
+`.\launch.ps1` from the repository folder instead. PhysX CPU also needs the
+optional `.[gpu]` source dependencies described above.
+
+In **Field**, select **Physics engine → PhysX · CPU**, set **Fixed physics rate**
+to **120 Hz** and **Solver iterations · advanced** to **100**, then click
+**Apply settings & reset scene**. Graphics rendering is a separate setting and
+can remain on GPU. For the bundled benchmark scene, click **Load claw scoring demo**
+before making those settings, then select **Match Auto** for its 30-second run.
+
+This changes only programs launched from that PowerShell session; it does not
+change the app's defaults or the saved profile's worker count. Afterwards, remove
+the override and restart EERSim to return to two workers:
+
+```powershell
+Remove-Item Env:EERSIM_PHYSX_THREADS -ErrorAction SilentlyContinue
+```
+
+These reproduce the measured engine settings, not a guaranteed speedup. The
+published results are headless server measurements; your CPU, field contacts,
+and rendering workload can produce different throughput.
+
 
 If launch reports `No module named 'PySide6'` or another missing dependency, run
 `setup.ps1` again, then inspect the selected Python and dependency checks with:
@@ -154,6 +190,34 @@ Skills Auto; press **Start** to run it. The routine grips the preload, lifts it,
 drives to a red alliance goal using the serial odometry interface, and releases
 it. The viewport reports prototype pin placements. Driver mode also supports
 the claw and lift using R1/R2 and L1/L2.
+
+## Replay the previous run
+
+After a competition run completes or stops, click **Replay last run** below the
+viewport. Click anywhere on its timeline or drag the handle to scrub, then use
+**Play/Pause** to watch the recorded motion. Orbit, pan, zoom, and the closeup
+camera remain available. The recorded time includes initialization; recorded
+mode time is separate. **Live** returns to the current world and leaves it
+paused, so use **Resume** explicitly to continue robot execution.
+
+Replay displays saved robot and field poses. It does not rerun PROS, advance
+physics, resample sensors, or recompute scoring. The target capture rate is 30
+samples per simulated second, independent of render FPS; the transport shows
+the effective rate and selects an actual saved sample without interpolation.
+Live robot input, manual joint commands, and scene-changing controls are
+disabled during replay. The Telemetry tab continues to show the paused live
+session, labeled separately from the recording.
+
+The most recent completed, stopped, or failed run with valid recorded motion
+remains available for this app session. Reset and importing another scene
+preserve it, including copies of its visual assets. Starting a new run keeps
+the previous clip until a replacement is finalized. Clips are not yet saved
+for reopening after the app closes.
+
+Recording and copied visual assets have separate bounds. Large recordings can
+use a lower sample rate; if a recording cannot fit or an asset cannot be copied,
+the replay status explains the issue while live simulation continues. These
+bounds do not limit the whole application's memory usage.
 
 ## Performance reports and app status
 
