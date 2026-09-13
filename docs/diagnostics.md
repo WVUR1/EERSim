@@ -64,3 +64,8 @@ For server-side GPU validation, see the [A100 paired acceptance results](diagnos
 The headless harness validates lift and released goal placement as well as
 performance. This can run over SSH without GUI forwarding; Windows captures
 remain useful for Windows-specific renderer, driver and installer issues.
+
+The [A100 activity and CPU worker diagnostics](diagnostics-a100-activity.md)
+measure native sleeping bodies, contact conversion and verified worker counts.
+They include a repeated full-claw regression and the opt-in source command for
+further headless GPU testing.

@@ -1,0 +1,1968 @@
+{
+  "schema_version": 1,
+  "source_commit": "07f4818d8a871d0287bae4d969dbb06bb2d1cc95",
+  "hardware": {
+    "gpu": "NVIDIA A100-SXM4-40GB",
+    "cpu": "dual AMD EPYC 7H12",
+    "driver": "595.71.05",
+    "physical_gpu_index": 1,
+    "logical_cuda_device": 0,
+    "headless": true
+  },
+  "settings": {
+    "backend": "physx_gpu",
+    "device": 0,
+    "iterations": 100,
+    "fixture": "claw",
+    "physics_hz": 120,
+    "ticks": 3600,
+    "seconds": 30.0,
+    "pros": true
+  },
+  "cases": [
+    {
+      "name": "claw-threads-2",
+      "requested_workers": 2,
+      "status": "passed",
+      "steps": {
+        "initialization": 13,
+        "competition": 3600,
+        "passive": 0,
+        "total": 3613
+      },
+      "source_unchanged": true,
+      "actual_workers": 2,
+      "native_gpu_flags": 11,
+      "samples": 32,
+      "step_realtime_factor": 0.28561695578775687,
+      "loop_realtime_factor": 0.26687592580185265,
+      "loop_realtime_factor_excluding_diagnostics": 0.27561730221719055,
+      "loop_diagnostics_wall_seconds": 3.5780850634910166,
+      "loop_diagnostics_percent": 3.1715630132862853,
+      "competition_step_wall_seconds": 105.03578093694523,
+      "competition_costs": {
+        "worker.native.step": {
+          "calls": 3600,
+          "total_seconds": 69.91968653799991,
+          "mean_ms": 19.42213514944442
+        },
+        "worker.control.write": {
+          "calls": 3600,
+          "total_seconds": 1.447109316999998,
+          "mean_ms": 0.40197481027777726
+        },
+        "worker.state.read": {
+          "calls": 3600,
+          "total_seconds": 0.5185697479999999,
+          "mean_ms": 0.1440471522222222
+        },
+        "worker.contacts.read_convert": {
+          "calls": 3600,
+          "total_seconds": 9.48538298600001,
+          "mean_ms": 2.634828607222225
+        },
+        "worker.contacts.binding_read": {
+          "calls": 3600,
+          "total_seconds": 1.622399176999999,
+          "mean_ms": 0.4506664380555553
+        },
+        "worker.contacts.payload_validation": {
+          "calls": 3600,
+          "total_seconds": 0.7188802559999973,
+          "mean_ms": 0.19968895999999925
+        },
+        "worker.contacts.id_resolution": {
+          "calls": 3600,
+          "total_seconds": 0.3133389119999996,
+          "mean_ms": 0.08703858666666656
+        },
+        "worker.contacts.pair_selection": {
+          "calls": 3600,
+          "total_seconds": 1.6170845030000023,
+          "mean_ms": 0.4491901397222229
+        },
+        "worker.contacts.robot_materialization": {
+          "calls": 3600,
+          "total_seconds": 3.877452708000011,
+          "mean_ms": 1.0770701966666698
+        },
+        "worker.contacts.pair_retention": {
+          "calls": 3600,
+          "total_seconds": 0.8073681599999999,
+          "mean_ms": 0.2242689333333333
+        },
+        "world.control.tires": {
+          "calls": 3600,
+          "total_seconds": 6.969942141,
+          "mean_ms": 1.9360950391666665
+        },
+        "world.sensors": {
+          "calls": 3600,
+          "total_seconds": 5.373868786000005,
+          "mean_ms": 1.492741329444446
+        },
+        "session.native.roundtrip": {
+          "calls": 3600,
+          "total_seconds": 1.4800612109999993,
+          "mean_ms": 0.41112811416666645
+        }
+      },
+      "native_percent_of_competition_step_time": 66.56749339539246,
+      "lift_m": 0.19990865141153336,
+      "placement_passed": true,
+      "final_robot_contact": false
+    },
+    {
+      "name": "claw-threads-0",
+      "requested_workers": 0,
+      "status": "passed",
+      "steps": {
+        "initialization": 13,
+        "competition": 3600,
+        "passive": 0,
+        "total": 3613
+      },
+      "source_unchanged": true,
+      "actual_workers": 0,
+      "native_gpu_flags": 11,
+      "samples": 32,
+      "step_realtime_factor": 0.3186140310605299,
+      "loop_realtime_factor": 0.3001388033675595,
+      "loop_realtime_factor_excluding_diagnostics": 0.30742881800065464,
+      "loop_diagnostics_wall_seconds": 2.3787477668374777,
+      "loop_diagnostics_percent": 2.3712853858351117,
+      "competition_step_wall_seconds": 94.15781188337132,
+      "competition_costs": {
+        "worker.native.step": {
+          "calls": 3600,
+          "total_seconds": 67.19388550899986,
+          "mean_ms": 18.664968196944404
+        },
+        "worker.control.write": {
+          "calls": 3600,
+          "total_seconds": 0.7561287440000015,
+          "mean_ms": 0.21003576222222262
+        },
+        "worker.state.read": {
+          "calls": 3600,
+          "total_seconds": 0.30989262699999964,
+          "mean_ms": 0.08608128527777768
+        },
+        "worker.contacts.read_convert": {
+          "calls": 3600,
+          "total_seconds": 5.051730498999995,
+          "mean_ms": 1.403258471944443
+        },
+        "worker.contacts.binding_read": {
+          "calls": 3600,
+          "total_seconds": 1.0342316079999976,
+          "mean_ms": 0.2872865577777771
+        },
+        "worker.contacts.payload_validation": {
+          "calls": 3600,
+          "total_seconds": 0.3937845039999992,
+          "mean_ms": 0.10938458444444421
+        },
+        "worker.contacts.id_resolution": {
+          "calls": 3600,
+          "total_seconds": 0.17444615999999968,
+          "mean_ms": 0.048457266666666575
+        },
+        "worker.contacts.pair_selection": {
+          "calls": 3600,
+          "total_seconds": 0.8449414729999982,
+          "mean_ms": 0.23470596472222174
+        },
+        "worker.contacts.robot_materialization": {
+          "calls": 3600,
+          "total_seconds": 1.902615343000002,
+          "mean_ms": 0.528504261944445
+        },
+        "worker.contacts.pair_retention": {
+          "calls": 3600,
+          "total_seconds": 0.4243422649999994,
+          "mean_ms": 0.11787285138888871
+        },
+        "world.control.tires": {
+          "calls": 3600,
+          "total_seconds": 6.1156425689999905,
+          "mean_ms": 1.6987896024999973
+        },
+        "world.sensors": {
+          "calls": 3600,
+          "total_seconds": 4.8474909620000135,
+          "mean_ms": 1.3465252672222259
+        },
+        "session.native.roundtrip": {
+          "calls": 3600,
+          "total_seconds": 1.5099547230000008,
+          "mean_ms": 0.4194318675000002
+        }
+      },
+      "native_percent_of_competition_step_time": 71.36304908214056,
+      "lift_m": 0.19990865141153336,
+      "placement_passed": true,
+      "final_robot_contact": false
+    },
+    {
+      "name": "claw-threads-1",
+      "requested_workers": 1,
+      "status": "failed",
+      "steps": {
+        "initialization": 0,
+        "competition": 0,
+        "passive": 0,
+        "total": 0
+      },
+      "source_unchanged": true,
+      "actual_workers": null,
+      "step_realtime_factor": null,
+      "failure": "PhysX worker startup timeout; no completed simulation steps",
+      "session_construction_wall_seconds": 196.30587409297004
+    },
+    {
+      "name": "repeat-claw-threads-0",
+      "requested_workers": 0,
+      "status": "passed",
+      "steps": {
+        "initialization": 13,
+        "competition": 3600,
+        "passive": 0,
+        "total": 3613
+      },
+      "source_unchanged": true,
+      "actual_workers": 0,
+      "native_gpu_flags": 11,
+      "samples": 32,
+      "step_realtime_factor": 0.30184433060406746,
+      "loop_realtime_factor": 0.2835116492376745,
+      "loop_realtime_factor_excluding_diagnostics": 0.2907110192601421,
+      "loop_diagnostics_wall_seconds": 2.629957974422723,
+      "loop_diagnostics_percent": 2.476469602284063,
+      "competition_step_wall_seconds": 99.38897954439744,
+      "competition_costs": {
+        "worker.native.step": {
+          "calls": 3600,
+          "total_seconds": 67.57219626799986,
+          "mean_ms": 18.77005451888885
+        },
+        "worker.control.write": {
+          "calls": 3600,
+          "total_seconds": 0.946504053,
+          "mean_ms": 0.2629177925
+        },
+        "worker.state.read": {
+          "calls": 3600,
+          "total_seconds": 0.3650574099999999,
+          "mean_ms": 0.10140483611111108
+        },
+        "worker.contacts.read_convert": {
+          "calls": 3600,
+          "total_seconds": 6.178697250999978,
+          "mean_ms": 1.7163047919444383
+        },
+        "worker.contacts.binding_read": {
+          "calls": 3600,
+          "total_seconds": 1.5427723060000051,
+          "mean_ms": 0.4285478627777792
+        },
+        "worker.contacts.payload_validation": {
+          "calls": 3600,
+          "total_seconds": 0.46151023299999944,
+          "mean_ms": 0.1281972869444443
+        },
+        "worker.contacts.id_resolution": {
+          "calls": 3600,
+          "total_seconds": 0.2065661150000004,
+          "mean_ms": 0.057379476388889
+        },
+        "worker.contacts.pair_selection": {
+          "calls": 3600,
+          "total_seconds": 0.9730160660000008,
+          "mean_ms": 0.2702822405555558
+        },
+        "worker.contacts.robot_materialization": {
+          "calls": 3600,
+          "total_seconds": 2.1345198220000023,
+          "mean_ms": 0.5929221727777785
+        },
+        "worker.contacts.pair_retention": {
+          "calls": 3600,
+          "total_seconds": 0.5065151279999986,
+          "mean_ms": 0.1406986466666663
+        },
+        "world.control.tires": {
+          "calls": 3600,
+          "total_seconds": 7.241746886000009,
+          "mean_ms": 2.0115963572222246
+        },
+        "world.sensors": {
+          "calls": 3600,
+          "total_seconds": 5.634452638000002,
+          "mean_ms": 1.5651257327777781
+        },
+        "session.native.roundtrip": {
+          "calls": 3600,
+          "total_seconds": 1.5280724830000059,
+          "mean_ms": 0.42446457861111275
+        }
+      },
+      "native_percent_of_competition_step_time": 67.98761449987028,
+      "lift_m": 0.19990865141153336,
+      "placement_passed": true,
+      "final_robot_contact": false
+    },
+    {
+      "name": "repeat-claw-threads-2",
+      "requested_workers": 2,
+      "status": "passed",
+      "steps": {
+        "initialization": 13,
+        "competition": 3600,
+        "passive": 0,
+        "total": 3613
+      },
+      "source_unchanged": true,
+      "actual_workers": 2,
+      "native_gpu_flags": 11,
+      "samples": 32,
+      "step_realtime_factor": 0.28951168296495894,
+      "loop_realtime_factor": 0.27057537234342255,
+      "loop_realtime_factor_excluding_diagnostics": 0.2792590746507298,
+      "loop_diagnostics_wall_seconds": 3.460159215144813,
+      "loop_diagnostics_percent": 3.1095506271973403,
+      "competition_step_wall_seconds": 103.62276123976335,
+      "competition_costs": {
+        "worker.native.step": {
+          "calls": 3600,
+          "total_seconds": 69.52937921499988,
+          "mean_ms": 19.31371644861108
+        },
+        "worker.control.write": {
+          "calls": 3600,
+          "total_seconds": 1.380412250000001,
+          "mean_ms": 0.38344784722222247
+        },
+        "worker.state.read": {
+          "calls": 3600,
+          "total_seconds": 0.4963749789999989,
+          "mean_ms": 0.13788193861111078
+        },
+        "worker.contacts.read_convert": {
+          "calls": 3600,
+          "total_seconds": 8.935211936000002,
+          "mean_ms": 2.482003315555556
+        },
+        "worker.contacts.binding_read": {
+          "calls": 3600,
+          "total_seconds": 1.3407386749999999,
+          "mean_ms": 0.37242740972222216
+        },
+        "worker.contacts.payload_validation": {
+          "calls": 3600,
+          "total_seconds": 0.6865552980000013,
+          "mean_ms": 0.19070980500000034
+        },
+        "worker.contacts.id_resolution": {
+          "calls": 3600,
+          "total_seconds": 0.2995216930000009,
+          "mean_ms": 0.08320047027777804
+        },
+        "worker.contacts.pair_selection": {
+          "calls": 3600,
+          "total_seconds": 1.6040259669999983,
+          "mean_ms": 0.4455627686111106
+        },
+        "worker.contacts.robot_materialization": {
+          "calls": 3600,
+          "total_seconds": 3.7456210459999975,
+          "mean_ms": 1.0404502905555548
+        },
+        "worker.contacts.pair_retention": {
+          "calls": 3600,
+          "total_seconds": 0.7730272370000015,
+          "mean_ms": 0.21472978805555598
+        },
+        "world.control.tires": {
+          "calls": 3600,
+          "total_seconds": 6.875449117999994,
+          "mean_ms": 1.9098469772222206
+        },
+        "world.sensors": {
+          "calls": 3600,
+          "total_seconds": 5.308506217999981,
+          "mean_ms": 1.4745850605555504
+        },
+        "session.native.roundtrip": {
+          "calls": 3600,
+          "total_seconds": 1.5080696079999978,
+          "mean_ms": 0.4189082244444438
+        }
+      },
+      "native_percent_of_competition_step_time": 67.09855864014483,
+      "lift_m": 0.19990865141153336,
+      "placement_passed": true,
+      "final_robot_contact": false
+    }
+  ],
+  "controllers": {
+    "run.json": {
+      "status": "failed",
+      "source_unchanged": true,
+      "source_archive_sha256": "167f831455a2e8601e23b54358cf2e18b4b10a463c4604c73dd847f2c9d56a51",
+      "runner_sha256": "5c3f50dd62966122ddc502dffa415f68838f29bf21535e340b07db527a65ba3d",
+      "python": "Python 3.11.15",
+      "packages": [
+        "numpy==2.4.6",
+        "ovphysx==0.5.11",
+        "ovstage==0.1.1.355824",
+        "packaging==23.2",
+        "pybullet==3.2.7",
+        "scipy==1.16.3"
+      ],
+      "load_before": [
+        0.4765625,
+        0.44970703125,
+        0.501953125
+      ],
+      "load_after": [
+        0.88037109375,
+        1.029296875,
+        0.83251953125
+      ],
+      "cases": [
+        {
+          "requested_workers": 2,
+          "returncode": 0,
+          "watchdog_expired": false,
+          "whole_process_wall_seconds": 148.06410634005442
+        },
+        {
+          "requested_workers": 0,
+          "returncode": 0,
+          "watchdog_expired": false,
+          "whole_process_wall_seconds": 129.81744958413765
+        },
+        {
+          "requested_workers": 1,
+          "returncode": 1,
+          "watchdog_expired": false,
+          "whole_process_wall_seconds": 196.71089616557583
+        }
+      ]
+    },
+    "run-repeat.json": {
+      "status": "passed",
+      "source_unchanged": true,
+      "source_archive_sha256": "167f831455a2e8601e23b54358cf2e18b4b10a463c4604c73dd847f2c9d56a51",
+      "runner_sha256": "61e46acacef140c6721cf3e89c57da071cd64a57b41be7944b4fa0446ed39b99",
+      "python": "Python 3.11.15",
+      "packages": [
+        "numpy==2.4.6",
+        "ovphysx==0.5.11",
+        "ovstage==0.1.1.355824",
+        "packaging==23.2",
+        "pybullet==3.2.7",
+        "scipy==1.16.3"
+      ],
+      "load_before": [
+        0.8876953125,
+        0.8740234375,
+        0.79736328125
+      ],
+      "load_after": [
+        1.5078125,
+        1.447265625,
+        1.0791015625
+      ],
+      "cases": [
+        {
+          "requested_workers": 0,
+          "returncode": 0,
+          "watchdog_expired": false,
+          "whole_process_wall_seconds": 135.85830390593037
+        },
+        {
+          "requested_workers": 2,
+          "returncode": 0,
+          "watchdog_expired": false,
+          "whole_process_wall_seconds": 140.94414518307894
+        }
+      ]
+    }
+  },
+  "inventory": {
+    "sphere": 0,
+    "plane": 0,
+    "capsule": 0,
+    "box": 61,
+    "convex_core": 4,
+    "convex_mesh": 4432,
+    "particle_system": 0,
+    "tetrahedron_mesh": 0,
+    "triangle_mesh": 17,
+    "heightfield": 0,
+    "custom": 0
+  },
+  "common_native_activity_timeline": [
+    {
+      "label": "prepared",
+      "mode_seconds": 0.0,
+      "tick": 1,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 0,
+        "regular_awake": 78,
+        "regular_awake_moving": 78,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "pin_cluster_3_east/pin",
+        "pin_cluster_3_north/pin",
+        "pin_cluster_2_south/pin",
+        "pin_cluster_2_east/pin",
+        "pin_cluster_2_north/pin",
+        "cup_wall_3_1_0/cup",
+        "pin_wall_3_1/pin",
+        "pin_wall_0_0/pin",
+        "pin_wall_1_1/pin",
+        "pin_wall_2_1/pin",
+        "cup_wall_0_0_0/cup",
+        "cup_wall_1_1_0/cup",
+        "cup_wall_2_1_0/cup",
+        "cup_wall_0_1_0/cup",
+        "cup_wall_1_0_0/cup",
+        "cup_wall_2_0_0/cup",
+        "pin_wall_0_1/pin",
+        "pin_wall_1_0/pin",
+        "pin_wall_2_0/pin",
+        "cup_diagonal_0/cup",
+        "cup_diagonal_1/cup",
+        "cup_diagonal_3/cup",
+        "cup_diagonal_2/cup",
+        "cup_wall_3_0_-1/cup",
+        "cup_wall_3_0_1/cup",
+        "cup_wall_3_1_1/cup",
+        "cup_wall_3_1_-1/cup",
+        "cup_wall_0_1_-1/cup",
+        "cup_wall_1_0_1/cup",
+        "cup_wall_2_0_1/cup",
+        "cup_wall_0_1_1/cup",
+        "cup_wall_1_0_-1/cup",
+        "cup_wall_2_0_-1/cup",
+        "cup_wall_0_0_1/cup",
+        "cup_wall_1_1_-1/cup",
+        "cup_wall_2_1_-1/cup",
+        "cup_wall_0_0_-1/cup",
+        "cup_wall_1_1_1/cup",
+        "cup_wall_2_1_1/cup",
+        "pin_diagonal_1/pin",
+        "pin_goal_4/pin",
+        "pin_goal_1/pin",
+        "pin_goal_3/pin",
+        "pin_diagonal_2/pin",
+        "pin_diagonal_3/pin",
+        "demo_preload/pin",
+        "pin_midfield_3/pin",
+        "cup_midfield_3/cup",
+        "cup_midfield_2/cup",
+        "pin_midfield_2/pin",
+        "pin_midfield_0/pin",
+        "pin_midfield_1/pin",
+        "cup_midfield_0/cup",
+        "cup_midfield_1/cup",
+        "pin_wall_3_0/pin",
+        "cup_wall_3_0_0/cup",
+        "pin_diagonal_0/pin",
+        "pin_goal_2/pin",
+        "pin_goal_0/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle",
+        "cup_cluster_0/cup",
+        "pin_cluster_0_south/pin",
+        "pin_cluster_0_west/pin",
+        "pin_cluster_0_north/pin",
+        "pin_cluster_0_east/pin",
+        "cup_cluster_1/cup",
+        "pin_cluster_1_south/pin",
+        "pin_cluster_1_west/pin",
+        "pin_cluster_1_north/pin",
+        "pin_cluster_1_east/pin",
+        "cup_cluster_3/cup",
+        "pin_cluster_3_west/pin",
+        "cup_cluster_2/cup",
+        "pin_cluster_2_west/pin",
+        "pin_cluster_3_south/pin"
+      ],
+      "sdk_active_regular_dynamic_bodies": 78,
+      "sdk_partial_contact_pair_buckets_total": 6696
+    },
+    {
+      "label": "initialization_complete",
+      "mode_seconds": 0.0,
+      "tick": 14,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 0,
+        "regular_awake": 78,
+        "regular_awake_moving": 78,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "pin_cluster_3_east/pin",
+        "pin_cluster_3_north/pin",
+        "pin_cluster_2_south/pin",
+        "pin_cluster_2_east/pin",
+        "pin_cluster_2_north/pin",
+        "cup_wall_3_1_0/cup",
+        "pin_wall_3_1/pin",
+        "pin_wall_0_0/pin",
+        "pin_wall_1_1/pin",
+        "pin_wall_2_1/pin",
+        "cup_wall_0_0_0/cup",
+        "cup_wall_1_1_0/cup",
+        "cup_wall_2_1_0/cup",
+        "cup_wall_0_1_0/cup",
+        "cup_wall_1_0_0/cup",
+        "cup_wall_2_0_0/cup",
+        "pin_wall_0_1/pin",
+        "pin_wall_1_0/pin",
+        "pin_wall_2_0/pin",
+        "cup_diagonal_0/cup",
+        "cup_diagonal_1/cup",
+        "cup_diagonal_3/cup",
+        "cup_diagonal_2/cup",
+        "cup_wall_3_0_-1/cup",
+        "cup_wall_3_0_1/cup",
+        "cup_wall_3_1_1/cup",
+        "cup_wall_3_1_-1/cup",
+        "cup_wall_0_1_-1/cup",
+        "cup_wall_1_0_1/cup",
+        "cup_wall_2_0_1/cup",
+        "cup_wall_0_1_1/cup",
+        "cup_wall_1_0_-1/cup",
+        "cup_wall_2_0_-1/cup",
+        "cup_wall_0_0_1/cup",
+        "cup_wall_1_1_-1/cup",
+        "cup_wall_2_1_-1/cup",
+        "cup_wall_0_0_-1/cup",
+        "cup_wall_1_1_1/cup",
+        "cup_wall_2_1_1/cup",
+        "pin_diagonal_1/pin",
+        "pin_goal_4/pin",
+        "pin_goal_1/pin",
+        "pin_goal_3/pin",
+        "pin_diagonal_2/pin",
+        "pin_diagonal_3/pin",
+        "demo_preload/pin",
+        "pin_midfield_3/pin",
+        "cup_midfield_3/cup",
+        "cup_midfield_2/cup",
+        "pin_midfield_2/pin",
+        "pin_midfield_0/pin",
+        "pin_midfield_1/pin",
+        "cup_midfield_0/cup",
+        "cup_midfield_1/cup",
+        "pin_wall_3_0/pin",
+        "cup_wall_3_0_0/cup",
+        "pin_diagonal_0/pin",
+        "pin_goal_2/pin",
+        "pin_goal_0/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle",
+        "cup_cluster_0/cup",
+        "pin_cluster_0_south/pin",
+        "pin_cluster_0_west/pin",
+        "pin_cluster_0_north/pin",
+        "pin_cluster_0_east/pin",
+        "cup_cluster_1/cup",
+        "pin_cluster_1_south/pin",
+        "pin_cluster_1_west/pin",
+        "pin_cluster_1_north/pin",
+        "pin_cluster_1_east/pin",
+        "cup_cluster_3/cup",
+        "pin_cluster_3_west/pin",
+        "cup_cluster_2/cup",
+        "pin_cluster_2_west/pin",
+        "pin_cluster_3_south/pin"
+      ],
+      "sdk_active_regular_dynamic_bodies": 78,
+      "sdk_partial_contact_pair_buckets_total": 6702
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 1.0,
+      "tick": 134,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 73,
+        "regular_awake": 5,
+        "regular_awake_moving": 5,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "demo_preload/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 5,
+      "sdk_partial_contact_pair_buckets_total": 20
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 2.0,
+      "tick": 254,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 73,
+        "regular_awake": 5,
+        "regular_awake_moving": 5,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "demo_preload/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 5,
+      "sdk_partial_contact_pair_buckets_total": 24
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 3.0,
+      "tick": 374,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 73,
+        "regular_awake": 5,
+        "regular_awake_moving": 5,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "demo_preload/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 5,
+      "sdk_partial_contact_pair_buckets_total": 12
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 4.0,
+      "tick": 494,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 73,
+        "regular_awake": 5,
+        "regular_awake_moving": 5,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "demo_preload/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 5,
+      "sdk_partial_contact_pair_buckets_total": 12
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 5.0,
+      "tick": 614,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 73,
+        "regular_awake": 5,
+        "regular_awake_moving": 5,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "demo_preload/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 5,
+      "sdk_partial_contact_pair_buckets_total": 12
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 6.0,
+      "tick": 734,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 73,
+        "regular_awake": 5,
+        "regular_awake_moving": 5,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "demo_preload/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 5,
+      "sdk_partial_contact_pair_buckets_total": 12
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 7.0,
+      "tick": 854,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 73,
+        "regular_awake": 5,
+        "regular_awake_moving": 5,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "demo_preload/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 5,
+      "sdk_partial_contact_pair_buckets_total": 12
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 8.0,
+      "tick": 974,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 69,
+        "regular_awake": 9,
+        "regular_awake_moving": 9,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "cup_wall_3_0_-1/cup",
+        "cup_wall_3_0_1/cup",
+        "demo_preload/pin",
+        "pin_wall_3_0/pin",
+        "cup_wall_3_0_0/cup",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 9,
+      "sdk_partial_contact_pair_buckets_total": 312
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 9.0,
+      "tick": 1094,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 73,
+        "regular_awake": 5,
+        "regular_awake_moving": 5,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "demo_preload/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 5,
+      "sdk_partial_contact_pair_buckets_total": 311
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 10.0,
+      "tick": 1214,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 73,
+        "regular_awake": 5,
+        "regular_awake_moving": 5,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "demo_preload/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 5,
+      "sdk_partial_contact_pair_buckets_total": 311
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 11.0,
+      "tick": 1334,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 73,
+        "regular_awake": 5,
+        "regular_awake_moving": 5,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "demo_preload/pin",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 5,
+      "sdk_partial_contact_pair_buckets_total": 311
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 12.0,
+      "tick": 1454,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 299
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 13.0,
+      "tick": 1574,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 299
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 14.0,
+      "tick": 1694,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 70,
+        "regular_awake": 8,
+        "regular_awake_moving": 8,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "cup_wall_3_0_-1/cup",
+        "cup_wall_3_0_1/cup",
+        "pin_wall_3_0/pin",
+        "cup_wall_3_0_0/cup",
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 8,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 15.0,
+      "tick": 1814,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 16.0,
+      "tick": 1934,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 17.0,
+      "tick": 2054,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 18.0,
+      "tick": 2174,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 19.0,
+      "tick": 2294,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 20.0,
+      "tick": 2414,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 21.0,
+      "tick": 2534,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 22.0,
+      "tick": 2654,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 23.0,
+      "tick": 2774,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 24.0,
+      "tick": 2894,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 25.0,
+      "tick": 3014,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 26.0,
+      "tick": 3134,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 27.0,
+      "tick": 3254,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 28.0,
+      "tick": 3374,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "periodic",
+      "mode_seconds": 29.0,
+      "tick": 3494,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    },
+    {
+      "label": "final",
+      "mode_seconds": 30.0,
+      "tick": 3614,
+      "counts": {
+        "static_actors": 68,
+        "regular_dynamic_actors": 78,
+        "regular_sleeping": 74,
+        "regular_awake": 4,
+        "regular_awake_moving": 4,
+        "regular_awake_zero_velocity": 0,
+        "articulations": 1,
+        "articulations_sleeping": 0,
+        "articulations_awake": 1,
+        "articulations_awake_moving": 1,
+        "articulations_awake_zero_velocity": 0,
+        "articulation_links": 10,
+        "articulation_links_sleeping": 0,
+        "articulation_links_awake": 10
+      },
+      "awake_regular_actors": [
+        "toggle_0/paddle",
+        "toggle_1/paddle",
+        "toggle_2/paddle",
+        "toggle_3/paddle"
+      ],
+      "sdk_active_regular_dynamic_bodies": 4,
+      "sdk_partial_contact_pair_buckets_total": 306
+    }
+  ],
+  "physical_comparison": {
+    "schema_version": 1,
+    "baseline": {
+      "name": "claw-100.json",
+      "json_sha256": "83aa9084b4b2163dd63911ce7b55f9a2b62fd432f79a4e7ceb9156a8b3670246",
+      "csv_sha256": "e472392b76cf2caca2e0d3222cbc739ff5d68fce785991f2d057336b2e308a4d",
+      "acceptance": {
+        "passed": true,
+        "checks": {
+          "reported_status_passed": true,
+          "full_native_claw_scope": true,
+          "request_matches_100_iteration_120_hz_claw": true,
+          "live_gpu_100_iterations": true,
+          "competition_completed": true,
+          "all_ticks_recorded": true,
+          "mode_clock_completed": true,
+          "reported_lift_above_150mm": true,
+          "csv_lift_above_150mm": true,
+          "height_evidence_matches_csv": true,
+          "retained_in_intended_goal": true,
+          "released_robot_contact": true,
+          "native_completion_logged": true,
+          "no_native_timeout": true,
+          "finally_disabled": true,
+          "native_source_unchanged": true
+        },
+        "reported_lift_m": 0.19990865141153336,
+        "csv_lift_m": 0.19990865141153336,
+        "first_observed_goal_placement_mode_s": 11.316666666666666,
+        "final_unbroken_goal_presence_from_mode_s": 11.316666666666666,
+        "final_mode_s": 30.0
+      }
+    },
+    "cases": [
+      {
+        "name": "claw-threads-2.json",
+        "json_sha256": "e24a128bff987dc12102c3652e547cc25095a8192b409ebfdcdae6705f90d246",
+        "csv_sha256": "ef83371262ef7adfcf2a3f023314cadf18c71762e7275b0f2f0b2b6457ef057f",
+        "acceptance": {
+          "passed": true,
+          "checks": {
+            "reported_status_passed": true,
+            "full_native_claw_scope": true,
+            "request_matches_100_iteration_120_hz_claw": true,
+            "live_gpu_100_iterations": true,
+            "competition_completed": true,
+            "all_ticks_recorded": true,
+            "mode_clock_completed": true,
+            "reported_lift_above_150mm": true,
+            "csv_lift_above_150mm": true,
+            "height_evidence_matches_csv": true,
+            "retained_in_intended_goal": true,
+            "released_robot_contact": true,
+            "native_completion_logged": true,
+            "no_native_timeout": true,
+            "finally_disabled": true,
+            "native_source_unchanged": true
+          },
+          "reported_lift_m": 0.19990865141153336,
+          "csv_lift_m": 0.19990865141153336,
+          "first_observed_goal_placement_mode_s": 11.316666666666666,
+          "final_unbroken_goal_presence_from_mode_s": 11.316666666666666,
+          "final_mode_s": 30.0
+        },
+        "requested_cpu_workers": 2,
+        "observed_cpu_worker_counts": [
+          2
+        ],
+        "configuration_identical_after_source_root_relocation": true,
+        "native_source_hashes_identical": true,
+        "controller_physical_inputs_identical": true,
+        "controller_source_unchanged": true,
+        "trajectory": {
+          "exactly_identical_except_step_wall_seconds": true,
+          "baseline_rows": 3613,
+          "case_rows": 3613,
+          "baseline_only_ticks": [],
+          "case_only_ticks": [],
+          "changed_row_counts_by_column": {},
+          "first_difference": null,
+          "maximum_robot_position_distance_m": 0.0,
+          "maximum_wrapped_robot_yaw_difference_rad": 0.0,
+          "maximum_absolute_numeric_leaf_differences": {}
+        },
+        "final_field": {
+          "exactly_identical": true,
+          "baseline_objects": 132,
+          "case_objects": 132,
+          "changed_objects": [],
+          "missing_objects": [],
+          "extra_objects": [],
+          "maximum_position_distance_m": 0.0,
+          "numeric_leaf_differences": {}
+        },
+        "preload_evidence_exactly_identical": true
+      },
+      {
+        "name": "claw-threads-0.json",
+        "json_sha256": "e64ce7345d13ef73e7e4f41f167002a450e2313077dbd3ddaa6f752e34148361",
+        "csv_sha256": "3069ff4081953d70dd61febeed5403024f89a6f5f5c0b9a5bd98f5f8d76e44f9",
+        "acceptance": {
+          "passed": true,
+          "checks": {
+            "reported_status_passed": true,
+            "full_native_claw_scope": true,
+            "request_matches_100_iteration_120_hz_claw": true,
+            "live_gpu_100_iterations": true,
+            "competition_completed": true,
+            "all_ticks_recorded": true,
+            "mode_clock_completed": true,
+            "reported_lift_above_150mm": true,
+            "csv_lift_above_150mm": true,
+            "height_evidence_matches_csv": true,
+            "retained_in_intended_goal": true,
+            "released_robot_contact": true,
+            "native_completion_logged": true,
+            "no_native_timeout": true,
+            "finally_disabled": true,
+            "native_source_unchanged": true
+          },
+          "reported_lift_m": 0.19990865141153336,
+          "csv_lift_m": 0.19990865141153336,
+          "first_observed_goal_placement_mode_s": 11.316666666666666,
+          "final_unbroken_goal_presence_from_mode_s": 11.316666666666666,
+          "final_mode_s": 30.0
+        },
+        "requested_cpu_workers": 0,
+        "observed_cpu_worker_counts": [
+          0
+        ],
+        "configuration_identical_after_source_root_relocation": true,
+        "native_source_hashes_identical": true,
+        "controller_physical_inputs_identical": true,
+        "controller_source_unchanged": true,
+        "trajectory": {
+          "exactly_identical_except_step_wall_seconds": true,
+          "baseline_rows": 3613,
+          "case_rows": 3613,
+          "baseline_only_ticks": [],
+          "case_only_ticks": [],
+          "changed_row_counts_by_column": {},
+          "first_difference": null,
+          "maximum_robot_position_distance_m": 0.0,
+          "maximum_wrapped_robot_yaw_difference_rad": 0.0,
+          "maximum_absolute_numeric_leaf_differences": {}
+        },
+        "final_field": {
+          "exactly_identical": true,
+          "baseline_objects": 132,
+          "case_objects": 132,
+          "changed_objects": [],
+          "missing_objects": [],
+          "extra_objects": [],
+          "maximum_position_distance_m": 0.0,
+          "numeric_leaf_differences": {}
+        },
+        "preload_evidence_exactly_identical": true
+      },
+      {
+        "name": "repeat-claw-threads-0.json",
+        "json_sha256": "6325bf2536851ea2085e811f3b48f76e6b6f737a36aab5d66bbaf8348f219a6e",
+        "csv_sha256": "32f9bb04a3e5f8ecb51e3fcb1c87d69611f53cfc4baa09ef171a1fb45a57262b",
+        "acceptance": {
+          "passed": true,
+          "checks": {
+            "reported_status_passed": true,
+            "full_native_claw_scope": true,
+            "request_matches_100_iteration_120_hz_claw": true,
+            "live_gpu_100_iterations": true,
+            "competition_completed": true,
+            "all_ticks_recorded": true,
+            "mode_clock_completed": true,
+            "reported_lift_above_150mm": true,
+            "csv_lift_above_150mm": true,
+            "height_evidence_matches_csv": true,
+            "retained_in_intended_goal": true,
+            "released_robot_contact": true,
+            "native_completion_logged": true,
+            "no_native_timeout": true,
+            "finally_disabled": true,
+            "native_source_unchanged": true
+          },
+          "reported_lift_m": 0.19990865141153336,
+          "csv_lift_m": 0.19990865141153336,
+          "first_observed_goal_placement_mode_s": 11.316666666666666,
+          "final_unbroken_goal_presence_from_mode_s": 11.316666666666666,
+          "final_mode_s": 30.0
+        },
+        "requested_cpu_workers": 0,
+        "observed_cpu_worker_counts": [
+          0
+        ],
+        "configuration_identical_after_source_root_relocation": true,
+        "native_source_hashes_identical": true,
+        "controller_physical_inputs_identical": true,
+        "controller_source_unchanged": true,
+        "trajectory": {
+          "exactly_identical_except_step_wall_seconds": true,
+          "baseline_rows": 3613,
+          "case_rows": 3613,
+          "baseline_only_ticks": [],
+          "case_only_ticks": [],
+          "changed_row_counts_by_column": {},
+          "first_difference": null,
+          "maximum_robot_position_distance_m": 0.0,
+          "maximum_wrapped_robot_yaw_difference_rad": 0.0,
+          "maximum_absolute_numeric_leaf_differences": {}
+        },
+        "final_field": {
+          "exactly_identical": true,
+          "baseline_objects": 132,
+          "case_objects": 132,
+          "changed_objects": [],
+          "missing_objects": [],
+          "extra_objects": [],
+          "maximum_position_distance_m": 0.0,
+          "numeric_leaf_differences": {}
+        },
+        "preload_evidence_exactly_identical": true
+      },
+      {
+        "name": "repeat-claw-threads-2.json",
+        "json_sha256": "597a6f3f042a56d95ef26ecd01290182e5f96bd3b7f36d5285c7f7040c320d68",
+        "csv_sha256": "2ef7b8da2212ae2379916d7bcf390d3bf2e880a0f7e265b467e79219fc683123",
+        "acceptance": {
+          "passed": true,
+          "checks": {
+            "reported_status_passed": true,
+            "full_native_claw_scope": true,
+            "request_matches_100_iteration_120_hz_claw": true,
+            "live_gpu_100_iterations": true,
+            "competition_completed": true,
+            "all_ticks_recorded": true,
+            "mode_clock_completed": true,
+            "reported_lift_above_150mm": true,
+            "csv_lift_above_150mm": true,
+            "height_evidence_matches_csv": true,
+            "retained_in_intended_goal": true,
+            "released_robot_contact": true,
+            "native_completion_logged": true,
+            "no_native_timeout": true,
+            "finally_disabled": true,
+            "native_source_unchanged": true
+          },
+          "reported_lift_m": 0.19990865141153336,
+          "csv_lift_m": 0.19990865141153336,
+          "first_observed_goal_placement_mode_s": 11.316666666666666,
+          "final_unbroken_goal_presence_from_mode_s": 11.316666666666666,
+          "final_mode_s": 30.0
+        },
+        "requested_cpu_workers": 2,
+        "observed_cpu_worker_counts": [
+          2
+        ],
+        "configuration_identical_after_source_root_relocation": true,
+        "native_source_hashes_identical": true,
+        "controller_physical_inputs_identical": true,
+        "controller_source_unchanged": true,
+        "trajectory": {
+          "exactly_identical_except_step_wall_seconds": true,
+          "baseline_rows": 3613,
+          "case_rows": 3613,
+          "baseline_only_ticks": [],
+          "case_only_ticks": [],
+          "changed_row_counts_by_column": {},
+          "first_difference": null,
+          "maximum_robot_position_distance_m": 0.0,
+          "maximum_wrapped_robot_yaw_difference_rad": 0.0,
+          "maximum_absolute_numeric_leaf_differences": {}
+        },
+        "final_field": {
+          "exactly_identical": true,
+          "baseline_objects": 132,
+          "case_objects": 132,
+          "changed_objects": [],
+          "missing_objects": [],
+          "extra_objects": [],
+          "maximum_position_distance_m": 0.0,
+          "numeric_leaf_differences": {}
+        },
+        "preload_evidence_exactly_identical": true
+      }
+    ],
+    "notes": [
+      "Exact CSV comparison excludes only step_wall_seconds; JSON text, row order and all physical columns are retained.",
+      "Numerical difference summaries compare common tick IDs; missing/extra ticks are explicitly reported.",
+      "Outcome acceptance does not establish general physical accuracy or unchanged behavior in other fixtures.",
+      "Final field equality compares every recorded object field, including velocities; state before final fetch is not reconstructed.",
+      "Only known source asset/example roots are relocated when comparing configurations; controller hashes establish file identity.",
+      "Four completed runs passed; the 1-worker case failed at startup and is not counted as an accepted physical run."
+    ],
+    "all_outcomes_passed": true,
+    "all_physical_trajectories_and_final_fields_identical": true,
+    "archive_verification": {
+      "sha256": "cdefa0e81cc84c516a5efe891ecdc320f87adef37e7a2ad56fc16c8be44c4d39",
+      "member_files_rehashed": 23,
+      "all_member_hashes_match": true
+    },
+    "excluded_startup_failures": [
+      {
+        "name": "claw-threads-1.json",
+        "json_sha256": "72e61d69d793f963ac7148c304e3908faf1914cfed4f39ab1be979c05308f8ec",
+        "csv_sha256": "6264628dc22fcf92d51b9f147d8ffb85cd425817672ca39912dc86b80faa396b",
+        "status": "failed",
+        "reason": "PhysX worker timed out during session construction",
+        "total_steps": 0,
+        "csv_physical_rows": 0,
+        "native_activity_samples": 0,
+        "physical_outcome": "Not measured; excluded from completed-run equality and acceptance checks"
+      }
+    ]
+  },
+  "evidence": {
+    "archive_sha256": "cdefa0e81cc84c516a5efe891ecdc320f87adef37e7a2ad56fc16c8be44c4d39",
+    "archive_bytes": 7019144,
+    "files": {
+      "results/claw-threads-0-console.log": "099b886df2c1c4d6985c3d72dfe14199dbdff8ebfda4d3025fd70788a19b83c4",
+      "results/claw-threads-0.csv": "3069ff4081953d70dd61febeed5403024f89a6f5f5c0b9a5bd98f5f8d76e44f9",
+      "results/claw-threads-0.json": "e64ce7345d13ef73e7e4f41f167002a450e2313077dbd3ddaa6f752e34148361",
+      "results/claw-threads-0.log": "3b004b51ccdf170389ad390c5a0afa595da519583f3c23ac6082832837b4a55c",
+      "results/claw-threads-1-console.log": "5570e28be929cc97169d1178922225115a622dac06b1028bcf1fbf670b28018d",
+      "results/claw-threads-1-physics.log": "df6712d74372d1853a7cdc2634f93407e2480d2992d2c002e652061623b6e6f8",
+      "results/claw-threads-1.csv": "6264628dc22fcf92d51b9f147d8ffb85cd425817672ca39912dc86b80faa396b",
+      "results/claw-threads-1.json": "72e61d69d793f963ac7148c304e3908faf1914cfed4f39ab1be979c05308f8ec",
+      "results/claw-threads-1.log": "d7c8e7f4266c07ce23a50952fa5db6c97116e64bdeabae89d26e5e2ec0b71a5d",
+      "results/claw-threads-2-console.log": "a743fe33991c9603b3e0b20245bfc69018a91645cfd893c4c4535d9ae4745331",
+      "results/claw-threads-2.csv": "ef83371262ef7adfcf2a3f023314cadf18c71762e7275b0f2f0b2b6457ef057f",
+      "results/claw-threads-2.json": "e24a128bff987dc12102c3652e547cc25095a8192b409ebfdcdae6705f90d246",
+      "results/claw-threads-2.log": "ac80348c1cad50c27ccd802cc43e363d1b511646d73abeac3f79160cc825997c",
+      "results/repeat-claw-threads-0-console.log": "05c7da2ee0f3f024f2645f6970ebe6ec16ab812d29527540c61640e2195beee8",
+      "results/repeat-claw-threads-0.csv": "32f9bb04a3e5f8ecb51e3fcb1c87d69611f53cfc4baa09ef171a1fb45a57262b",
+      "results/repeat-claw-threads-0.json": "6325bf2536851ea2085e811f3b48f76e6b6f737a36aab5d66bbaf8348f219a6e",
+      "results/repeat-claw-threads-0.log": "3b004b51ccdf170389ad390c5a0afa595da519583f3c23ac6082832837b4a55c",
+      "results/repeat-claw-threads-2-console.log": "f415c7c073536b97a9e2b39dd787894b1551160bd6ba69ee16fb3351605dbd8f",
+      "results/repeat-claw-threads-2.csv": "2ef7b8da2212ae2379916d7bcf390d3bf2e880a0f7e265b467e79219fc683123",
+      "results/repeat-claw-threads-2.json": "597a6f3f042a56d95ef26ecd01290182e5f96bd3b7f36d5285c7f7040c320d68",
+      "results/repeat-claw-threads-2.log": "3b004b51ccdf170389ad390c5a0afa595da519583f3c23ac6082832837b4a55c",
+      "results/run-repeat.json": "8cddac286dea465af1a1f67a5feef78239371141eec0ed8aa395c02db52de060",
+      "results/run.json": "66f92ba8c64561ce90bf5f7994cd91f6790b6436c2e1b9547abd3d7fdefe766a"
+    },
+    "preliminary_copies_identical": true
+  },
+  "cleanup": {
+    "absence_verified": true,
+    "owned_processes": 0,
+    "evidence_sha256": "cdefa0e81cc84c516a5efe891ecdc320f87adef37e7a2ad56fc16c8be44c4d39",
+    "source_assets_environment_caches_removed": true,
+    "gpu_after_memory_mib": 5,
+    "gpu_after_utilization_percent": 0
+  },
+  "validation": {
+    "focused_tests_passed": 123,
+    "windows_native_helper_compile_and_abi": "passed",
+    "linux_live_native_helper": "passed",
+    "laptop_simulation_or_gui_started": false
+  },
+  "limits": [
+    "One shared Linux server, one fixture, two successful comparisons; no cross-hardware speed guarantee.",
+    "One-worker startup failure has no measured effective worker count or throughput.",
+    "Native step includes CPU work, GPU work and synchronization; no kernel trace was captured.",
+    "Nested stage times overlap. Periodic queries are excluded from timed steps and explicitly timed.",
+    "GPU with-contact/cache-hit/axis-constraint statistics are unpopulated; geometry buckets are incomplete and coarsely classified.",
+    "This does not validate official scoring or calibration against a physical robot."
+  ]
+}
