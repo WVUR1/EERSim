@@ -23,7 +23,8 @@ without administrator privileges; a desktop shortcut is optional. This private
 build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
 Version 0.1.4 reduces repeated CPU work in contact conversion, force transforms,
 and scoring observations while retaining the same physics settings and field
-geometry. The release notes contain its matched A100 results and artifact checks.
+geometry. The [matched A100 results and artifact checks](docs/diagnostics-a100-0.1.4.md)
+record a 4.98% step-throughput gain and the remaining validation limits.
 The integrated backend completed the full PROS claw routine on a Linux A100;
 Windows packaging, CPU execution, and fallback were checked headlessly. A supplied
 RTX 4070 Ti capture also verifies Windows CUDA physics and GPU rendering. A

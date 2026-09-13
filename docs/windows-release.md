@@ -8,8 +8,8 @@ Conda, PROS tooling, a separate compiler, or WSL installed.
 Version 0.1.4 includes contact conversion and per-state force-transform reuse,
 plus scoring/observation calculation reuse. Solver iterations, field collision
 geometry, motor equations and sensor sampling cadence retain their defaults.
-The release notes record the matched A100 performance/placement checks and
-Windows artifact validation for this build.
+The [0.1.4 validation report](diagnostics-a100-0.1.4.md) records the matched
+A100 performance/placement checks and Windows artifact validation for this build.
 
 Previous releases passed headless native compilation, Bullet/PhysX CPU,
 automatic fallback and explicit missing-CUDA checks. The supplied RTX 4070 Ti

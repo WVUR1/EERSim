@@ -1,0 +1,969 @@
+{
+  "schema_version": 1,
+  "chronological_order": [
+    "before-1",
+    "after-1",
+    "after-2",
+    "before-2"
+  ],
+  "cases": [
+    {
+      "name": "before-1",
+      "checks": {
+        "independent_claw_acceptance": true,
+        "benchmark_checks": true,
+        "controller_succeeded": true,
+        "controller_variant": true,
+        "controller_gpu_two_workers": true,
+        "native_two_workers": true,
+        "native_gpu_flags_11": true,
+        "complete_samples_and_ticks": true,
+        "shape_count_4514": true,
+        "shape_inventory_unchanged": true,
+        "source_unchanged_within_run": true,
+        "asset_native_example_inputs_identical": true,
+        "config_identical_after_source_relocation": true,
+        "same_python_packages": true,
+        "same_controller_source": true
+      },
+      "passed": true,
+      "acceptance": {
+        "passed": true,
+        "checks": {
+          "reported_status_passed": true,
+          "full_native_claw_scope": true,
+          "request_matches_100_iteration_120_hz_claw": true,
+          "live_gpu_100_iterations": true,
+          "competition_completed": true,
+          "all_ticks_recorded": true,
+          "mode_clock_completed": true,
+          "reported_lift_above_150mm": true,
+          "csv_lift_above_150mm": true,
+          "height_evidence_matches_csv": true,
+          "retained_in_intended_goal": true,
+          "released_robot_contact": true,
+          "native_completion_logged": true,
+          "no_native_timeout": true,
+          "finally_disabled": true,
+          "native_source_unchanged": true
+        },
+        "reported_lift_m": 0.19990865141153336,
+        "csv_lift_m": 0.19990865141153336,
+        "first_observed_goal_placement_mode_s": 11.316666666666666,
+        "final_unbroken_goal_presence_from_mode_s": 11.316666666666666,
+        "final_mode_s": 30.0
+      },
+      "step_realtime_factor": 0.2910937093087269,
+      "loop_realtime_factor": 0.27186901838021504,
+      "loop_realtime_factor_excluding_diagnostics": 0.28065951560571617,
+      "competition_step_wall_seconds": 103.05959572689608,
+      "loop_diagnostics_wall_seconds": 3.4686514870263636,
+      "competition_mean_step_ms": 28.627665479693356,
+      "competition_costs": {
+        "worker.native.step": {
+          "calls": 3600,
+          "total_seconds": 69.12966010799987,
+          "mean_ms": 19.202683363333296
+        },
+        "worker.control.write": {
+          "calls": 3600,
+          "total_seconds": 1.3595459899999995,
+          "mean_ms": 0.37765166388888877
+        },
+        "worker.state.read": {
+          "calls": 3600,
+          "total_seconds": 0.4964107800000012,
+          "mean_ms": 0.1378918833333337
+        },
+        "worker.contacts.read_convert": {
+          "calls": 3600,
+          "total_seconds": 8.969425505000018,
+          "mean_ms": 2.491507084722227
+        },
+        "worker.contacts.binding_read": {
+          "calls": 3600,
+          "total_seconds": 1.321606196999999,
+          "mean_ms": 0.3671128324999997
+        },
+        "worker.contacts.payload_validation": {
+          "calls": 3600,
+          "total_seconds": 0.6883737240000025,
+          "mean_ms": 0.19121492333333404
+        },
+        "worker.contacts.id_resolution": {
+          "calls": 3600,
+          "total_seconds": 0.3016514520000001,
+          "mean_ms": 0.08379207000000004
+        },
+        "worker.contacts.pair_selection": {
+          "calls": 3600,
+          "total_seconds": 1.6077692839999986,
+          "mean_ms": 0.4466025788888885
+        },
+        "worker.contacts.robot_materialization": {
+          "calls": 3600,
+          "total_seconds": 3.793346794999997,
+          "mean_ms": 1.0537074430555549
+        },
+        "worker.contacts.pair_retention": {
+          "calls": 3600,
+          "total_seconds": 0.7754098309999995,
+          "mean_ms": 0.21539161972222207
+        },
+        "world.control.tires": {
+          "calls": 3600,
+          "total_seconds": 6.809131787000004,
+          "mean_ms": 1.89142549638889
+        },
+        "world.sensors": {
+          "calls": 3600,
+          "total_seconds": 5.239572091999999,
+          "mean_ms": 1.4554366922222217
+        },
+        "session.native.roundtrip": {
+          "calls": 3600,
+          "total_seconds": 1.5175787149999989,
+          "mean_ms": 0.42154964305555526
+        }
+      },
+      "actual_worker_counts": [
+        2
+      ],
+      "native_gpu_flags": [
+        11
+      ],
+      "source_archive_sha256": "020db3a7f4aba7c45232d969fee461f15e279d8f2e50ac8eaaa50009c746b63f",
+      "source_hash_dictionary_sha256": "d25e182bc8c7d2c6f1cc4ae1a11fd1984e8b1d5d584cd2c74eeee0e13836e9ef",
+      "physical_input_dictionary_sha256": "58f3454950634312c987b18bf3d06d1edddb9a3d6980570364eb90104bbda461",
+      "runner_sha256": "bb8bbb63219b83b85562d5a04d4d7642fd2b94b46fb4daa853f2bfccb7749fc2",
+      "shape_counts": {
+        "sphere": 0,
+        "plane": 0,
+        "capsule": 0,
+        "box": 61,
+        "convex_core": 4,
+        "convex_mesh": 4432,
+        "particle_system": 0,
+        "tetrahedron_mesh": 0,
+        "triangle_mesh": 17,
+        "heightfield": 0,
+        "custom": 0
+      },
+      "load_before": [
+        1.01904296875,
+        0.580078125,
+        0.6396484375
+      ],
+      "load_after": [
+        1.9345703125,
+        1.6787109375,
+        1.0888671875
+      ],
+      "native_share_of_step_percent": 67.07736394696403
+    },
+    {
+      "name": "after-1",
+      "checks": {
+        "independent_claw_acceptance": true,
+        "benchmark_checks": true,
+        "controller_succeeded": true,
+        "controller_variant": true,
+        "controller_gpu_two_workers": true,
+        "native_two_workers": true,
+        "native_gpu_flags_11": true,
+        "complete_samples_and_ticks": true,
+        "shape_count_4514": true,
+        "shape_inventory_unchanged": true,
+        "source_unchanged_within_run": true,
+        "asset_native_example_inputs_identical": true,
+        "config_identical_after_source_relocation": true,
+        "same_python_packages": true,
+        "same_controller_source": true
+      },
+      "passed": true,
+      "acceptance": {
+        "passed": true,
+        "checks": {
+          "reported_status_passed": true,
+          "full_native_claw_scope": true,
+          "request_matches_100_iteration_120_hz_claw": true,
+          "live_gpu_100_iterations": true,
+          "competition_completed": true,
+          "all_ticks_recorded": true,
+          "mode_clock_completed": true,
+          "reported_lift_above_150mm": true,
+          "csv_lift_above_150mm": true,
+          "height_evidence_matches_csv": true,
+          "retained_in_intended_goal": true,
+          "released_robot_contact": true,
+          "native_completion_logged": true,
+          "no_native_timeout": true,
+          "finally_disabled": true,
+          "native_source_unchanged": true
+        },
+        "reported_lift_m": 0.19990865141153336,
+        "csv_lift_m": 0.19990865141153336,
+        "first_observed_goal_placement_mode_s": 11.316666666666666,
+        "final_unbroken_goal_presence_from_mode_s": 11.316666666666666,
+        "final_mode_s": 30.0
+      },
+      "step_realtime_factor": 0.3087629070509879,
+      "loop_realtime_factor": 0.2877429723908627,
+      "loop_realtime_factor_excluding_diagnostics": 0.2975635106690331,
+      "competition_step_wall_seconds": 97.16193012474105,
+      "loop_diagnostics_wall_seconds": 3.4533262415789068,
+      "competition_mean_step_ms": 26.98942503465029,
+      "competition_costs": {
+        "worker.native.step": {
+          "calls": 3600,
+          "total_seconds": 69.10386663400006,
+          "mean_ms": 19.195518509444458
+        },
+        "worker.control.write": {
+          "calls": 3600,
+          "total_seconds": 1.4005092929999992,
+          "mean_ms": 0.38903035916666645
+        },
+        "worker.state.read": {
+          "calls": 3600,
+          "total_seconds": 0.5220589890000003,
+          "mean_ms": 0.1450163858333334
+        },
+        "worker.contacts.read_convert": {
+          "calls": 3600,
+          "total_seconds": 4.811425390999989,
+          "mean_ms": 1.3365070530555525
+        },
+        "worker.contacts.binding_read": {
+          "calls": 3600,
+          "total_seconds": 1.358768936,
+          "mean_ms": 0.37743581555555555
+        },
+        "worker.contacts.payload_validation": {
+          "calls": 3600,
+          "total_seconds": 0.7102895249999985,
+          "mean_ms": 0.19730264583333293
+        },
+        "worker.contacts.id_resolution": {
+          "calls": 3600,
+          "total_seconds": 0.31234951699999824,
+          "mean_ms": 0.08676375472222173
+        },
+        "worker.contacts.pair_selection": {
+          "calls": 3600,
+          "total_seconds": 0.40085252799999943,
+          "mean_ms": 0.11134792444444429
+        },
+        "worker.contacts.robot_materialization": {
+          "calls": 3600,
+          "total_seconds": 0.8928652559999994,
+          "mean_ms": 0.24801812666666653
+        },
+        "worker.contacts.pair_retention": {
+          "calls": 3600,
+          "total_seconds": 0.7362041809999981,
+          "mean_ms": 0.20450116138888833
+        },
+        "world.control.tires": {
+          "calls": 3600,
+          "total_seconds": 6.49696617899999,
+          "mean_ms": 1.8047128274999973
+        },
+        "world.sensors": {
+          "calls": 3600,
+          "total_seconds": 3.571503543000001,
+          "mean_ms": 0.9920843175000001
+        },
+        "session.native.roundtrip": {
+          "calls": 3600,
+          "total_seconds": 1.5328433250000024,
+          "mean_ms": 0.42578981250000064
+        }
+      },
+      "actual_worker_counts": [
+        2
+      ],
+      "native_gpu_flags": [
+        11
+      ],
+      "source_archive_sha256": "ee4ec8a7e997af4e1cf92392a29d7737ac5cad4c9d73e209814b54a0245deeec",
+      "source_hash_dictionary_sha256": "7f232c34c15b3288433ed0ecc012d67495eb827591ce70818e976c2ec0d813c8",
+      "physical_input_dictionary_sha256": "58f3454950634312c987b18bf3d06d1edddb9a3d6980570364eb90104bbda461",
+      "runner_sha256": "bb8bbb63219b83b85562d5a04d4d7642fd2b94b46fb4daa853f2bfccb7749fc2",
+      "shape_counts": {
+        "sphere": 0,
+        "plane": 0,
+        "capsule": 0,
+        "box": 61,
+        "convex_core": 4,
+        "convex_mesh": 4432,
+        "particle_system": 0,
+        "tetrahedron_mesh": 0,
+        "triangle_mesh": 17,
+        "heightfield": 0,
+        "custom": 0
+      },
+      "load_before": [
+        0.46630859375,
+        0.8115234375,
+        0.87109375
+      ],
+      "load_after": [
+        1.6025390625,
+        1.12158203125,
+        0.98291015625
+      ],
+      "native_share_of_step_percent": 71.12236916792541
+    },
+    {
+      "name": "after-2",
+      "checks": {
+        "independent_claw_acceptance": true,
+        "benchmark_checks": true,
+        "controller_succeeded": true,
+        "controller_variant": true,
+        "controller_gpu_two_workers": true,
+        "native_two_workers": true,
+        "native_gpu_flags_11": true,
+        "complete_samples_and_ticks": true,
+        "shape_count_4514": true,
+        "shape_inventory_unchanged": true,
+        "source_unchanged_within_run": true,
+        "asset_native_example_inputs_identical": true,
+        "config_identical_after_source_relocation": true,
+        "same_python_packages": true,
+        "same_controller_source": true
+      },
+      "passed": true,
+      "acceptance": {
+        "passed": true,
+        "checks": {
+          "reported_status_passed": true,
+          "full_native_claw_scope": true,
+          "request_matches_100_iteration_120_hz_claw": true,
+          "live_gpu_100_iterations": true,
+          "competition_completed": true,
+          "all_ticks_recorded": true,
+          "mode_clock_completed": true,
+          "reported_lift_above_150mm": true,
+          "csv_lift_above_150mm": true,
+          "height_evidence_matches_csv": true,
+          "retained_in_intended_goal": true,
+          "released_robot_contact": true,
+          "native_completion_logged": true,
+          "no_native_timeout": true,
+          "finally_disabled": true,
+          "native_source_unchanged": true
+        },
+        "reported_lift_m": 0.19990865141153336,
+        "csv_lift_m": 0.19990865141153336,
+        "first_observed_goal_placement_mode_s": 11.316666666666666,
+        "final_unbroken_goal_presence_from_mode_s": 11.316666666666666,
+        "final_mode_s": 30.0
+      },
+      "step_realtime_factor": 0.3019912217947202,
+      "loop_realtime_factor": 0.2811726443250002,
+      "loop_realtime_factor_excluding_diagnostics": 0.290836900377336,
+      "competition_step_wall_seconds": 99.34063586918637,
+      "loop_diagnostics_wall_seconds": 3.5582181508652866,
+      "competition_mean_step_ms": 27.59462107477399,
+      "competition_costs": {
+        "worker.native.step": {
+          "calls": 3600,
+          "total_seconds": 70.08037882099993,
+          "mean_ms": 19.4667718947222
+        },
+        "worker.control.write": {
+          "calls": 3600,
+          "total_seconds": 1.41994198,
+          "mean_ms": 0.39442832777777775
+        },
+        "worker.state.read": {
+          "calls": 3600,
+          "total_seconds": 0.5464609839999994,
+          "mean_ms": 0.15179471777777762
+        },
+        "worker.contacts.read_convert": {
+          "calls": 3600,
+          "total_seconds": 5.476461009000014,
+          "mean_ms": 1.5212391691666705
+        },
+        "worker.contacts.binding_read": {
+          "calls": 3600,
+          "total_seconds": 1.9348555029999992,
+          "mean_ms": 0.5374598619444442
+        },
+        "worker.contacts.payload_validation": {
+          "calls": 3600,
+          "total_seconds": 0.7251857839999966,
+          "mean_ms": 0.2014404955555546
+        },
+        "worker.contacts.id_resolution": {
+          "calls": 3600,
+          "total_seconds": 0.321169925000001,
+          "mean_ms": 0.08921386805555584
+        },
+        "worker.contacts.pair_selection": {
+          "calls": 3600,
+          "total_seconds": 0.4002500889999998,
+          "mean_ms": 0.11118058027777773
+        },
+        "worker.contacts.robot_materialization": {
+          "calls": 3600,
+          "total_seconds": 0.9276742319999989,
+          "mean_ms": 0.25768728666666635
+        },
+        "worker.contacts.pair_retention": {
+          "calls": 3600,
+          "total_seconds": 0.7500786430000017,
+          "mean_ms": 0.2083551786111116
+        },
+        "world.control.tires": {
+          "calls": 3600,
+          "total_seconds": 6.507855016999997,
+          "mean_ms": 1.8077375047222215
+        },
+        "world.sensors": {
+          "calls": 3600,
+          "total_seconds": 3.688536715000006,
+          "mean_ms": 1.0245935319444461
+        },
+        "session.native.roundtrip": {
+          "calls": 3600,
+          "total_seconds": 1.5654319249999993,
+          "mean_ms": 0.4348422013888887
+        }
+      },
+      "actual_worker_counts": [
+        2
+      ],
+      "native_gpu_flags": [
+        11
+      ],
+      "source_archive_sha256": "ee4ec8a7e997af4e1cf92392a29d7737ac5cad4c9d73e209814b54a0245deeec",
+      "source_hash_dictionary_sha256": "7f232c34c15b3288433ed0ecc012d67495eb827591ce70818e976c2ec0d813c8",
+      "physical_input_dictionary_sha256": "58f3454950634312c987b18bf3d06d1edddb9a3d6980570364eb90104bbda461",
+      "runner_sha256": "bb8bbb63219b83b85562d5a04d4d7642fd2b94b46fb4daa853f2bfccb7749fc2",
+      "shape_counts": {
+        "sphere": 0,
+        "plane": 0,
+        "capsule": 0,
+        "box": 61,
+        "convex_core": 4,
+        "convex_mesh": 4432,
+        "particle_system": 0,
+        "tetrahedron_mesh": 0,
+        "triangle_mesh": 17,
+        "heightfield": 0,
+        "custom": 0
+      },
+      "load_before": [
+        1.14013671875,
+        1.04443359375,
+        0.96337890625
+      ],
+      "load_after": [
+        1.72900390625,
+        1.25537109375,
+        1.056640625
+      ],
+      "native_share_of_step_percent": 70.54553074663534
+    },
+    {
+      "name": "before-2",
+      "checks": {
+        "independent_claw_acceptance": true,
+        "benchmark_checks": true,
+        "controller_succeeded": true,
+        "controller_variant": true,
+        "controller_gpu_two_workers": true,
+        "native_two_workers": true,
+        "native_gpu_flags_11": true,
+        "complete_samples_and_ticks": true,
+        "shape_count_4514": true,
+        "shape_inventory_unchanged": true,
+        "source_unchanged_within_run": true,
+        "asset_native_example_inputs_identical": true,
+        "config_identical_after_source_relocation": true,
+        "same_python_packages": true,
+        "same_controller_source": true
+      },
+      "passed": true,
+      "acceptance": {
+        "passed": true,
+        "checks": {
+          "reported_status_passed": true,
+          "full_native_claw_scope": true,
+          "request_matches_100_iteration_120_hz_claw": true,
+          "live_gpu_100_iterations": true,
+          "competition_completed": true,
+          "all_ticks_recorded": true,
+          "mode_clock_completed": true,
+          "reported_lift_above_150mm": true,
+          "csv_lift_above_150mm": true,
+          "height_evidence_matches_csv": true,
+          "retained_in_intended_goal": true,
+          "released_robot_contact": true,
+          "native_completion_logged": true,
+          "no_native_timeout": true,
+          "finally_disabled": true,
+          "native_source_unchanged": true
+        },
+        "reported_lift_m": 0.19990865141153336,
+        "csv_lift_m": 0.19990865141153336,
+        "first_observed_goal_placement_mode_s": 11.316666666666666,
+        "final_unbroken_goal_presence_from_mode_s": 11.316666666666666,
+        "final_mode_s": 30.0
+      },
+      "step_realtime_factor": 0.29062916456937926,
+      "loop_realtime_factor": 0.27167732176119386,
+      "loop_realtime_factor_excluding_diagnostics": 0.28057793594938985,
+      "competition_step_wall_seconds": 103.22432727785781,
+      "loop_diagnostics_wall_seconds": 3.515602692961693,
+      "competition_mean_step_ms": 28.67342424384939,
+      "competition_costs": {
+        "worker.native.step": {
+          "calls": 3600,
+          "total_seconds": 69.259434564,
+          "mean_ms": 19.23873182333333
+        },
+        "worker.control.write": {
+          "calls": 3600,
+          "total_seconds": 1.3626300950000028,
+          "mean_ms": 0.37850835972222296
+        },
+        "worker.state.read": {
+          "calls": 3600,
+          "total_seconds": 0.4988585590000006,
+          "mean_ms": 0.13857182194444462
+        },
+        "worker.contacts.read_convert": {
+          "calls": 3600,
+          "total_seconds": 8.99973201399998,
+          "mean_ms": 2.4999255594444385
+        },
+        "worker.contacts.binding_read": {
+          "calls": 3600,
+          "total_seconds": 1.3610422640000015,
+          "mean_ms": 0.37806729555555596
+        },
+        "worker.contacts.payload_validation": {
+          "calls": 3600,
+          "total_seconds": 0.690692675999999,
+          "mean_ms": 0.19185907666666638
+        },
+        "worker.contacts.id_resolution": {
+          "calls": 3600,
+          "total_seconds": 0.3075979810000001,
+          "mean_ms": 0.08544388361111113
+        },
+        "worker.contacts.pair_selection": {
+          "calls": 3600,
+          "total_seconds": 1.617614428999996,
+          "mean_ms": 0.4493373413888878
+        },
+        "worker.contacts.robot_materialization": {
+          "calls": 3600,
+          "total_seconds": 3.7754599859999955,
+          "mean_ms": 1.0487388849999988
+        },
+        "worker.contacts.pair_retention": {
+          "calls": 3600,
+          "total_seconds": 0.768303538999998,
+          "mean_ms": 0.2134176497222217
+        },
+        "world.control.tires": {
+          "calls": 3600,
+          "total_seconds": 6.859853578999978,
+          "mean_ms": 1.9055148830555493
+        },
+        "world.sensors": {
+          "calls": 3600,
+          "total_seconds": 5.215992956000008,
+          "mean_ms": 1.4488869322222244
+        },
+        "session.native.roundtrip": {
+          "calls": 3600,
+          "total_seconds": 1.5167302840000025,
+          "mean_ms": 0.42131396777777846
+        }
+      },
+      "actual_worker_counts": [
+        2
+      ],
+      "native_gpu_flags": [
+        11
+      ],
+      "source_archive_sha256": "020db3a7f4aba7c45232d969fee461f15e279d8f2e50ac8eaaa50009c746b63f",
+      "source_hash_dictionary_sha256": "d25e182bc8c7d2c6f1cc4ae1a11fd1984e8b1d5d584cd2c74eeee0e13836e9ef",
+      "physical_input_dictionary_sha256": "58f3454950634312c987b18bf3d06d1edddb9a3d6980570364eb90104bbda461",
+      "runner_sha256": "bb8bbb63219b83b85562d5a04d4d7642fd2b94b46fb4daa853f2bfccb7749fc2",
+      "shape_counts": {
+        "sphere": 0,
+        "plane": 0,
+        "capsule": 0,
+        "box": 61,
+        "convex_core": 4,
+        "convex_mesh": 4432,
+        "particle_system": 0,
+        "tetrahedron_mesh": 0,
+        "triangle_mesh": 17,
+        "heightfield": 0,
+        "custom": 0
+      },
+      "load_before": [
+        1.205078125,
+        1.20458984375,
+        1.052734375
+      ],
+      "load_after": [
+        1.42431640625,
+        1.25537109375,
+        1.08984375
+      ],
+      "native_share_of_step_percent": 67.09603868627636
+    }
+  ],
+  "comparisons_to_before_1": {
+    "after-1": {
+      "trajectory": {
+        "exactly_identical_except_step_wall_seconds": true,
+        "baseline_rows": 3613,
+        "case_rows": 3613,
+        "baseline_only_ticks": [],
+        "case_only_ticks": [],
+        "changed_row_counts_by_column": {},
+        "first_difference": null,
+        "maximum_robot_position_distance_m": 0.0,
+        "maximum_wrapped_robot_yaw_difference_rad": 0.0,
+        "maximum_absolute_numeric_leaf_differences": {}
+      },
+      "initial_field_objects_identical": true,
+      "final_field_objects_identical": true,
+      "initial_field_objects_count": 170,
+      "final_field_objects_count": 170,
+      "preload_summary_identical": true,
+      "native_activity_samples_identical": true
+    },
+    "after-2": {
+      "trajectory": {
+        "exactly_identical_except_step_wall_seconds": true,
+        "baseline_rows": 3613,
+        "case_rows": 3613,
+        "baseline_only_ticks": [],
+        "case_only_ticks": [],
+        "changed_row_counts_by_column": {},
+        "first_difference": null,
+        "maximum_robot_position_distance_m": 0.0,
+        "maximum_wrapped_robot_yaw_difference_rad": 0.0,
+        "maximum_absolute_numeric_leaf_differences": {}
+      },
+      "initial_field_objects_identical": true,
+      "final_field_objects_identical": true,
+      "initial_field_objects_count": 170,
+      "final_field_objects_count": 170,
+      "preload_summary_identical": true,
+      "native_activity_samples_identical": true
+    },
+    "before-2": {
+      "trajectory": {
+        "exactly_identical_except_step_wall_seconds": true,
+        "baseline_rows": 3613,
+        "case_rows": 3613,
+        "baseline_only_ticks": [],
+        "case_only_ticks": [],
+        "changed_row_counts_by_column": {},
+        "first_difference": null,
+        "maximum_robot_position_distance_m": 0.0,
+        "maximum_wrapped_robot_yaw_difference_rad": 0.0,
+        "maximum_absolute_numeric_leaf_differences": {}
+      },
+      "initial_field_objects_identical": true,
+      "final_field_objects_identical": true,
+      "initial_field_objects_count": 170,
+      "final_field_objects_count": 170,
+      "preload_summary_identical": true,
+      "native_activity_samples_identical": true
+    }
+  },
+  "paired_changes": [
+    {
+      "before": "before-1",
+      "after": "after-1",
+      "step_throughput_gain_percent": 6.069934587120018,
+      "loop_throughput_gain_excluding_queries_percent": 6.022954549335302,
+      "mean_step_ms_saved": 1.638240445043067,
+      "stage_changes": {
+        "worker.native.step": {
+          "before_mean_ms": 19.202683363333296,
+          "after_mean_ms": 19.195518509444458,
+          "saved_ms": 0.007164853888838252,
+          "cost_reduction_percent": 0.03731173270564714
+        },
+        "worker.control.write": {
+          "before_mean_ms": 0.37765166388888877,
+          "after_mean_ms": 0.38903035916666645,
+          "saved_ms": -0.011378695277777684,
+          "cost_reduction_percent": -3.0130134104547457
+        },
+        "worker.state.read": {
+          "before_mean_ms": 0.1378918833333337,
+          "after_mean_ms": 0.1450163858333334,
+          "saved_ms": -0.007124502499999713,
+          "cost_reduction_percent": -5.1667308675284795
+        },
+        "worker.contacts.read_convert": {
+          "before_mean_ms": 2.491507084722227,
+          "after_mean_ms": 1.3365070530555525,
+          "saved_ms": 1.1550000316666744,
+          "cost_reduction_percent": 46.357485344876835
+        },
+        "worker.contacts.binding_read": {
+          "before_mean_ms": 0.3671128324999997,
+          "after_mean_ms": 0.37743581555555555,
+          "saved_ms": -0.010322983055555845,
+          "cost_reduction_percent": -2.8119374049818457
+        },
+        "worker.contacts.payload_validation": {
+          "before_mean_ms": 0.19121492333333404,
+          "after_mean_ms": 0.19730264583333293,
+          "saved_ms": -0.006087722499998893,
+          "cost_reduction_percent": -3.1837067912249273
+        },
+        "worker.contacts.id_resolution": {
+          "before_mean_ms": 0.08379207000000004,
+          "after_mean_ms": 0.08676375472222173,
+          "saved_ms": -0.0029716847222216874,
+          "cost_reduction_percent": -3.5464987584406193
+        },
+        "worker.contacts.pair_selection": {
+          "before_mean_ms": 0.4466025788888885,
+          "after_mean_ms": 0.11134792444444429,
+          "saved_ms": 0.3352546544444442,
+          "cost_reduction_percent": 75.06778292201783
+        },
+        "worker.contacts.robot_materialization": {
+          "before_mean_ms": 1.0537074430555549,
+          "after_mean_ms": 0.24801812666666653,
+          "saved_ms": 0.8056893163888883,
+          "cost_reduction_percent": 76.4623351290506
+        },
+        "worker.contacts.pair_retention": {
+          "before_mean_ms": 0.21539161972222207,
+          "after_mean_ms": 0.20450116138888833,
+          "saved_ms": 0.010890458333333741,
+          "cost_reduction_percent": 5.056119800472514
+        },
+        "world.control.tires": {
+          "before_mean_ms": 1.89142549638889,
+          "after_mean_ms": 1.8047128274999973,
+          "saved_ms": 0.08671266888889262,
+          "cost_reduction_percent": 4.584514116704275
+        },
+        "world.sensors": {
+          "before_mean_ms": 1.4554366922222217,
+          "after_mean_ms": 0.9920843175000001,
+          "saved_ms": 0.46335237472222157,
+          "cost_reduction_percent": 31.83596903928234
+        },
+        "session.native.roundtrip": {
+          "before_mean_ms": 0.42154964305555526,
+          "after_mean_ms": 0.42578981250000064,
+          "saved_ms": -0.004240169444445385,
+          "cost_reduction_percent": -1.0058529319847187
+        }
+      }
+    },
+    {
+      "before": "before-2",
+      "after": "after-2",
+      "step_throughput_gain_percent": 3.909469045261149,
+      "loop_throughput_gain_excluding_queries_percent": 3.656368913411878,
+      "mean_step_ms_saved": 1.0788031690753996,
+      "stage_changes": {
+        "worker.native.step": {
+          "before_mean_ms": 19.23873182333333,
+          "after_mean_ms": 19.4667718947222,
+          "saved_ms": -0.22804007138886817,
+          "cost_reduction_percent": -1.1853175847708064
+        },
+        "worker.control.write": {
+          "before_mean_ms": 0.37850835972222296,
+          "after_mean_ms": 0.39442832777777775,
+          "saved_ms": -0.01591996805555479,
+          "cost_reduction_percent": -4.205975283409336
+        },
+        "worker.state.read": {
+          "before_mean_ms": 0.13857182194444462,
+          "after_mean_ms": 0.15179471777777762,
+          "saved_ms": -0.013222895833332998,
+          "cost_reduction_percent": -9.542268873851011
+        },
+        "worker.contacts.read_convert": {
+          "before_mean_ms": 2.4999255594444385,
+          "after_mean_ms": 1.5212391691666705,
+          "saved_ms": 0.978686390277768,
+          "cost_reduction_percent": 39.148621309158614
+        },
+        "worker.contacts.binding_read": {
+          "before_mean_ms": 0.37806729555555596,
+          "after_mean_ms": 0.5374598619444442,
+          "saved_ms": -0.1593925663888882,
+          "cost_reduction_percent": -42.159839865192964
+        },
+        "worker.contacts.payload_validation": {
+          "before_mean_ms": 0.19185907666666638,
+          "after_mean_ms": 0.2014404955555546,
+          "saved_ms": -0.009581418888888221,
+          "cost_reduction_percent": -4.99398780362883
+        },
+        "worker.contacts.id_resolution": {
+          "before_mean_ms": 0.08544388361111113,
+          "after_mean_ms": 0.08921386805555584,
+          "saved_ms": -0.0037699844444447073,
+          "cost_reduction_percent": -4.412234422306227
+        },
+        "worker.contacts.pair_selection": {
+          "before_mean_ms": 0.4493373413888878,
+          "after_mean_ms": 0.11118058027777773,
+          "saved_ms": 0.3381567611111101,
+          "cost_reduction_percent": 75.25676812567546
+        },
+        "worker.contacts.robot_materialization": {
+          "before_mean_ms": 1.0487388849999988,
+          "after_mean_ms": 0.25768728666666635,
+          "saved_ms": 0.7910515983333324,
+          "cost_reduction_percent": 75.42884216916714
+        },
+        "worker.contacts.pair_retention": {
+          "before_mean_ms": 0.2134176497222217,
+          "after_mean_ms": 0.2083551786111116,
+          "saved_ms": 0.005062471111110078,
+          "cost_reduction_percent": 2.372095802619534
+        },
+        "world.control.tires": {
+          "before_mean_ms": 1.9055148830555493,
+          "after_mean_ms": 1.8077375047222215,
+          "saved_ms": 0.09777737833332778,
+          "cost_reduction_percent": 5.131283896168726
+        },
+        "world.sensors": {
+          "before_mean_ms": 1.4488869322222244,
+          "after_mean_ms": 1.0245935319444461,
+          "saved_ms": 0.4242934002777783,
+          "cost_reduction_percent": 29.28409324715352
+        },
+        "session.native.roundtrip": {
+          "before_mean_ms": 0.42131396777777846,
+          "after_mean_ms": 0.4348422013888887,
+          "saved_ms": -0.013528233611110219,
+          "cost_reduction_percent": -3.210962523380112
+        }
+      }
+    }
+  ],
+  "evidence": {
+    "verified_against_manifest": true,
+    "manifest_sha256": "a70e75c75162020a7936eded49d1156bddf316138c31868c1bea83ef3486b235",
+    "archive_sha256": "32542deae59b2ff6166f073bd48ac2cc8f6c0a4b4ff04e1ecdb8c58e861d6c4f",
+    "files": {
+      "before-1.json": "105d0eb21a4cb30c7fdadfe73d3198a73c2149b0548555c93bc557a777b963fb",
+      "before-1.csv": "789006e37cccbee45498d0e8fa212e07504e96925a0b4d70c68bc4c9c370d17f",
+      "before-1-run.json": "58a054e9ab750889245ede3ebda28ecedf1a5fa7a480e3c750503f0788ae7179",
+      "after-1.json": "5935c155daa458ac078416e4546387eb092c85370cde948f8878a517b03180a7",
+      "after-1.csv": "447005f2d4714dbe956470965860a3881e57d22bebb4ad9bc1f4e31b050f9d46",
+      "after-1-run.json": "98da63ad5375dc3a5184ab07e960d137ccd72ecec973f803f90d96a3b7831fd2",
+      "after-2.json": "bde3d1b9ef4fd992fd441ec2bc44edc61630948d1d2876b55d0e69acbec07bb8",
+      "after-2.csv": "4bac8847fca9681780b09d384542a8a627c50efc491b7fee38cfb3d4820b7452",
+      "after-2-run.json": "7ceca803f85efecb24103c4c46bdcdd3d15a7aa7b43a3a5b0053f6deb8956c20",
+      "before-2.json": "dc542d95e53df572a21cf936ad1b01978a088ff3dbe1d0f2e88bf20c6f5c77e7",
+      "before-2.csv": "605789b1b75609f5995837ae3388b5ecfd659f7922ff94eb372e66ce677e14e7",
+      "before-2-run.json": "025267c0a974e38c4a0fce11cf56f606cef636f5aa7510a19ed5dab06aa73328"
+    }
+  },
+  "settings": {
+    "backend": "physx_gpu",
+    "device": 0,
+    "iterations": 100,
+    "fixture": "claw",
+    "physics_hz": 120,
+    "ticks": 3600,
+    "seconds": 30.0,
+    "pros": true
+  },
+  "hardware": {
+    "gpu": "NVIDIA A100-SXM4-40GB",
+    "headless": true,
+    "logical_cuda_device": 0
+  },
+  "source_comparison": {
+    "baseline_repeats_identical": true,
+    "candidate_repeats_identical": true,
+    "changed_files": [
+      "eersim/__init__.py",
+      "eersim/physics.py",
+      "eersim/physx_contacts.py",
+      "eersim/physx_world.py",
+      "pyproject.toml"
+    ]
+  },
+  "aggregate": {
+    "baseline": {
+      "combined_competition_step_rtf": 0.290861251453984,
+      "mean_stage_ms": {
+        "worker.native.step": 19.220707593333316,
+        "worker.control.write": 0.37808001180555584,
+        "worker.state.read": 0.13823185263888915,
+        "worker.contacts.read_convert": 2.4957163220833327,
+        "worker.contacts.binding_read": 0.37259006402777783,
+        "worker.contacts.payload_validation": 0.1915370000000002,
+        "worker.contacts.id_resolution": 0.08461797680555558,
+        "worker.contacts.pair_selection": 0.4479699601388881,
+        "worker.contacts.robot_materialization": 1.051223164027777,
+        "worker.contacts.pair_retention": 0.21440463472222188,
+        "world.control.tires": 1.8984701897222196,
+        "world.sensors": 1.452161812222223,
+        "session.native.roundtrip": 0.42143180541666686
+      }
+    },
+    "candidate": {
+      "combined_competition_step_rtf": 0.30533952417626037,
+      "mean_stage_ms": {
+        "worker.native.step": 19.331145202083327,
+        "worker.control.write": 0.3917293434722221,
+        "worker.state.read": 0.1484055518055555,
+        "worker.contacts.read_convert": 1.4288731111111115,
+        "worker.contacts.binding_read": 0.45744783874999984,
+        "worker.contacts.payload_validation": 0.19937157069444378,
+        "worker.contacts.id_resolution": 0.08798881138888878,
+        "worker.contacts.pair_selection": 0.11126425236111101,
+        "worker.contacts.robot_materialization": 0.2528527066666664,
+        "worker.contacts.pair_retention": 0.20642816999999997,
+        "world.control.tires": 1.8062251661111093,
+        "world.sensors": 1.0083389247222232,
+        "session.native.roundtrip": 0.43031600694444466
+      }
+    },
+    "combined_step_throughput_gain_percent": 4.977724825806473
+  },
+  "all_outcomes_and_controls_passed": true,
+  "all_physical_observations_identical": true,
+  "passed": true,
+  "limits": [
+    "All comparisons are headless A100 runs of one full claw fixture, at 120Hz and 100 iterations with two CPU workers.",
+    "Contact substage times are nested within total contact conversion; do not sum both.",
+    "Native step includes CPU work, GPU execution and synchronization; no kernel attribution is claimed.",
+    "Periodic diagnostic queries are outside timed steps; loading, compilation and rendering are excluded.",
+    "Whole-run loop throughput with measured query cost subtracted is reported separately from step throughput.",
+    "An exact recorded trajectory regression match does not establish general physical calibration or official scoring."
+  ],
+  "analysis_sources": {
+    "analyzer_sha256": "91bd538486dae7f31aec38aad91eb504d2725750b2e5e03e7798a7b870dc3f92",
+    "physical_comparator_sha256": "c5287a2e15f65a452df956e32d6b5f668d76eeb0f9d39d147cebb6637be678cc"
+  },
+  "source_commits": {
+    "baseline": "5e9e09e515249bbeb12128ac2d465a68250500aa",
+    "candidate": "b9d80de6ef6740eaed240db43f0d00ebb02881c7",
+    "note": "Caller-supplied commit labels; immutable archive and source file hashes are retained independently."
+  }
+}

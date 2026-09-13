@@ -1,5 +1,8 @@
 # Local validation
 
+The latest [0.1.4 release validation](diagnostics-a100-0.1.4.md) records matched
+A100 before/after tests, Windows artifact checks and the two existing CI failures.
+
 ## Integrated PhysX acceptance
 
 The integrated PhysX CUDA backend completed the bundled, unchanged PROS claw
