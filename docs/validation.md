@@ -57,10 +57,14 @@ exactly 24 competition ticks. Explicit CUDA selection without an NVIDIA driver
 exited promptly with an actionable error. The tests opened no GUI or OpenGL
 context and left no owned processes. Packaging guards verify both NVIDIA native
 runtime trees, exact package metadata versions, and the scene-verification DLL.
-Actual **Windows CUDA execution and interactive GUI acceptance for this release
-remain unverified**; the Linux run establishes actual GPU execution. The installer
-wizard was not run against the active installation. Release assets include the
-frozen acceptance report and build manifest.
+The packaged checks above did not exercise Windows CUDA or an interactive GUI.
+Subsequent [RTX 4070 Ti captures](diagnostics-4070ti-followup.md) verify Windows
+GPU physics and record native PROS claw execution in 0.1.3, including a preload
+placement at both rates and completion of Skills Auto at 120 Hz. This is
+performance-capture evidence, not the detailed lift/clearance acceptance harness
+used for the A100 run. The installer wizard was not run against the active
+installation. Published release assets retain their original validation report
+and build manifest; later evidence is recorded separately.
 
 A separate headless regression reproduced Bullet trajectory changes caused by
 extra graphics pose queries. Refreshing forward kinematics before tire point

@@ -7,8 +7,10 @@ LLVM-MinGW compiler for selected PROS workspaces. Recipients do not need Python,
 Conda, PROS tooling, a separate compiler, or WSL installed.
 The frozen application passed headless native compilation, Bullet/PhysX CPU,
 automatic fallback, and explicit missing-CUDA checks. Linux A100 execution
-validated the integrated GPU backend; actual Windows CUDA execution remains
-unverified. See [validation](validation.md).
+validated the integrated GPU backend. A subsequent RTX 4070 Ti diagnostic capture
+of 0.1.3 also records Windows CUDA execution of the native PROS claw demo, preload
+placement, and completion of the 30-second mode at 120 Hz. See the
+[capture analysis](diagnostics-4070ti-followup.md) and [validation](validation.md).
 
 CUDA physics requires an NVIDIA GPU with compute capability 7.0 or newer and a
 driver exposing CUDA 12.8 or newer. The x64 PhysX wheel also requires an

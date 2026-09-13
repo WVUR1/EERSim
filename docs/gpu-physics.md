@@ -16,11 +16,15 @@ including physical grip, lift, navigation, release, and a red-goal placement.
 The 30-second run measured **0.0426× realtime** at 240 Hz and 100 TGS iterations.
 This establishes functionality, not a speed advantage over CPU physics.
 The Windows preview bundles the runtime and passed headless CPU/fallback checks.
-A supplied RTX 4070 Ti capture verifies GPU dynamics, GPU broadphase, a valid CUDA
-context, and OpenGL rendering on Windows. It had no PROS workspace selected;
-Windows GPU autonomy execution remains unverified. The
-[4070 Ti analysis](diagnostics-4070ti.md) separates its measured baseline from
-the subsequent fix for unnecessary field-object wakeups.
+Supplied RTX 4070 Ti captures verify GPU dynamics, GPU broadphase, a valid CUDA
+context, and OpenGL rendering on Windows. The 0.1.3 follow-up runs the native PROS
+claw demo and records its preload in a red goal at both rates. The 120 Hz case
+completes 30 seconds of Skills Auto; the 240 Hz case reaches 16.44 competition
+seconds before the 120-second capture budget expires. These observations add
+Windows GPU autonomy evidence; the performance capture does not independently
+validate grasp forces, lift clearance, or trajectory accuracy. See the
+[follow-up analysis](diagnostics-4070ti-followup.md) and the
+[earlier neutral baseline](diagnostics-4070ti.md).
 See the [measurement record](validation.md#integrated-physx-acceptance).
 
 ## Install and select

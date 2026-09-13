@@ -1,0 +1,1152 @@
+{
+  "schema_version": 1,
+  "archive": {
+    "sha256": "10c913880a18e94928da8676a1b258aad1692dcc868a27036704cbd4acacbb01",
+    "bytes": 50771,
+    "member_count": 15,
+    "uncompressed_bytes": 185513,
+    "all_member_crc_verified": true,
+    "read_in_memory_only": true
+  },
+  "baseline_archive_sha256": "cdd940dc4414dfbffc5563b3493a9c94645d5297464f46bb944a0cdfbdc0195c",
+  "hardware": {
+    "cpu": {
+      "model": "AMD Ryzen 9 5900XT 16-Core Processor",
+      "logical_cores": 32,
+      "physical_cores": 16
+    },
+    "os": {
+      "system": "Windows",
+      "release": "10",
+      "version": "10.0.26220",
+      "architecture": "AMD64"
+    },
+    "memory_total_bytes": 34264162304,
+    "gpu_name": "NVIDIA GeForce RTX 4070 Ti",
+    "gpu_memory_total_mib": 12282.0,
+    "nvidia_driver": "616.56",
+    "gpu_count": 1
+  },
+  "runtime": {
+    "eersim_before": "0.1.2",
+    "eersim_after": "0.1.3",
+    "python": {
+      "version": "3.11.16",
+      "implementation": "CPython",
+      "bits": 64
+    },
+    "packages": {
+      "eerkit-simulator": "0.1.3",
+      "numpy": "2.4.6",
+      "pybullet": "3.2.5",
+      "PySide6": "6.8.3",
+      "vtk": "9.6.2",
+      "ovphysx": "0.5.11",
+      "ovstage": "0.1.1.355824",
+      "scipy": "1.16.3"
+    },
+    "package_changes": {
+      "eerkit-simulator": [
+        "0.1.2",
+        "0.1.3"
+      ]
+    }
+  },
+  "user_context": {
+    "other_eersim_simulations_running_during_capture": false,
+    "source": "User confirmation supplied with follow-up review",
+    "reported_interactive_gui_gpu_utilization_percent": [
+      80,
+      100
+    ],
+    "gui_utilization_is_separate_observation_not_this_headless_capture": true
+  },
+  "cases": [
+    {
+      "rate_hz": 240,
+      "status": "complete",
+      "stop_reason": "wall_budget",
+      "child_exit_code": 0,
+      "watchdog_timeout": false,
+      "steps": 3970,
+      "simulation_seconds": 16.541666666666668,
+      "mode": "skills_auto",
+      "requested": {
+        "physics_hz": 240,
+        "physics_backend": "auto",
+        "physics_device": 0,
+        "physics_solver_iterations": 100,
+        "start_pose": [
+          -1.45,
+          -0.9,
+          0.085,
+          0.0
+        ],
+        "gravity": 9.80665,
+        "friction": 0.9,
+        "plastic_friction": 0.5,
+        "restitution": 0.05,
+        "seed": 7,
+        "noise": {
+          "position_std_m": 0.0,
+          "heading_std_deg": 0.0,
+          "encoder_std_deg": 0.0,
+          "distance_std_mm": 0.0,
+          "latency_ms": 0.0,
+          "dropout": 0.0
+        },
+        "renderer": "auto",
+        "render_fps": 60,
+        "duration_overrides": {
+          "skills_driver": 60.0,
+          "skills_auto": 30.0,
+          "match_auto": 30.0,
+          "driver_auto": 90.0
+        },
+        "robot_urdf": {
+          "name": "xdrive_claw.urdf",
+          "available": true,
+          "sha256": "0a4c4edec3f3c06f7660f5365bd4ece5601b7b9b57d5ac2db2eb9bb3baa88303"
+        },
+        "robot_config": {
+          "name": "xdrive_claw.json",
+          "available": true,
+          "sha256": "f87b99b433d4a13869ca69f40597a60fac29589cf5e633ac1a9b96a9dadfed27"
+        },
+        "game_pack": {
+          "name": "override-2026-27.json",
+          "available": true,
+          "sha256": "0af90d082ff28ca49905a6d7a79c2f4b9d522b3cca15617059249506acbac7ca"
+        },
+        "workspace_selected": true,
+        "extra_field_object_count": 1
+      },
+      "physics": {
+        "backend": "physx",
+        "device": "NVIDIA GeForce RTX 4070 Ti",
+        "hardware_accelerated": true,
+        "reason": "",
+        "scene_gpu_flags": 11,
+        "logical_cuda_device": 0,
+        "cuda_device_name": "NVIDIA GeForce RTX 4070 Ti",
+        "direct_gpu_api": false,
+        "physx_header_version": 84541440,
+        "solver": "TGS",
+        "solver_iterations": 100,
+        "tensor_cores": false,
+        "state_exchange": "batched CPU observations",
+        "initialization_steps": 1,
+        "motor_torque_observation": "bounded implicit-drive estimate",
+        "scene_query_identity": "native opaque IDs, not Bullet body/link IDs"
+      },
+      "scene": {
+        "field_objects": 170,
+        "robot_joints": 6,
+        "motor_bindings": 6
+      },
+      "scene_gauges": {
+        "scene.dynamic_actors": 88,
+        "scene.articulation_links": 10,
+        "scene.dofs": 6,
+        "scene.collision_shapes": 4514
+      },
+      "native_initialization_ticks": 25,
+      "native_competition_ticks": 3945,
+      "no_pros": false,
+      "workspace_unchanged": true,
+      "native_claw_evidence": {
+        "initial_placed_pins": 5,
+        "final_placed_pins": 6,
+        "new_placements": [
+          {
+            "pin": "demo_preload",
+            "goal": "goal_red_5",
+            "alliance": "red"
+          }
+        ],
+        "claw_stage_messages_observed": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "placement_complete_message": true,
+        "normal_mode_expiry_message": false,
+        "scope": "Windows GPU PROS claw placement under prototype contact-based scoring, not complete official game-rule validation"
+      },
+      "timing": {
+        "total_step_ms": 30.04180554155385,
+        "native_step_ms": 25.133444282115853,
+        "contact_conversion_ms": 1.4348544584382863,
+        "state_read_ms": 0.11519294710327453,
+        "control_write_ms": 0.24079765743073145,
+        "remaining_ms": 3.1175161964657008,
+        "native_step_share_percent": 83.66156370778465,
+        "step_realtime_factor": 0.1386956140470096,
+        "loop_realtime_factor": 0.13784697961153788,
+        "physics_loop_seconds": 120.0002112000002,
+        "scene_load_seconds": 25.719326100001126
+      },
+      "worker_recent_native_percentiles_ms": {
+        "p50": 13.24905,
+        "p95": 35.27622999999999
+      },
+      "worker_recent_sample_count": 2048,
+      "contacts": {
+        "mean_raw_reports": 399.027959697733,
+        "total_raw_reports": 1584141,
+        "final_gauges": {
+          "worker.contacts.raw_reports_last": 12,
+          "worker.contacts.materialized_last": 12,
+          "worker.contacts.body_pairs_last": 69,
+          "worker.contacts.retained_body_pairs_last": 68
+        }
+      },
+      "wrenches": {
+        "worker.control.tensor_writes": {
+          "total": 31760,
+          "per_step": 8.0
+        },
+        "worker.control.regular_wrench_rows_submitted": {
+          "total": 15880,
+          "per_step": 4.0
+        },
+        "worker.control.regular_wrench_rows_skipped": {
+          "total": 293780,
+          "per_step": 74.0
+        }
+      },
+      "gpu_sampling": {
+        "status": "stopped",
+        "error_count": 0,
+        "total_rows": 123,
+        "physics": {
+          "samples": 120,
+          "pstates": {
+            "P2": 118,
+            "P3": 2
+          },
+          "all_selected_logical_device": true,
+          "gpu_utilization_percent": {
+            "count": 120,
+            "mean": 47.483333333333334,
+            "median": 48.0,
+            "min": 25.0,
+            "max": 100.0
+          },
+          "memory_utilization_percent": {
+            "count": 120,
+            "mean": 2.7333333333333334,
+            "median": 2.0,
+            "min": 2.0,
+            "max": 35.0
+          },
+          "memory_used_mib": {
+            "count": 120,
+            "mean": 4102.666666666667,
+            "median": 4086.5,
+            "min": 3880.0,
+            "max": 4369.0
+          },
+          "memory_total_mib": {
+            "count": 120,
+            "mean": 12282.0,
+            "median": 12282.0,
+            "min": 12282.0,
+            "max": 12282.0
+          },
+          "power_draw_w": {
+            "count": 120,
+            "mean": 67.14891666666666,
+            "median": 68.81,
+            "min": 24.38,
+            "max": 73.55
+          },
+          "power_limit_w": {
+            "count": 120,
+            "mean": 339.15,
+            "median": 339.15,
+            "min": 339.15,
+            "max": 339.15
+          },
+          "temperature_c": {
+            "count": 120,
+            "mean": 55.09166666666667,
+            "median": 55.0,
+            "min": 50.0,
+            "max": 56.0
+          },
+          "graphics_clock_mhz": {
+            "count": 120,
+            "mean": 2783.875,
+            "median": 2805.0,
+            "min": 2085.0,
+            "max": 2805.0
+          },
+          "memory_clock_mhz": {
+            "count": 120,
+            "mean": 10163.5,
+            "median": 10251.0,
+            "min": 5001.0,
+            "max": 10251.0
+          }
+        },
+        "render": {
+          "samples": 3,
+          "pstates": {
+            "P2": 3
+          },
+          "all_selected_logical_device": true,
+          "gpu_utilization_percent": {
+            "count": 3,
+            "mean": 0.0,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "memory_utilization_percent": {
+            "count": 3,
+            "mean": 2.0,
+            "median": 2.0,
+            "min": 2.0,
+            "max": 2.0
+          },
+          "memory_used_mib": {
+            "count": 3,
+            "mean": 4140.666666666667,
+            "median": 4142.0,
+            "min": 4138.0,
+            "max": 4142.0
+          },
+          "memory_total_mib": {
+            "count": 3,
+            "mean": 12282.0,
+            "median": 12282.0,
+            "min": 12282.0,
+            "max": 12282.0
+          },
+          "power_draw_w": {
+            "count": 3,
+            "mean": 56.68,
+            "median": 58.56,
+            "min": 46.83,
+            "max": 64.65
+          },
+          "power_limit_w": {
+            "count": 3,
+            "mean": 339.15,
+            "median": 339.15,
+            "min": 339.15,
+            "max": 339.15
+          },
+          "temperature_c": {
+            "count": 3,
+            "mean": 54.0,
+            "median": 54.0,
+            "min": 53.0,
+            "max": 55.0
+          },
+          "graphics_clock_mhz": {
+            "count": 3,
+            "mean": 2695.0,
+            "median": 2640.0,
+            "min": 2640.0,
+            "max": 2805.0
+          },
+          "memory_clock_mhz": {
+            "count": 3,
+            "mean": 10251.0,
+            "median": 10251.0,
+            "min": 10251.0,
+            "max": 10251.0
+          }
+        },
+        "first_30_physics_seconds": {
+          "samples": 30,
+          "pstates": {
+            "P2": 28,
+            "P3": 2
+          },
+          "all_selected_logical_device": true,
+          "gpu_utilization_percent": {
+            "count": 30,
+            "mean": 49.233333333333334,
+            "median": 50.5,
+            "min": 25.0,
+            "max": 100.0
+          },
+          "memory_utilization_percent": {
+            "count": 30,
+            "mean": 4.233333333333333,
+            "median": 3.0,
+            "min": 2.0,
+            "max": 35.0
+          },
+          "memory_used_mib": {
+            "count": 30,
+            "mean": 4102.3,
+            "median": 4066.0,
+            "min": 3880.0,
+            "max": 4369.0
+          },
+          "memory_total_mib": {
+            "count": 30,
+            "mean": 12282.0,
+            "median": 12282.0,
+            "min": 12282.0,
+            "max": 12282.0
+          },
+          "power_draw_w": {
+            "count": 30,
+            "mean": 62.93933333333333,
+            "median": 68.935,
+            "min": 24.38,
+            "max": 73.55
+          },
+          "power_limit_w": {
+            "count": 30,
+            "mean": 339.15,
+            "median": 339.15,
+            "min": 339.15,
+            "max": 339.15
+          },
+          "temperature_c": {
+            "count": 30,
+            "mean": 54.06666666666667,
+            "median": 55.0,
+            "min": 50.0,
+            "max": 55.0
+          },
+          "graphics_clock_mhz": {
+            "count": 30,
+            "mean": 2720.5,
+            "median": 2805.0,
+            "min": 2085.0,
+            "max": 2805.0
+          },
+          "memory_clock_mhz": {
+            "count": 30,
+            "mean": 9901.0,
+            "median": 10251.0,
+            "min": 5001.0,
+            "max": 10251.0
+          }
+        },
+        "last_30_physics_seconds": {
+          "samples": 30,
+          "pstates": {
+            "P2": 30
+          },
+          "all_selected_logical_device": true,
+          "gpu_utilization_percent": {
+            "count": 30,
+            "mean": 43.86666666666667,
+            "median": 44.0,
+            "min": 25.0,
+            "max": 61.0
+          },
+          "memory_utilization_percent": {
+            "count": 30,
+            "mean": 2.1,
+            "median": 2.0,
+            "min": 2.0,
+            "max": 5.0
+          },
+          "memory_used_mib": {
+            "count": 30,
+            "mean": 4134.9,
+            "median": 4138.0,
+            "min": 4103.0,
+            "max": 4139.0
+          },
+          "memory_total_mib": {
+            "count": 30,
+            "mean": 12282.0,
+            "median": 12282.0,
+            "min": 12282.0,
+            "max": 12282.0
+          },
+          "power_draw_w": {
+            "count": 30,
+            "mean": 67.80533333333334,
+            "median": 67.425,
+            "min": 66.81,
+            "max": 69.56
+          },
+          "power_limit_w": {
+            "count": 30,
+            "mean": 339.15,
+            "median": 339.15,
+            "min": 339.15,
+            "max": 339.15
+          },
+          "temperature_c": {
+            "count": 30,
+            "mean": 55.4,
+            "median": 55.0,
+            "min": 55.0,
+            "max": 56.0
+          },
+          "graphics_clock_mhz": {
+            "count": 30,
+            "mean": 2805.0,
+            "median": 2805.0,
+            "min": 2805.0,
+            "max": 2805.0
+          },
+          "memory_clock_mhz": {
+            "count": 30,
+            "mean": 10251.0,
+            "median": 10251.0,
+            "min": 10251.0,
+            "max": 10251.0
+          }
+        }
+      },
+      "render": {
+        "frames": 12,
+        "resolution": [
+          960,
+          720
+        ],
+        "stationary": true,
+        "first_frame_ms": 3501.0032999998657,
+        "steady_mean_ms": 8.150854545337179
+      }
+    },
+    {
+      "rate_hz": 120,
+      "status": "complete",
+      "stop_reason": "competition_complete",
+      "child_exit_code": 0,
+      "watchdog_timeout": false,
+      "steps": 3613,
+      "simulation_seconds": 30.108333333333334,
+      "mode": "skills_auto",
+      "requested": {
+        "physics_hz": 120,
+        "physics_backend": "auto",
+        "physics_device": 0,
+        "physics_solver_iterations": 100,
+        "start_pose": [
+          -1.45,
+          -0.9,
+          0.085,
+          0.0
+        ],
+        "gravity": 9.80665,
+        "friction": 0.9,
+        "plastic_friction": 0.5,
+        "restitution": 0.05,
+        "seed": 7,
+        "noise": {
+          "position_std_m": 0.0,
+          "heading_std_deg": 0.0,
+          "encoder_std_deg": 0.0,
+          "distance_std_mm": 0.0,
+          "latency_ms": 0.0,
+          "dropout": 0.0
+        },
+        "renderer": "auto",
+        "render_fps": 60,
+        "duration_overrides": {
+          "skills_driver": 60.0,
+          "skills_auto": 30.0,
+          "match_auto": 30.0,
+          "driver_auto": 90.0
+        },
+        "robot_urdf": {
+          "name": "xdrive_claw.urdf",
+          "available": true,
+          "sha256": "0a4c4edec3f3c06f7660f5365bd4ece5601b7b9b57d5ac2db2eb9bb3baa88303"
+        },
+        "robot_config": {
+          "name": "xdrive_claw.json",
+          "available": true,
+          "sha256": "f87b99b433d4a13869ca69f40597a60fac29589cf5e633ac1a9b96a9dadfed27"
+        },
+        "game_pack": {
+          "name": "override-2026-27.json",
+          "available": true,
+          "sha256": "0af90d082ff28ca49905a6d7a79c2f4b9d522b3cca15617059249506acbac7ca"
+        },
+        "workspace_selected": true,
+        "extra_field_object_count": 1
+      },
+      "physics": {
+        "backend": "physx",
+        "device": "NVIDIA GeForce RTX 4070 Ti",
+        "hardware_accelerated": true,
+        "reason": "",
+        "scene_gpu_flags": 11,
+        "logical_cuda_device": 0,
+        "cuda_device_name": "NVIDIA GeForce RTX 4070 Ti",
+        "direct_gpu_api": false,
+        "physx_header_version": 84541440,
+        "solver": "TGS",
+        "solver_iterations": 100,
+        "tensor_cores": false,
+        "state_exchange": "batched CPU observations",
+        "initialization_steps": 1,
+        "motor_torque_observation": "bounded implicit-drive estimate",
+        "scene_query_identity": "native opaque IDs, not Bullet body/link IDs"
+      },
+      "scene": {
+        "field_objects": 170,
+        "robot_joints": 6,
+        "motor_bindings": 6
+      },
+      "scene_gauges": {
+        "scene.dynamic_actors": 88,
+        "scene.articulation_links": 10,
+        "scene.dofs": 6,
+        "scene.collision_shapes": 4514
+      },
+      "native_initialization_ticks": 13,
+      "native_competition_ticks": 3600,
+      "no_pros": false,
+      "workspace_unchanged": true,
+      "native_claw_evidence": {
+        "initial_placed_pins": 5,
+        "final_placed_pins": 6,
+        "new_placements": [
+          {
+            "pin": "demo_preload",
+            "goal": "goal_red_5",
+            "alliance": "red"
+          }
+        ],
+        "claw_stage_messages_observed": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "placement_complete_message": true,
+        "normal_mode_expiry_message": true,
+        "scope": "Windows GPU PROS claw placement under prototype contact-based scoring, not complete official game-rule validation"
+      },
+      "timing": {
+        "total_step_ms": 23.97206919456731,
+        "native_step_ms": 19.159131967893714,
+        "contact_conversion_ms": 1.2239982009410486,
+        "state_read_ms": 0.10830905065042906,
+        "control_write_ms": 0.2129324937724883,
+        "remaining_ms": 3.2676974813096322,
+        "native_step_share_percent": 79.92272929128565,
+        "step_realtime_factor": 0.34762678455900176,
+        "loop_realtime_factor": 0.3456611312146799,
+        "physics_loop_seconds": 87.10361279999961,
+        "scene_load_seconds": 28.650713400000313
+      },
+      "worker_recent_native_percentiles_ms": {
+        "p50": 9.52035,
+        "p95": 20.750774999999994
+      },
+      "worker_recent_sample_count": 2048,
+      "contacts": {
+        "mean_raw_reports": 251.32825906448934,
+        "total_raw_reports": 908049,
+        "final_gauges": {
+          "worker.contacts.raw_reports_last": 12,
+          "worker.contacts.materialized_last": 12,
+          "worker.contacts.body_pairs_last": 72,
+          "worker.contacts.retained_body_pairs_last": 71
+        }
+      },
+      "wrenches": {
+        "worker.control.tensor_writes": {
+          "total": 28904,
+          "per_step": 8.0
+        },
+        "worker.control.regular_wrench_rows_submitted": {
+          "total": 14452,
+          "per_step": 4.0
+        },
+        "worker.control.regular_wrench_rows_skipped": {
+          "total": 267362,
+          "per_step": 74.0
+        }
+      },
+      "gpu_sampling": {
+        "status": "stopped",
+        "error_count": 0,
+        "total_rows": 91,
+        "physics": {
+          "samples": 87,
+          "pstates": {
+            "P5": 1,
+            "P2": 84,
+            "P3": 2
+          },
+          "all_selected_logical_device": true,
+          "gpu_utilization_percent": {
+            "count": 87,
+            "mean": 44.735632183908045,
+            "median": 47.0,
+            "min": 21.0,
+            "max": 60.0
+          },
+          "memory_utilization_percent": {
+            "count": 87,
+            "mean": 2.574712643678161,
+            "median": 2.0,
+            "min": 2.0,
+            "max": 44.0
+          },
+          "memory_used_mib": {
+            "count": 87,
+            "mean": 4195.436781609195,
+            "median": 4183.0,
+            "min": 4023.0,
+            "max": 4260.0
+          },
+          "memory_total_mib": {
+            "count": 87,
+            "mean": 12282.0,
+            "median": 12282.0,
+            "min": 12282.0,
+            "max": 12282.0
+          },
+          "power_draw_w": {
+            "count": 87,
+            "mean": 65.98666666666666,
+            "median": 67.96,
+            "min": 24.45,
+            "max": 68.91
+          },
+          "power_limit_w": {
+            "count": 87,
+            "mean": 339.15,
+            "median": 339.15,
+            "min": 339.15,
+            "max": 339.15
+          },
+          "temperature_c": {
+            "count": 87,
+            "mean": 54.59770114942529,
+            "median": 55.0,
+            "min": 50.0,
+            "max": 55.0
+          },
+          "graphics_clock_mhz": {
+            "count": 87,
+            "mean": 2754.8275862068967,
+            "median": 2805.0,
+            "min": 210.0,
+            "max": 2805.0
+          },
+          "memory_clock_mhz": {
+            "count": 87,
+            "mean": 10021.793103448275,
+            "median": 10251.0,
+            "min": 810.0,
+            "max": 10251.0
+          }
+        },
+        "render": {
+          "samples": 4,
+          "pstates": {
+            "P2": 4
+          },
+          "all_selected_logical_device": true,
+          "gpu_utilization_percent": {
+            "count": 4,
+            "mean": 4.75,
+            "median": 4.0,
+            "min": 1.0,
+            "max": 10.0
+          },
+          "memory_utilization_percent": {
+            "count": 4,
+            "mean": 2.75,
+            "median": 3.0,
+            "min": 2.0,
+            "max": 3.0
+          },
+          "memory_used_mib": {
+            "count": 4,
+            "mean": 4173.0,
+            "median": 4173.0,
+            "min": 4171.0,
+            "max": 4175.0
+          },
+          "memory_total_mib": {
+            "count": 4,
+            "mean": 12282.0,
+            "median": 12282.0,
+            "min": 12282.0,
+            "max": 12282.0
+          },
+          "power_draw_w": {
+            "count": 4,
+            "mean": 57.3575,
+            "median": 57.56,
+            "min": 47.73,
+            "max": 66.58
+          },
+          "power_limit_w": {
+            "count": 4,
+            "mean": 339.15,
+            "median": 339.15,
+            "min": 339.15,
+            "max": 339.15
+          },
+          "temperature_c": {
+            "count": 4,
+            "mean": 53.5,
+            "median": 53.5,
+            "min": 53.0,
+            "max": 54.0
+          },
+          "graphics_clock_mhz": {
+            "count": 4,
+            "mean": 2722.5,
+            "median": 2722.5,
+            "min": 2640.0,
+            "max": 2805.0
+          },
+          "memory_clock_mhz": {
+            "count": 4,
+            "mean": 10251.0,
+            "median": 10251.0,
+            "min": 10251.0,
+            "max": 10251.0
+          }
+        },
+        "first_30_physics_seconds": {
+          "samples": 30,
+          "pstates": {
+            "P5": 1,
+            "P2": 27,
+            "P3": 2
+          },
+          "all_selected_logical_device": true,
+          "gpu_utilization_percent": {
+            "count": 30,
+            "mean": 43.333333333333336,
+            "median": 46.5,
+            "min": 21.0,
+            "max": 57.0
+          },
+          "memory_utilization_percent": {
+            "count": 30,
+            "mean": 3.6666666666666665,
+            "median": 2.0,
+            "min": 2.0,
+            "max": 44.0
+          },
+          "memory_used_mib": {
+            "count": 30,
+            "mean": 4227.333333333333,
+            "median": 4256.5,
+            "min": 4023.0,
+            "max": 4260.0
+          },
+          "memory_total_mib": {
+            "count": 30,
+            "mean": 12282.0,
+            "median": 12282.0,
+            "min": 12282.0,
+            "max": 12282.0
+          },
+          "power_draw_w": {
+            "count": 30,
+            "mean": 63.10766666666667,
+            "median": 68.19,
+            "min": 24.45,
+            "max": 68.91
+          },
+          "power_limit_w": {
+            "count": 30,
+            "mean": 339.15,
+            "median": 339.15,
+            "min": 339.15,
+            "max": 339.15
+          },
+          "temperature_c": {
+            "count": 30,
+            "mean": 53.833333333333336,
+            "median": 54.0,
+            "min": 50.0,
+            "max": 55.0
+          },
+          "graphics_clock_mhz": {
+            "count": 30,
+            "mean": 2659.5,
+            "median": 2805.0,
+            "min": 210.0,
+            "max": 2805.0
+          },
+          "memory_clock_mhz": {
+            "count": 30,
+            "mean": 9586.3,
+            "median": 10251.0,
+            "min": 810.0,
+            "max": 10251.0
+          }
+        },
+        "last_30_physics_seconds": {
+          "samples": 30,
+          "pstates": {
+            "P2": 30
+          },
+          "all_selected_logical_device": true,
+          "gpu_utilization_percent": {
+            "count": 30,
+            "mean": 44.666666666666664,
+            "median": 46.5,
+            "min": 33.0,
+            "max": 54.0
+          },
+          "memory_utilization_percent": {
+            "count": 30,
+            "mean": 2.0,
+            "median": 2.0,
+            "min": 2.0,
+            "max": 2.0
+          },
+          "memory_used_mib": {
+            "count": 30,
+            "mean": 4175.166666666667,
+            "median": 4169.0,
+            "min": 4169.0,
+            "max": 4183.0
+          },
+          "memory_total_mib": {
+            "count": 30,
+            "mean": 12282.0,
+            "median": 12282.0,
+            "min": 12282.0,
+            "max": 12282.0
+          },
+          "power_draw_w": {
+            "count": 30,
+            "mean": 67.12933333333334,
+            "median": 67.1,
+            "min": 66.46,
+            "max": 67.72
+          },
+          "power_limit_w": {
+            "count": 30,
+            "mean": 339.15,
+            "median": 339.15,
+            "min": 339.15,
+            "max": 339.15
+          },
+          "temperature_c": {
+            "count": 30,
+            "mean": 55.0,
+            "median": 55.0,
+            "min": 55.0,
+            "max": 55.0
+          },
+          "graphics_clock_mhz": {
+            "count": 30,
+            "mean": 2805.0,
+            "median": 2805.0,
+            "min": 2805.0,
+            "max": 2805.0
+          },
+          "memory_clock_mhz": {
+            "count": 30,
+            "mean": 10251.0,
+            "median": 10251.0,
+            "min": 10251.0,
+            "max": 10251.0
+          }
+        }
+      },
+      "render": {
+        "frames": 12,
+        "resolution": [
+          960,
+          720
+        ],
+        "stationary": true,
+        "first_frame_ms": 3489.0525999999227,
+        "steady_mean_ms": 8.855154545348011
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "rate_hz": 240,
+      "requested_changes": {
+        "render_fps": {
+          "before": 30,
+          "after": 60
+        },
+        "duration_overrides": {
+          "before": {
+            "skills_driver": 60.0,
+            "skills_auto": 60.0,
+            "match_auto": 30.0,
+            "driver_auto": 90.0
+          },
+          "after": {
+            "skills_driver": 60.0,
+            "skills_auto": 30.0,
+            "match_auto": 30.0,
+            "driver_auto": 90.0
+          }
+        },
+        "robot_urdf": {
+          "before": {
+            "name": "xdrive.urdf",
+            "available": true,
+            "sha256": "0f727030f95c7de755722d0eee4d5d5b04201bcd0911956fdb772cede9cf287d"
+          },
+          "after": {
+            "name": "xdrive_claw.urdf",
+            "available": true,
+            "sha256": "0a4c4edec3f3c06f7660f5365bd4ece5601b7b9b57d5ac2db2eb9bb3baa88303"
+          }
+        },
+        "robot_config": {
+          "before": {
+            "name": "xdrive.json",
+            "available": true,
+            "sha256": "25824846e6cdcab0c00c2c77a1fa50a8c864f630f8f7702bf626bd1165a50d70"
+          },
+          "after": {
+            "name": "xdrive_claw.json",
+            "available": true,
+            "sha256": "f87b99b433d4a13869ca69f40597a60fac29589cf5e633ac1a9b96a9dadfed27"
+          }
+        },
+        "workspace_selected": {
+          "before": false,
+          "after": true
+        },
+        "extra_field_object_count": {
+          "before": 0,
+          "after": 1
+        }
+      },
+      "requested_unchanged_keys": [
+        "physics_hz",
+        "physics_backend",
+        "physics_device",
+        "physics_solver_iterations",
+        "start_pose",
+        "gravity",
+        "friction",
+        "plastic_friction",
+        "restitution",
+        "seed",
+        "noise",
+        "renderer",
+        "game_pack"
+      ],
+      "observed_not_causal_step_rtf_ratio": 2.188980385406984,
+      "observed_native_step_ms_before_after": [
+        60.48502725770932,
+        25.133444282115853
+      ],
+      "mean_raw_reports_before_after": [
+        11353.206497797357,
+        399.027959697733
+      ],
+      "raw_report_reduction_percent": 96.4853280896886
+    },
+    {
+      "rate_hz": 120,
+      "requested_changes": {
+        "render_fps": {
+          "before": 30,
+          "after": 60
+        },
+        "duration_overrides": {
+          "before": {
+            "skills_driver": 60.0,
+            "skills_auto": 60.0,
+            "match_auto": 30.0,
+            "driver_auto": 90.0
+          },
+          "after": {
+            "skills_driver": 60.0,
+            "skills_auto": 30.0,
+            "match_auto": 30.0,
+            "driver_auto": 90.0
+          }
+        },
+        "robot_urdf": {
+          "before": {
+            "name": "xdrive.urdf",
+            "available": true,
+            "sha256": "0f727030f95c7de755722d0eee4d5d5b04201bcd0911956fdb772cede9cf287d"
+          },
+          "after": {
+            "name": "xdrive_claw.urdf",
+            "available": true,
+            "sha256": "0a4c4edec3f3c06f7660f5365bd4ece5601b7b9b57d5ac2db2eb9bb3baa88303"
+          }
+        },
+        "robot_config": {
+          "before": {
+            "name": "xdrive.json",
+            "available": true,
+            "sha256": "25824846e6cdcab0c00c2c77a1fa50a8c864f630f8f7702bf626bd1165a50d70"
+          },
+          "after": {
+            "name": "xdrive_claw.json",
+            "available": true,
+            "sha256": "f87b99b433d4a13869ca69f40597a60fac29589cf5e633ac1a9b96a9dadfed27"
+          }
+        },
+        "workspace_selected": {
+          "before": false,
+          "after": true
+        },
+        "extra_field_object_count": {
+          "before": 0,
+          "after": 1
+        }
+      },
+      "requested_unchanged_keys": [
+        "physics_hz",
+        "physics_backend",
+        "physics_device",
+        "physics_solver_iterations",
+        "start_pose",
+        "gravity",
+        "friction",
+        "plastic_friction",
+        "restitution",
+        "seed",
+        "noise",
+        "renderer",
+        "game_pack"
+      ],
+      "observed_not_causal_step_rtf_ratio": 2.6648414471407262,
+      "observed_native_step_ms_before_after": [
+        58.57479336543605,
+        19.159131967893714
+      ],
+      "mean_raw_reports_before_after": [
+        11338.185660781166,
+        251.32825906448934
+      ],
+      "raw_report_reduction_percent": 97.78334676654806
+    }
+  ],
+  "limitations": [
+    "Robot, extra object, selected PROS workspace and mode duration differ; observed speed ratios do not isolate the fix. Start pose is unchanged.",
+    "The 120 Hz case completes competition sooner; both rates cover different simulation durations and settling phases.",
+    "Native step is synchronous CPU work, GPU execution and synchronization together; no kernel occupancy or individual component timing.",
+    "Raw contact counts include mirrored/subdivided manifold reports; retained pairs are presence only, not forces or an exact sleep count.",
+    "Stage totals cover all ticks; p50/p95 describe only the most recent 2048 completions.",
+    "Device-wide GPU telemetry can include other applications; no per-process or CPU-core utilization was captured.",
+    "The retained contact-pair gauge is only a final observation, not a per-tick trace.",
+    "Stationary rendering capacity is not interactive GUI FPS; the user-reported 80-100% GUI utilization is a separate workload.",
+    "GPU claw placement is measured against the prototype contact-based scorer, not an official game-rule acceptance suite."
+  ],
+  "evidence_keys": {
+    "configuration": "<rate>hz/case.json:requested, physics, native_competition_ticks, scene",
+    "timing": "<rate>hz/case.json:timing_seconds.physics_steps; performance.worker.spans.*; steps",
+    "contacts_wrenches": "<rate>hz/case.json:performance.worker.counters and gauges",
+    "gpu_phase": "<rate>hz/gpu-samples.csv timestamp_utc inside case physics/render started/finished UTC",
+    "runtime": "system.json:eersim_version, runtime_versions, python"
+  }
+}
