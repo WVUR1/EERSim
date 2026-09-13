@@ -160,7 +160,7 @@ try {
         sha256 = $hash
         bytes = (Get-Item -LiteralPath $artifact).Length
         format = 'windows-installer'
-        version = '0.1.4'
+        version = '0.1.5'
         installer_compiler_version = $inno.Version
         install_scope = 'current_user'
         includes_compiler = [bool]$includesCompiler

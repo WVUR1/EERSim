@@ -10,6 +10,73 @@ from eersim.replay import (ReplayCursor, ReplayRecorder, _Assets, _link_from_com
                            _quat_product, _rotate)
 
 
+def _original_asset_tokens(line, suffix):
+    import shlex
+    lexer = shlex.shlex(line, posix=True)
+    lexer.whitespace_split, lexer.escape = True, ''
+    return list(lexer)
+
+
+def test_asset_directive_fastpath_keeps_quoted_escaped_keywords_and_errors():
+    from eersim.replay import _asset_tokens
+    directives = {
+        '.obj': ['mtllib', 'm"tllib"', '"mtllib"', "m'tllib'", "'mtllib'", r'\mtllib', r'm\tllib'],
+        '.mtl': ['map_Kd', 'MAP_KD', '"map_Kd"', 'ma"p_Kd"', 'bump', 'disp', 'decal', 'refl',
+                 r'\map_Kd', r'map\_Kd'],
+    }
+    for suffix, keywords in directives.items():
+        for prefix in ('', ' \t', '\v'):
+            for keyword in keywords:
+                for argument in (' "asset with spaces.mtl"', r' "C:\assets\material.mtl"', ' #ignored "quote'):
+                    line = prefix + keyword + argument
+                    assert _asset_tokens(line, suffix) == _original_asset_tokens(line, suffix)
+    for suffix in ('.obj', '.mtl'):
+        for line in ('v 0 0 "unterminated', "newmtl 'unterminated", 'mtllib "missing',
+                     'map_Kd \'missing', r'\unrelated "unterminated'):
+            with pytest.raises(ValueError, match='No closing quotation'):
+                _original_asset_tokens(line, suffix)
+            with pytest.raises(ValueError, match='No closing quotation'):
+                _asset_tokens(line, suffix)
+
+
+def test_asset_fastpath_avoids_lexing_geometry_and_unrelated_material_lines(monkeypatch):
+    from eersim import replay
+    def reject(*args, **kwargs):
+        raise AssertionError('An unrelated mesh line entered the full lexer')
+    monkeypatch.setattr(replay.shlex, 'shlex', reject)
+    for line in ('v .125 -2e-4 3', 'vn 0 0 1', 'vt .5 .5', 'f 1/1/1 2/2/2 3/3/3',
+                 'usemtl red', 'o shell', '# mesh comment', ''):
+        assert replay._asset_tokens(line, '.obj') == ()
+    for line in ('newmtl red', 'Kd .8 0 .1', 'Ka 0 0 0', 'd .5', 'Ns 20', '# material comment', ''):
+        assert replay._asset_tokens(line, '.mtl') == ()
+
+
+def test_asset_fastpath_pinned_tree_matches_original_lexer_bytes(tmp_path, monkeypatch):
+    from eersim import replay
+    source = tmp_path / 'source with spaces'
+    source.mkdir()
+    (source / 'skin with spaces.png').write_bytes(b'unchanged texture bytes')
+    (source / 'paint library.mtl').write_bytes(
+        b'\xef\xbb\xbfnewmtl red\r\nKd .8 .2 .1\r\nma"p_Kd" -o .1 -.2 .3 "skin with spaces.png"')
+    model = source / 'robot.obj'
+    model.write_bytes(b'\xef\xbb\xbfm"tllib" "paint library.mtl"\r\nv .1 .2 .3\r\nv 0 0 0\n'
+                     b'vn 0 0 1\nusemtl red\nf 1//1 2//1 1//1 # unchanged geometry')
+    old, fast = _Assets(tmp_path / 'old'), _Assets(tmp_path / 'fast')
+    try:
+        with monkeypatch.context() as patch:
+            patch.setattr(replay, '_asset_tokens', _original_asset_tokens)
+            old.pin(model)
+        fast.pin(model)
+        tree = lambda assets: {path.relative_to(assets.path).as_posix(): path.read_bytes()
+                               for path in assets.path.rglob('*') if path.is_file()}
+        assert tree(old) == tree(fast)
+        assert old.bytes == fast.bytes
+        assert len(tree(old)) == 3
+    finally:
+        old.close()
+        fast.close()
+
+
 class FakePhysics:
     VISUAL_SHAPE_DATA_TEXTURE_UNIQUE_IDS = 1
     GEOM_SPHERE, GEOM_BOX, GEOM_CYLINDER, GEOM_MESH, GEOM_CAPSULE = 2, 3, 4, 5, 7

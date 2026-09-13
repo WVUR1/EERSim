@@ -62,6 +62,23 @@ def _link_from_com(position, quaternion, inertial_position, inertial_quaternion)
     return np.concatenate((position - _rotate(link_quaternion, local), link_quaternion))
 
 
+def _asset_tokens(line, suffix):
+    # OBJ vertices/faces dominate official CAD files. Only dependency directives
+    # require tokens; unquoted unrelated lines cannot raise shlex quote errors.
+    # Keep the original lexer for any quote, including concatenated/quoted
+    # keywords and malformed input, so accepted syntax and failures are unchanged.
+    if '"' not in line and "'" not in line and '\\' not in line:
+        leading = line.lstrip(' \t\r\n')
+        if suffix == '.obj':
+            if not leading.startswith('mtllib'):
+                return ()
+        elif not leading.lower().startswith(('map_', 'bump', 'disp', 'decal', 'refl')):
+            return ()
+    lexer = shlex.shlex(line, posix=True)
+    lexer.whitespace_split, lexer.escape = True, ''
+    return list(lexer)
+
+
 class _Assets:
     """One owned asset tree, transferred from recorder to its finalized clip."""
     def __init__(self, root=None, limit=512 << 20):
@@ -101,9 +118,7 @@ class _Assets:
             if suffix in ('.obj', '.mtl'):
                 lines = []
                 for line in data.decode('utf-8-sig').splitlines():
-                    lexer = shlex.shlex(line, posix=True)
-                    lexer.whitespace_split, lexer.escape = True, ''
-                    tokens = list(lexer)
+                    tokens = _asset_tokens(line, suffix)
                     if tokens and suffix == '.obj' and tokens[0] == 'mtllib':
                         references = [self.pin(source.parent / name) for name in tokens[1:]]
                         line = 'mtllib ' + ' '.join(self._relative(p, destination.parent) for p in references)
