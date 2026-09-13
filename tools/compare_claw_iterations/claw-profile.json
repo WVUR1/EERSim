@@ -1,0 +1,41 @@
+{
+  "robot_urdf": "asset://robots/xdrive_claw.urdf",
+  "robot_config": "asset://robots/xdrive_claw.json",
+  "game_pack": "asset://games/override-2026-27.json",
+  "physics_backend": "physx_gpu",
+  "physics_device": 0,
+  "physics_hz": 120,
+  "physics_solver_iterations": 100,
+  "start_pose": [-1.45, -0.90, 0.085, 0],
+  "gravity": 9.80665,
+  "friction": 0.9,
+  "plastic_friction": 0.5,
+  "restitution": 0.05,
+  "seed": 7,
+  "noise": {
+    "position_std_m": 0,
+    "heading_std_deg": 0,
+    "encoder_std_deg": 0,
+    "distance_std_mm": 0,
+    "latency_ms": 0,
+    "dropout": 0
+  },
+  "motors": null,
+  "motor_overrides": {},
+  "renderer": "auto",
+  "workspace": null,
+  "field_objects": [{
+    "name": "demo_preload",
+    "urdf": "asset://objects/pin_red_yellow.urdf",
+    "fixed": false,
+    "position": [-1.11, -0.90, 0.083],
+    "kind": "pin",
+    "colors": ["red", "yellow"]
+  }],
+  "duration_overrides": {
+    "skills_auto": 30,
+    "skills_driver": 60,
+    "match_auto": 30,
+    "driver_auto": 90
+  }
+}

@@ -49,3 +49,13 @@ contain local paths, hardware information, configuration values, runtime
 diagnostics, and messages printed by the robot program. Private build output and
 the raw working folder are not included. Review the report before sharing it with
 the team. Nothing is uploaded automatically.
+
+## Compare solver iterations on the bundled claw demo
+
+Use the [paired Windows capture helper](../tools/compare_claw_iterations/README.md)
+to run the same claw experiment at 100 and 32 iterations with the installed EXE.
+It prepares both profiles automatically, checks robot/workspace identity, and
+produces one report ZIP. This avoids accidentally comparing the default idle
+robot with the claw autonomy profile. See the
+[32-iteration capture analysis](diagnostics-4070ti-iterations.md) for the reason
+that a matched robot, program and background workload matter.
