@@ -314,3 +314,128 @@ def test_execute_retains_240_hz_default_for_older_programmatic_arguments(tmp_pat
     assert report["status"] == "passed"
     assert report["request"]["physics_hz"] == 240
     assert report["simulation_seconds"]["total_advanced"] == .025
+
+
+def test_periodic_native_activity_separates_setup_initialization_and_step_timing(tmp_path, monkeypatch):
+    import os
+    from eersim.performance import PerformanceRecorder
+    # Deterministic synthetic clock: native stepping costs1ms; each requested
+    # activity query costs100ms. No waiting or physics implementation is used.
+    clock = [0.0]
+    monkeypatch.setattr(benchmark.time, 'perf_counter', lambda: clock[0])
+    monkeypatch.setenv('EERSIM_PROFILE', 'previous-value')
+
+    class Worker:
+        failed = False
+        def __init__(self, owner):
+            self.owner = owner
+            self.performance = PerformanceRecorder(False)
+            self.native = PerformanceRecorder(False)
+            self.calls = []
+        def call(self, command, payload):
+            assert command == 'diagnostics'
+            self.calls.append((self.owner.elapsed, dict(payload)))
+            response = {'performance': self.native.snapshot()}
+            if payload.get('activity'):
+                clock[0] += .1
+                response['scene_activity'] = {'counts': {'regular_sleeping': 2}, 'actors': []}
+            return response
+
+    sessions = []
+    class InstrumentedSession(FakeSession):
+        def __init__(self, config, log):
+            assert os.environ['EERSIM_PROFILE'] == '1'
+            super().__init__(config, log)
+            self.world._process = Worker(self)
+            sessions.append(self)
+        def step(self):
+            clock[0] += .001
+            return super().step()
+
+    folder = workspace(tmp_path)
+    args = arguments(tmp_path, '--backend', 'physx_cpu', '--physics-hz', '120',
+                     '--steps', '300', '--diagnostics-seconds', '1')
+    report = benchmark.execute(args, config={'workspace': str(folder)}, session_factory=InstrumentedSession,
+                               builder=lambda *_: folder / 'native')
+    assert report['status'] == 'passed', report.get('error')
+    samples = report['diagnostic_samples']
+    assert [(row['label'], row['mode_time']) for row in samples] == [
+        ('prepared', 0), ('initialization_complete', 0), ('periodic', 1), ('periodic', 2), ('final', 2.5)]
+    assert [row['tick'] for row in samples] == [1, 2, 122, 242, 302]
+    assert all(row['diagnostic_wall_seconds'] == pytest.approx(.1) for row in samples)
+    assert report['timing_seconds']['diagnostics'] == pytest.approx(.5)
+    assert report['timing_seconds']['initialization_steps'] == pytest.approx(.001)
+    assert report['timing_seconds']['competition_steps'] == pytest.approx(.3)
+    assert report['loop_wall_seconds'] == pytest.approx(.701)
+    assert report['loop_diagnostics_wall_seconds'] == pytest.approx(.4)
+    assert report['loop_wall_seconds_excluding_diagnostics'] == pytest.approx(.301)
+    assert report['step_realtime_factor'] == pytest.approx(2.5 / .3)
+    assert report['steps']['competition'] == 300
+    assert os.environ['EERSIM_PROFILE'] == 'previous-value'
+    assert sessions[0].world.closed
+
+
+def test_requested_activity_failure_keeps_evidence_closes_and_restores_profile(tmp_path, monkeypatch):
+    import os
+    from types import SimpleNamespace
+    monkeypatch.delenv('EERSIM_PROFILE', raising=False)
+    worlds = []
+    def broken(command, payload):
+        if payload.get('activity'):
+            raise RuntimeError('Activity probe is unavailable')
+        return {'performance': {'enabled': True}}
+    def create(config):
+        world = FakeWorld(config)
+        world._process = SimpleNamespace(failed=False, call=broken)
+        worlds.append(world)
+        return world
+    args = arguments(tmp_path, '--backend', 'physx_cpu', '--no-pros', '--diagnostics-seconds', '1')
+    report = benchmark.execute(args, config={}, world_factory=create)
+    assert report['status'] == 'failed' and 'probe is unavailable' in report['error']
+    assert report['initial_state']['tick'] == 1
+    assert report['diagnostic_samples'] == []
+    assert report['steps']['total'] == 0
+    assert report['loop_wall_seconds'] == 0
+    assert worlds[0].closed
+    assert 'EERSIM_PROFILE' not in os.environ
+    assert json.loads(args.output.read_text())['status'] == 'failed'
+
+
+@pytest.mark.parametrize('failure_tick', [120, 180])
+def test_periodic_or_final_query_failure_retains_completed_step_counts_and_csv(tmp_path, monkeypatch, failure_tick):
+    import os
+    from types import SimpleNamespace
+    monkeypatch.delenv('EERSIM_PROFILE', raising=False)
+    worlds = []
+    def create(config):
+        world = FakeWorld(config)
+        def call(command, payload):
+            if payload.get('activity') and world.tick - 1 >= failure_tick:
+                raise RuntimeError('Read-only activity query failed')
+            return {'performance': {'enabled': True}, 'scene_activity': {'counts': {}, 'actors': []}}
+        world._process = SimpleNamespace(failed=False, call=call)
+        worlds.append(world)
+        return world
+    args = arguments(tmp_path, '--backend', 'physx_cpu', '--no-pros', '--physics-hz', '120',
+                     '--steps', '180', '--diagnostics-seconds', '1')
+    report = benchmark.execute(args, config={}, world_factory=create)
+    assert report['status'] == 'failed' and 'query failed' in report['error']
+    assert report['steps'] == {'initialization': 0, 'competition': 0, 'passive': failure_tick, 'total': failure_tick}
+    assert report['simulation_seconds']['total_advanced'] == failure_tick / 120
+    assert report['final_state']['tick'] == failure_tick + 1
+    assert report['loop_wall_seconds'] > 0 and report['timing_seconds']['passive_steps'] > 0
+    assert report['step_realtime_factor'] > 0
+    with args.output.with_suffix('.csv').open() as stream:
+        assert len(list(csv.DictReader(stream))) == failure_tick
+    assert worlds[0].closed and 'EERSIM_PROFILE' not in os.environ
+
+
+@pytest.mark.parametrize('value', ['nan', '-1', 'inf'])
+def test_invalid_native_diagnostic_interval_rejected_before_start(tmp_path, value):
+    with pytest.raises(ValueError, match='diagnostics-seconds'):
+        benchmark.execute(arguments(tmp_path, '--diagnostics-seconds', value), config={})
+
+
+def test_bullet_cannot_silently_ignore_requested_native_activity(tmp_path):
+    with pytest.raises(ValueError, match='require PhysX'):
+        benchmark.execute(arguments(tmp_path, '--diagnostics-seconds', '1'), config={})

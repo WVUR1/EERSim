@@ -5,8 +5,8 @@ returned by the pinned ovphysx 0.5.11 runtime. It reports actual GPU dynamics,
 broadphase, Direct GPU API, CUDA context validity, logical device and device
 name. Requesting GPU configuration alone is insufficient evidence of GPU use.
 
-The 64 public headers in `physx/include` are an unmodified dependency closure
-from NVIDIA's `ovphysx-0.5.11` tag (630,959 bytes). The upstream BSD license and
+The 97 public headers in `physx/include` are an unmodified dependency closure
+from NVIDIA's `ovphysx-0.5.11` tag. The upstream BSD license and
 per-header SHA256 provenance are included. Do not mix this helper with another
 ovphysx version: a matching PhysX version number alone does not establish ABI
 compatibility across different runtime releases.
@@ -45,3 +45,20 @@ The inspector does not initialize CUDA, advance simulation, or own SDK objects.
 Call it after the first normal-timestep bootstrap; do not invoke the SDK's 1 ns
 GPU warmup merely to inspect a scene. Host-readback GPU scenes require bits 1,
 2 and 8 (11); Direct GPU API adds bit 4 (15) and is optional.
+
+Opt-in `physx_verification.inspect_scene_activity(physx)` additionally reads
+regular actors' native `isSleeping()` and wake counters, entire articulations'
+sleep state and link counts, exact nonzero velocity classification, actual CPU
+dispatcher worker count, and the last step's `PxSimulationStatistics`. Native
+names are copied as supplied and can be absent. An awake actor with zero velocity
+is counted separately from a sleeping actor. Articulation links are not treated
+as independently sleeping regular actors.
+
+Call activity inspection only after completed `step_sync`/fetch, while no other
+thread is stepping, editing or releasing the scene. It never modifies state or
+advances time. Direct GPU API scenes are rejected because these CPU readback
+getters are unavailable there; the app's host-readback GPU mode supports them.
+Statistics are SDK counters, not a substitute for kernel timing. The symmetric
+geometry contact-pair matrix must not be summed twice. Existing GPU verification
+still accepts older matching helpers; activity inspection alone requires the
+new activity ABI exports.

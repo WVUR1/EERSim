@@ -19,6 +19,8 @@ from numbers import Integral
 
 import numpy as np
 
+from .performance import PerformanceRecorder
+
 
 @dataclass(frozen=True)
 class _Actor:
@@ -35,10 +37,11 @@ class _Actor:
 class ContactReader:
     """Reuse one unfiltered binding; capture only after step_sync completes."""
 
-    def __init__(self, physx, manifest, capacity=131072):
+    def __init__(self, physx, manifest, capacity=131072, *, performance=None):
         if not isinstance(capacity, Integral) or isinstance(capacity, bool) or capacity <= 0:
             raise ValueError("Contact capacity must be a positive integer")
         self.capacity = int(capacity)
+        self.performance = performance if performance is not None else PerformanceRecorder()
         self._binding = None
         self._closed = False
         self._id_cache = {}
@@ -115,7 +118,8 @@ class ContactReader:
         silently dropping contact information.
         """
         self._read_payload()
-        return self._materialize_contacts()
+        with self.performance.span("worker.contacts.full_materialization"):
+            return self._materialize_contacts()
 
     def capture_runtime(self, robot_body_id, poses_by_actor=None):
         """Return complete robot manifolds plus body-pair presence for scoring.
@@ -137,22 +141,25 @@ class ContactReader:
         if not any(actor.body == robot_body_id for actor in self._actors.values()):
             raise ValueError("Robot body ID is absent from the contact manifest")
         total, unique_actors, inverse = self._read_payload()
-        other_is_robot = np.asarray([actor.body == robot_body_id for actor in unique_actors], dtype=bool)
-        selected = other_is_robot[inverse] if total else np.zeros(0, dtype=bool)
-        body_pairs = set()
-        for sensor, start, count in zip(self._sensors, self._starts, self._counts):
-            start, end = int(start), int(start + count)
-            # Compound collider IDs and repeated contact points may all resolve
-            # to the same body. Iterate unique IDs, never individual pin points.
-            for code in np.unique(inverse[start:end]):
-                other = unique_actors[int(code)]
-                if sensor.endpoint == other.endpoint:
-                    raise RuntimeError(f"Contact reports an actor colliding with itself: {sensor.path}")
-                body_pairs.add(tuple(sorted((sensor.body, other.body))))
-            if sensor.body == robot_body_id:
-                selected[start:end] = True
-        contacts = self._materialize_contacts(selected)
-        body_pairs = self._stationary_presence(body_pairs, robot_body_id, poses_by_actor)
+        with self.performance.span("worker.contacts.pair_selection"):
+            other_is_robot = np.asarray([actor.body == robot_body_id for actor in unique_actors], dtype=bool)
+            selected = other_is_robot[inverse] if total else np.zeros(0, dtype=bool)
+            body_pairs = set()
+            for sensor, start, count in zip(self._sensors, self._starts, self._counts):
+                start, end = int(start), int(start + count)
+                # Compound collider IDs and repeated contact points may all resolve
+                # to the same body. Iterate unique IDs, never individual pin points.
+                for code in np.unique(inverse[start:end]):
+                    other = unique_actors[int(code)]
+                    if sensor.endpoint == other.endpoint:
+                        raise RuntimeError(f"Contact reports an actor colliding with itself: {sensor.path}")
+                    body_pairs.add(tuple(sorted((sensor.body, other.body))))
+                if sensor.body == robot_body_id:
+                    selected[start:end] = True
+        with self.performance.span("worker.contacts.robot_materialization"):
+            contacts = self._materialize_contacts(selected)
+        with self.performance.span("worker.contacts.pair_retention"):
+            body_pairs = self._stationary_presence(body_pairs, robot_body_id, poses_by_actor)
         return {"contacts": contacts, "contact_body_pairs": sorted(body_pairs)}
 
     def _stationary_presence(self, fresh_pairs, robot_body_id, poses_by_actor):
@@ -184,39 +191,42 @@ class ContactReader:
         """Read and validate the complete report once, retaining numeric arrays."""
         if self._closed:
             raise RuntimeError("ContactReader is closed")
-        self._counts.fill(0)
-        self._starts.fill(0)
-        try:
-            self._binding.read_raw_contact_data(self._forces, self._points, self._normals,
-                                                self._separations, self._counts, self._starts,
-                                                self._other_ids)
-        except RuntimeError as exc:
-            required = int(np.max(self._starts.astype(np.int64) + self._counts.astype(np.int64)))
-            if required > self.capacity:
-                raise RuntimeError(f"Contact buffer overflow: capacity={self.capacity}, required={required}. "
-                                   "This step's payload is unavailable; recreate the reader with more capacity.") from exc
-            raise
-        total = 0
-        for start, count in zip(self._starts, self._counts):
-            if count < 0 or start != total:
-                raise RuntimeError("Native contact count/start layout is malformed")
-            total += int(count)
-        if total > self.capacity:
-            raise RuntimeError(f"Native contact payload exceeds capacity: {total}>{self.capacity}")
-        for data in (self._forces, self._points, self._normals, self._separations):
-            if not np.isfinite(data[:total]).all():
-                raise RuntimeError("Native contact payload contains nonfinite values")
-        if total and not np.allclose(np.linalg.norm(self._normals[:total], axis=1), 1, atol=1e-3, rtol=0):
-            raise RuntimeError("Native contact normals are not unit vectors")
-        unique_ids, inverse = np.unique(self._other_ids[:total], return_inverse=True)
-        missing = [int(value) for value in unique_ids if int(value) not in self._id_cache]
-        if missing:
-            paths = self._binding.get_other_actor_paths_from_ids(np.asarray(missing, dtype=np.uint64))
-            if len(paths) != len(missing):
-                raise RuntimeError("Native contact ID resolver returned an incomplete path list")
-            resolved = {key: self._actor_at_path(path) for key, path in zip(missing, paths)}
-            self._id_cache.update(resolved)
-        return total, [self._id_cache[int(value)] for value in unique_ids], inverse
+        with self.performance.span("worker.contacts.binding_read"):
+            self._counts.fill(0)
+            self._starts.fill(0)
+            try:
+                self._binding.read_raw_contact_data(self._forces, self._points, self._normals,
+                                                    self._separations, self._counts, self._starts,
+                                                    self._other_ids)
+            except RuntimeError as exc:
+                required = int(np.max(self._starts.astype(np.int64) + self._counts.astype(np.int64)))
+                if required > self.capacity:
+                    raise RuntimeError(f"Contact buffer overflow: capacity={self.capacity}, required={required}. "
+                                       "This step's payload is unavailable; recreate the reader with more capacity.") from exc
+                raise
+        with self.performance.span("worker.contacts.payload_validation"):
+            total = 0
+            for start, count in zip(self._starts, self._counts):
+                if count < 0 or start != total:
+                    raise RuntimeError("Native contact count/start layout is malformed")
+                total += int(count)
+            if total > self.capacity:
+                raise RuntimeError(f"Native contact payload exceeds capacity: {total}>{self.capacity}")
+            for data in (self._forces, self._points, self._normals, self._separations):
+                if not np.isfinite(data[:total]).all():
+                    raise RuntimeError("Native contact payload contains nonfinite values")
+            if total and not np.allclose(np.linalg.norm(self._normals[:total], axis=1), 1, atol=1e-3, rtol=0):
+                raise RuntimeError("Native contact normals are not unit vectors")
+        with self.performance.span("worker.contacts.id_resolution"):
+            unique_ids, inverse = np.unique(self._other_ids[:total], return_inverse=True)
+            missing = [int(value) for value in unique_ids if int(value) not in self._id_cache]
+            if missing:
+                paths = self._binding.get_other_actor_paths_from_ids(np.asarray(missing, dtype=np.uint64))
+                if len(paths) != len(missing):
+                    raise RuntimeError("Native contact ID resolver returned an incomplete path list")
+                resolved = {key: self._actor_at_path(path) for key, path in zip(missing, paths)}
+                self._id_cache.update(resolved)
+            return total, [self._id_cache[int(value)] for value in unique_ids], inverse
 
     def _materialize_contacts(self, selected=None):
         # Each bucket contains all reports of one unordered body/link pair,

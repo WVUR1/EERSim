@@ -18,6 +18,7 @@ from contextlib import contextmanager
 import hashlib
 import json
 import math
+import os
 from numbers import Real
 from pathlib import Path
 import sys
@@ -124,6 +125,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--max-wall-seconds", type=float, default=3600,
                         help="Stepping wall budget, checked between fixed ticks")
     result.add_argument("--progress-seconds", type=float, default=1.0)
+    result.add_argument("--diagnostics-seconds", type=float, default=0.0,
+                        help="Opt-in native PhysX activity and cumulative profiling every N simulated seconds; 0 disables")
     result.add_argument("--output", type=Path, required=True, help="JSON report; adjacent CSV and log are also written")
     return result
 
@@ -146,6 +149,13 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
         raise ValueError("physics-hz must be 120 or 240")
     ticks = args.steps if args.steps is not None else math.ceil(seconds * hz - 1e-9)
     seconds = ticks / hz
+    diagnostic_seconds = getattr(args, "diagnostics_seconds", 0.0)
+    if not math.isfinite(diagnostic_seconds) or diagnostic_seconds < 0:
+        raise ValueError("diagnostics-seconds must be finite and nonnegative")
+    diagnostic_ticks = max(1, math.ceil(diagnostic_seconds * hz - 1e-9)) if diagnostic_seconds else 0
+    if diagnostic_ticks and (args.backend not in ('physx_cpu', 'physx_gpu') or
+                             math.ceil(ticks / diagnostic_ticks) + 3 > 4096):
+        raise ValueError("Native diagnostics require PhysX and at most 4096 samples; increase diagnostics-seconds")
     scope = "physics_only" if args.no_pros else "native_smoke"
     full = args.validation == "claw" or (args.validation == "auto" and not args.no_pros
                                          and args.fixture == "claw" and seconds >= 30)
@@ -174,6 +184,18 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
     original_hashes = None
     csv_stream = log_stream = None
     wall_start = time.perf_counter()
+    loop_start = None
+    initial = final = None
+    step_count = mode_count = init_count = 0
+    diagnostic_wall_before_loop = 0.0
+    previous_profile = os.environ.get('EERSIM_PROFILE')
+    if diagnostic_ticks:
+        os.environ['EERSIM_PROFILE'] = '1'
+        report['diagnostic_sampling'] = {
+            'requested_seconds': diagnostic_seconds, 'effective_seconds': diagnostic_ticks / hz,
+            'scope': 'Prepared/setup, initialization completion, periodic mode ticks and final state; no counter resets.',
+            'timing_scope': 'Queries are outside timed steps; loop time includes queries and separately reports their cost.'}
+        report['diagnostic_samples'] = []
 
     @contextmanager
     def timed(stage):
@@ -190,6 +212,52 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
             log_stream.write(text + "\n")
             log_stream.flush()
         print(text, flush=True)
+
+    def sample_activity(label, state, mode_ticks):
+        if not diagnostic_ticks:
+            return
+        worker = getattr(world, '_process', None)
+        if worker is None or getattr(worker, 'failed', False):
+            raise ValidationError('Requested native diagnostics need a live PhysX worker')
+        began = time.perf_counter()
+        with timed('diagnostics'):
+            response = worker.call('diagnostics', {'activity': True})
+            if 'scene_activity' not in response:
+                raise ValidationError('Worker did not return requested native scene activity')
+            performance = {'worker': response['performance']}
+            for name, owner in (('ipc', worker), ('session', session), ('world', world)):
+                if hasattr(owner, 'performance'):
+                    performance[name] = owner.performance.snapshot()
+            sample = json_value({'label': label, 'tick': state['tick'], 'world_time': state['time'],
+                                 'mode_time': mode_ticks / hz, 'performance': performance,
+                                 'scene_activity': response['scene_activity']})
+        sample['diagnostic_wall_seconds'] = time.perf_counter() - began
+        report['diagnostic_samples'].append(sample)
+
+    def finalize_loop_metrics():
+        """Retain completed work even when a requested diagnostic query fails."""
+        if 'loop_wall_seconds' in report:
+            return
+        report['loop_wall_seconds'] = 0.0 if loop_start is None else time.perf_counter() - loop_start
+        report['steps'] = {'initialization': init_count, 'competition': mode_count if session else 0,
+                           'passive': mode_count if session is None else 0, 'total': step_count}
+        report['simulation_seconds'] = {'initialization': init_count / hz,
+                                        'competition': mode_count / hz if session else 0,
+                                        'passive': mode_count / hz if session is None else 0,
+                                        'total_advanced': step_count / hz,
+                                        'prepared_world_time': initial['time'] if initial is not None else None}
+        measured = timings.get('competition_steps' if session else 'passive_steps', 0)
+        report['step_realtime_factor'] = (mode_count / hz) / measured if measured > 0 else None
+        loop_wall = report['loop_wall_seconds']
+        report['loop_realtime_factor'] = (step_count / hz) / loop_wall if loop_wall > 0 else None
+        if diagnostic_ticks:
+            diagnostic_wall = 0.0 if loop_start is None else timings.get('diagnostics', 0.0) - diagnostic_wall_before_loop
+            report['loop_diagnostics_wall_seconds'] = diagnostic_wall
+            adjusted = max(0.0, loop_wall - diagnostic_wall)
+            report['loop_wall_seconds_excluding_diagnostics'] = adjusted
+            report['loop_realtime_factor_excluding_diagnostics'] = (step_count / hz) / adjusted if adjusted > 0 else None
+        if final is not None:
+            report.setdefault('final_state', final)
 
     try:
         log_stream = output.with_suffix(".log").open("w", encoding="utf-8")
@@ -255,6 +323,9 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
             highest = initial_height
 
         step_count = mode_count = init_count = 0
+        sample_activity('prepared', initial, 0)
+        diagnostic_wall_before_loop = timings.get('diagnostics', 0.0)
+        next_diagnostic = diagnostic_ticks
         next_progress = 0.0
         loop_start = time.perf_counter()
         final = initial
@@ -302,17 +373,15 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
                     print(json.dumps({"progress": progress}, allow_nan=False), flush=True)
                     csv_stream.flush()
                     next_progress += args.progress_seconds
-        report["loop_wall_seconds"] = time.perf_counter() - loop_start
-        report["steps"] = {"initialization": init_count, "competition": mode_count if session else 0,
-                           "passive": mode_count if session is None else 0, "total": step_count}
-        report["simulation_seconds"] = {"initialization": init_count / hz,
-                                        "competition": mode_count / hz if session else 0,
-                                        "passive": mode_count / hz if session is None else 0,
-                                        "total_advanced": step_count / hz,
-                                        "prepared_world_time": initial["time"]}
-        measured = timings.get("competition_steps" if session else "passive_steps", 0)
-        report["step_realtime_factor"] = (mode_count / hz) / measured if measured > 0 else None
-        report["loop_realtime_factor"] = (step_count / hz) / report["loop_wall_seconds"]
+            if initializing and session.phase != 'initialize':
+                sample_activity('initialization_complete', final, mode_count)
+            if diagnostic_ticks and not initializing and mode_count >= next_diagnostic:
+                # Leave the terminal tick for the final sample, avoiding a duplicate query.
+                if (session.running if session else step_count < ticks):
+                    sample_activity('periodic', final, mode_count)
+                next_diagnostic += diagnostic_ticks
+        sample_activity('final', final, mode_count)
+        finalize_loop_metrics()
         with timed("validation"):
             report["final_state"] = final
             report["final_field_objects"] = field_states(world)
@@ -337,6 +406,7 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
     except Exception as exc:
         report["error"] = f"{type(exc).__name__}: {exc}"
     finally:
+        finalize_loop_metrics()
         if session is not None or world is not None:
             try:
                 from types import SimpleNamespace
@@ -367,6 +437,11 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
                 stream.close()
         report["logs"] = logs
         report["total_wall_seconds"] = time.perf_counter() - wall_start
+        if diagnostic_ticks:
+            if previous_profile is None:
+                os.environ.pop('EERSIM_PROFILE', None)
+            else:
+                os.environ['EERSIM_PROFILE'] = previous_profile
         output.write_text(json.dumps(json_value(report), indent=2, allow_nan=False) + "\n", encoding="utf-8")
     return report
 

@@ -122,6 +122,14 @@ class PhysXProcess:
         self.connection.close()
 
 
+def diagnostic_thread_count():
+    """Explicit diagnostic override; keep the normal two-worker setting."""
+    value = os.environ.get('EERSIM_PHYSX_THREADS', '2')
+    if value not in ('0', '1', '2'):
+        raise ValueError('EERSIM_PHYSX_THREADS must be 0, 1, or 2; 0 runs inline tasks')
+    return int(value)
+
+
 class _Runtime:
     def __init__(self, scene, manifest, config, work, performance=None):
         self.performance = performance if performance is not None else PerformanceRecorder()
@@ -134,6 +142,7 @@ class _Runtime:
         self.dt = 1.0 / config['physics_hz']
         self.bindings, self.buffers = {}, {}
         self.physx = self.stage = self.contacts = None
+        threads = diagnostic_thread_count()
         gpu = config['physics_backend'] == 'physx_gpu'
         device = int(config.get('physics_device', 0))
         if gpu:
@@ -144,8 +153,8 @@ class _Runtime:
             info = {'device': 'PhysX CPU', 'ordinal': None}
         PhysX.set_cpu_mode(not gpu)
         self.physx = PhysX(active_cuda_gpus=str(device) if gpu else None,
-            config=PhysXConfig(num_threads=2, cooked_collider_cache_dir=str(work / 'cooked'),
-                carbonite_overrides={'/persistent/physics/numThreads': 2,
+            config=PhysXConfig(num_threads=threads, cooked_collider_cache_dir=str(work / 'cooked'),
+                carbonite_overrides={'/persistent/physics/numThreads': threads,
                     '/physics/physxDispatcher': True,
                     # Standard readback keeps scene queries and CPU controller
                     # observations current while collision/constraints use CUDA.
@@ -156,7 +165,7 @@ class _Runtime:
         self.stage.advance_write_floor(ordinal=1).wait()
         self.physx.attach_ovstage(self.stage, read_ordinal=1)
         self.physx.wait_all()
-        self.contacts = ContactReader(self.physx, manifest)
+        self.contacts = ContactReader(self.physx, manifest, performance=self.performance)
         self._bind('poses', TensorType.RIGID_BODY_POSE, pattern='/World/rigid_*')
         self._bind('velocities', TensorType.RIGID_BODY_VELOCITY, pattern='/World/rigid_*')
         self.actor_paths = self.bindings['poses'].prim_paths
@@ -222,6 +231,7 @@ class _Runtime:
             self.bindings['joint_friction'].write(friction)
         self.status = {'backend': 'physx', 'device': verified.get('cuda_device_name') or info['device'],
                        'hardware_accelerated': gpu, 'reason': '', **verified,
+                       'requested_cpu_workers': threads,
                        'solver': 'TGS', 'solver_iterations': config.get('physics_solver_iterations', 100),
                        'tensor_cores': False, 'state_exchange': 'batched CPU observations',
                        'initialization_steps': 1, 'motor_torque_observation': 'bounded implicit-drive estimate',
@@ -260,10 +270,31 @@ class _Runtime:
 
     def diagnostics(self, payload=None):
         payload = {} if payload is None else payload
-        if (not isinstance(payload, dict) or set(payload) - {'reset'} or
-                not isinstance(payload.get('reset', False), bool)):
-            raise ValueError('Diagnostics accepts only an optional boolean reset flag')
-        return {'performance': self.performance.snapshot(reset=payload.get('reset', False))}
+        if (not isinstance(payload, dict) or set(payload) - {'reset', 'activity'} or
+                any(not isinstance(payload.get(key, False), bool) for key in ('reset', 'activity'))):
+            raise ValueError('Diagnostics accepts only optional boolean reset and activity flags')
+        result = {}
+        if payload.get('activity', False):
+            from .physx_verification import inspect_scene_activity
+            with self.performance.span('worker.diagnostics.scene_activity'):
+                result['scene_activity'] = inspect_scene_activity(self.physx, self.manifest['scene_path'])
+            # Native names are authoritative. Attach labels only for unambiguous
+            # exact prim paths (or their exact unique basename); never guess IDs.
+            actors = self.manifest['actors']
+            mapped = 0
+            for row in result['scene_activity'].get('actors', []):
+                name = row.get('name')
+                matches = [actor for actor in actors if name and
+                           (actor['path'] == name or actor['path'].rsplit('/', 1)[-1] == name)]
+                if len(matches) == 1:
+                    actor = matches[0]
+                    row['manifest_body_id'] = actor['body_id']
+                    row['manifest_link_index'] = actor['link_index']
+                    row['manifest_label'] = actor.get('label', '')
+                    mapped += 1
+            result['scene_activity']['manifest_mapped_actor_rows'] = mapped
+        result['performance'] = self.performance.snapshot(reset=payload.get('reset', False))
+        return result
 
     def step(self, controls):
         writes = submitted_rows = skipped_rows = 0
