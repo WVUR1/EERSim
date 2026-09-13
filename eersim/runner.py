@@ -192,6 +192,10 @@ class Session:
         if self.running and self.elapsed_ticks >= math.ceil(self.duration / self.dt - 1e-9):
             self.log("Mode time expired; robot disabled")
             self.stop()
+            # disable() may change joint observations in an injected world.
+            # Preserve the existing post-disable final-state observation.
+            if "joints" in snapshot:
+                snapshot["joints"] = self.world.joints
         with self.performance.span("session.state"):
             return self.state(snapshot)
 
@@ -214,11 +218,16 @@ class Session:
 
     def state(self, snapshot: dict | None = None) -> dict:
         snapshot = snapshot if snapshot is not None else self.world.snapshot()
+        # World.step()/snapshot() already own an isolated joint observation for
+        # this revision. Reuse it within this state assembly; do not read every
+        # joint again or retain a mutable snapshot for a later tick. Injected
+        # worlds may omit joints, so keep their existing property fallback.
+        joints = snapshot["joints"] if "joints" in snapshot else self.world.joints
         return {**snapshot, "mode": self.mode, "phase": self.phase, "running": self.running,
                 "paused": self.paused, "initialized": self.initialized,
                 "mode_time": self.elapsed_ticks * self.dt, "duration": self.duration,
                 "remaining": max(0.0, self.duration - self.elapsed_ticks * self.dt),
-                "joints": self.world.joints, "motor_bindings": self.world.motor_bindings,
+                "joints": joints, "motor_bindings": self.world.motor_bindings,
                 "physics": copy.deepcopy(getattr(self.world, "physics_status", {})),
                 "renderer": getattr(self.world, "renderer_status", {}),
                 "telemetry_samples": len(self.samples), "dropped_samples": self.dropped_samples}

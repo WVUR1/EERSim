@@ -14,13 +14,22 @@ import tempfile
 import numpy as np
 import pybullet as bullet
 
-from .physics import World
+from .physics import World, _cross3
 from .physx_worker import PhysXProcess
 from .runtime_paths import user_data_dir
 
 
 def rotation(quaternion):
     return np.asarray(bullet.getMatrixFromQuaternion(quaternion)).reshape(3, 3)
+
+
+def _vector_cross(a, b):
+    # Runtime force/motion vectors have three float32/float64 components.
+    # Retain NumPy's multiplication/subtraction order without its generalized
+    # axis/broadcast setup. Other shapes and dtypes keep NumPy's behavior.
+    if a.shape == b.shape == (3,) and a.dtype.char in 'fd' and b.dtype.char in 'fd':
+        return _cross3(a, b)
+    return np.cross(a, b)
 
 
 class PhysXAdapter:
@@ -153,17 +162,24 @@ class PhysXAdapter:
         else:
             position = 2 * math.atan2(float(np.dot(relative_quat[:3], axis)), float(relative_quat[3]))
         axis_world = rotation(frame_quat) @ axis
-        def motion(link, point):
-            centre = np.asarray(self._com_pose(bodyUniqueId, link)[0])
-            row = self.keys.get((bodyUniqueId, link))
-            velocity = self._state['velocities'][row] if row is not None else np.zeros(6)
-            return velocity[:3] + np.cross(velocity[3:], np.asarray(point)-centre), velocity[3:]
-        anchor0_velocity, angular0 = motion(parent, frame_point)
-        anchor1_velocity, angular1 = motion(child, p1)
         if joint['type'] == 'prismatic':
-            relative_velocity = anchor1_velocity-anchor0_velocity-np.cross(angular0, np.asarray(p1)-frame_point)
+            def motion(link, point):
+                centre = np.asarray(self._com_pose(bodyUniqueId, link)[0])
+                row = self.keys.get((bodyUniqueId, link))
+                velocity = self._state['velocities'][row] if row is not None else np.zeros(6)
+                return velocity[:3] + _vector_cross(velocity[3:], np.asarray(point)-centre), velocity[3:]
+            anchor0_velocity, angular0 = motion(parent, frame_point)
+            anchor1_velocity, angular1 = motion(child, p1)
+            relative_velocity = anchor1_velocity-anchor0_velocity-_vector_cross(angular0, np.asarray(p1)-frame_point)
         else:
-            relative_velocity = angular1-angular0
+            # A hinge's relative angular speed does not use either anchor's
+            # linear velocity or COM. Read the same completed-state angular
+            # components directly, retaining the original subtraction dtype.
+            row0 = self.keys.get((bodyUniqueId, parent))
+            row1 = self.keys.get((bodyUniqueId, child))
+            velocity0 = self._state['velocities'][row0] if row0 is not None else np.zeros(6)
+            velocity1 = self._state['velocities'][row1] if row1 is not None else np.zeros(6)
+            relative_velocity = velocity1[3:]-velocity0[3:]
         velocity = float(np.dot(axis_world, relative_velocity))
         return (position, velocity, (0.0,) * 6, 0.0)
 
@@ -210,7 +226,7 @@ class PhysXAdapter:
             point = centre + matrix @ point
         wrench = self.controls['wrenches'][self.keys[key]]
         wrench[:3] += force
-        wrench[3:6] += np.cross(point-centre, force)
+        wrench[3:6] += _vector_cross(point-centre, force)
         wrench[6:] = centre
 
     def applyExternalTorque(self, objectUniqueId, linkIndex, torqueObj, flags, **kwargs):
