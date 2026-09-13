@@ -21,12 +21,13 @@ class FakeWorld:
 
     def __init__(self, config):
         self.config = config
-        self.time = 1 / 240  # A prepared PhysX world already contains one real bootstrap tick.
+        self.hz = config.get("physics_hz", 240)
+        self.time = 1 / self.hz  # A prepared PhysX world already contains one real bootstrap tick.
         self.tick = 1
         self._physics = self
         self.field_objects = [{"id": 42, "name": "demo_preload"}]
         self.physics_status = {"backend": config["physics_backend"], "hardware_accelerated": False,
-                               "solver_iterations": 100}
+                               "solver_iterations": config.get("physics_solver_iterations", 100)}
         self.closed = False
 
     def snapshot(self):
@@ -36,7 +37,7 @@ class FakeWorld:
 
     def step(self, commands):
         self.tick += 1
-        self.time = self.tick / 240
+        self.time = self.tick / self.hz
         return self.snapshot()
 
     def getBasePositionAndOrientation(self, body, physicsClientId):
@@ -45,7 +46,7 @@ class FakeWorld:
 
     def getBaseVelocity(self, body, physicsClientId):
         assert body == 42 and physicsClientId == self.client
-        return [0, 0, .24], [0, 0, 0]
+        return [0, 0, .001 * self.hz], [0, 0, 0]
 
     def getContactPoints(self, body, other, physicsClientId):
         return []
@@ -79,11 +80,11 @@ class FakeSession:
         else:
             self.elapsed += 1
         state = self.world.step({})
-        if self.elapsed >= round(self.config["duration_overrides"]["skills_auto"] * 240):
+        if self.elapsed >= round(self.config["duration_overrides"]["skills_auto"] * self.world.hz):
             self.running = False
             self.runtime = None
             self.phase = "disabled"
-        return {**state, "phase": self.phase, "running": self.running, "mode_time": self.elapsed / 240}
+        return {**state, "phase": self.phase, "running": self.running, "mode_time": self.elapsed / self.world.hz}
 
     def close(self):
         self.world.close()
@@ -104,23 +105,24 @@ def workspace(tmp_path):
     return folder
 
 
-def test_passive_fixed_steps_use_real_ids_joint_fields_and_exclude_prepared_tick(tmp_path):
+@pytest.mark.parametrize("hz", [120, 240])
+def test_passive_fixed_steps_use_real_ids_joint_fields_and_exclude_prepared_tick(tmp_path, hz):
     worlds = []
 
     def create(config):
         worlds.append(FakeWorld(config))
         return worlds[-1]
 
-    args = arguments(tmp_path, "--no-pros")
+    args = arguments(tmp_path, "--no-pros", "--physics-hz", str(hz))
     report = benchmark.execute(args, config={}, world_factory=create)
     assert report["status"] == "passed"
     assert report["validation_scope"] == "physics_only"
     assert report["steps"] == {"initialization": 0, "competition": 0, "passive": 6, "total": 6}
-    assert report["simulation_seconds"]["total_advanced"] == .025
-    assert report["simulation_seconds"]["prepared_world_time"] == pytest.approx(1 / 240)
+    assert report["simulation_seconds"]["total_advanced"] == 6 / hz
+    assert report["simulation_seconds"]["prepared_world_time"] == pytest.approx(1 / hz)
     assert report["final_field_objects"][0]["id"] == 42
     assert report["preload"]["maximum_height_m"] == pytest.approx(.107)
-    assert report["step_realtime_factor"] == pytest.approx(.025 / report["timing_seconds"]["passive_steps"])
+    assert report["step_realtime_factor"] == pytest.approx((6 / hz) / report["timing_seconds"]["passive_steps"])
     assert "world_construction" in report["timing_seconds"]
     assert "observation" in report["timing_seconds"]
     assert "native_build" not in report["timing_seconds"]
@@ -131,9 +133,10 @@ def test_passive_fixed_steps_use_real_ids_joint_fields_and_exclude_prepared_tick
     assert worlds[0].closed
 
 
-def test_native_smoke_excludes_initialization_and_preserves_complete_source_hashes(tmp_path):
+@pytest.mark.parametrize("hz", [120, 240])
+def test_native_smoke_excludes_initialization_and_preserves_complete_source_hashes(tmp_path, hz):
     folder = workspace(tmp_path)
-    args = arguments(tmp_path)
+    args = arguments(tmp_path, "--physics-hz", str(hz))
     sessions = []
 
     def create(config, log):
@@ -148,7 +151,7 @@ def test_native_smoke_excludes_initialization_and_preserves_complete_source_hash
     assert report["checks"]["source_unchanged"]
     assert set(report["source_before_sha256"]) == {"src/main.cpp", "include/main.h"}
     assert not report["checks"]["full_claw_placement"]
-    assert report["step_realtime_factor"] == pytest.approx(.025 / report["timing_seconds"]["competition_steps"])
+    assert report["step_realtime_factor"] == pytest.approx((6 / hz) / report["timing_seconds"]["competition_steps"])
     assert report["timing_seconds"]["initialization_steps"] > 0
     assert sessions[0].world.closed
 
@@ -237,3 +240,77 @@ def test_physx_runtime_engine_and_verified_device_must_match_request(selected, g
         benchmark.validate_backend(status, 'physx_cpu' if gpu else 'physx_gpu', 100)
     with pytest.raises(benchmark.ValidationError, match='iterations'):
         benchmark.validate_backend(status, selected, 32)
+
+
+def test_120_hz_full_mode_uses_3600_competition_ticks_and_existing_performance_snapshots(tmp_path):
+    from eersim.performance import PerformanceRecorder
+
+    class Worker:
+        failed = False
+
+        def __init__(self):
+            self.performance = PerformanceRecorder(True)
+            self.native = PerformanceRecorder(True)
+            self.calls = []
+            self.native.increment("worker.bootstrap_steps")
+
+        def call(self, command, payload):
+            assert command == "diagnostics" and payload == {"reset": False}
+            self.calls.append(command)
+            return {"performance": self.native.snapshot()}
+
+    sessions = []
+
+    class CompleteSession(FakeSession):
+        def __init__(self, config, log):
+            super().__init__(config, log)
+            self.log = log
+            self.performance = PerformanceRecorder(True)
+            self.world.performance = PerformanceRecorder(True)
+            self.world._process = Worker()
+            self.world._scoring = lambda: {"placements": [
+                {"pin": "demo_preload", "goal": "goal_red_5", "alliance": "red"}]}
+            sessions.append(self)
+
+        def step(self):
+            self.performance.increment("session.ticks")
+            self.world.performance.increment("world.steps")
+            self.world._process.native.increment("worker.steps")
+            result = super().step()
+            if not self.running:
+                self.log("Placement complete")
+            return result
+
+    folder = workspace(tmp_path)
+    args = benchmark.parser().parse_args(["--backend", "bullet", "--physics-hz", "120",
+        "--iterations", "32", "--seconds", "30", "--validation", "claw",
+        "--output", str(tmp_path / "complete.json")])
+    report = benchmark.execute(args, config={"workspace": str(folder)}, session_factory=CompleteSession,
+                               builder=lambda *_: folder / "native")
+    assert report["status"] == "passed", report.get("error")
+    assert report["request"]["physics_hz"] == 120 and report["request"]["ticks"] == 3600
+    assert report["steps"] == {"initialization": 1, "competition": 3600, "passive": 0, "total": 3601}
+    assert report["simulation_seconds"]["competition"] == 30
+    assert report["simulation_seconds"]["initialization"] == pytest.approx(1 / 120)
+    assert report["simulation_seconds"]["prepared_world_time"] == pytest.approx(1 / 120)
+    assert report["final_state"]["time"] == pytest.approx(3602 / 120)
+    assert report["final_state"]["mode_time"] == 30 and not report["final_state"]["running"]
+    assert report["checks"]["full_claw_placement"] and report["checks"]["source_unchanged"]
+    assert report["step_realtime_factor"] == pytest.approx(30 / report["timing_seconds"]["competition_steps"])
+    assert report["performance"]["worker"]["counters"] == {"worker.bootstrap_steps": 1, "worker.steps": 3601}
+    assert report["performance"]["session"]["counters"]["session.ticks"] == 3601
+    assert report["performance"]["world"]["counters"]["world.steps"] == 3601
+    assert sessions[0].world._process.calls == ["diagnostics"]
+    assert sessions[0].world.closed
+    with args.output.with_suffix(".csv").open() as stream:
+        rows = list(csv.DictReader(stream))
+    assert len(rows) == 3601 and float(rows[-1]["mode_time"]) == 30
+
+
+def test_execute_retains_240_hz_default_for_older_programmatic_arguments(tmp_path):
+    args = arguments(tmp_path, "--no-pros")
+    del args.physics_hz
+    report = benchmark.execute(args, config={}, world_factory=FakeWorld)
+    assert report["status"] == "passed"
+    assert report["request"]["physics_hz"] == 240
+    assert report["simulation_seconds"]["total_advanced"] == .025

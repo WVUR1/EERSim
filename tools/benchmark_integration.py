@@ -2,7 +2,7 @@
 
 From a source checkout (or an environment with EERSim installed)::
 
-    python tools/benchmark_integration.py --backend physx_gpu --output results/claw.json
+    python tools/benchmark_integration.py --backend physx_gpu --physics-hz 120 --output results/claw.json
     python tools/benchmark_integration.py --backend bullet --fixture practice \
         --no-pros --steps 240 --output results/practice.json
 
@@ -111,6 +111,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--backend", choices=("bullet", "physx_cpu", "physx_gpu"), default="physx_gpu")
     result.add_argument("--device", type=int, default=0, help="CUDA device ordinal visible to this process")
     result.add_argument("--iterations", type=int, default=100)
+    result.add_argument("--physics-hz", type=int, choices=(120, 240), default=240,
+                        help="Fixed physics rate; competition duration is independent of the selected rate")
     result.add_argument("--fixture", choices=("claw", "practice"), default="claw")
     length = result.add_mutually_exclusive_group()
     length.add_argument("--seconds", type=float, default=None, help="Competition seconds; default 30")
@@ -139,7 +141,9 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
     seconds = 30.0 if args.seconds is None else args.seconds
     if not math.isfinite(seconds) or seconds <= 0:
         raise ValueError("seconds must be positive and finite")
-    hz = 240
+    hz = getattr(args, "physics_hz", 240)
+    if hz not in (120, 240):
+        raise ValueError("physics-hz must be 120 or 240")
     ticks = args.steps if args.steps is not None else math.ceil(seconds * hz - 1e-9)
     seconds = ticks / hz
     scope = "physics_only" if args.no_pros else "native_smoke"
@@ -160,6 +164,7 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
               "timing_seconds": {}, "progress": [], "checks": {}, "notes": [
                   "No rendering; startup and observation are excluded from step-only realtime factor.",
                   "Initialization and competition use the same fixed dt; initialization is excluded from mode time.",
+                  "Performance snapshots retain existing lifetime counters, including setup; enable them with EERSIM_PROFILE=1.",
                   "Placement is prototype physical contact detection, not official game scoring.",
                   "Matching fixed dt and solver iteration count does not establish cross-engine trajectory equivalence."]}
     timings = report["timing_seconds"]
@@ -333,6 +338,13 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
         report["error"] = f"{type(exc).__name__}: {exc}"
     finally:
         if session is not None or world is not None:
+            try:
+                from types import SimpleNamespace
+                from eersim.diagnostics import performance_snapshot
+                report["performance"] = json_value(performance_snapshot(
+                    session if session is not None else SimpleNamespace(world=world)))
+            except Exception as exc:
+                report["performance_error"] = f"{type(exc).__name__}: {exc}"
             try:
                 with timed("close"):
                     (session or world).close()
