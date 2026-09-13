@@ -46,6 +46,7 @@ class PhysXAdapter:
         self.controls['wrenches'] = np.zeros((len(self.rows), 9), np.float32)
         self._applied_effort = {key: 0.0 for key in self.dofs}
         self._state = process.initial['state']
+        self._invalidate_com_cache()
         self._invalidate_contact_index()
         self._shadow_dirty = True
 
@@ -76,10 +77,41 @@ class PhysXAdapter:
         actor = self.actors[key]
         return np.asarray(actor['position']), np.asarray(actor['orientation'])
 
+    def _invalidate_com_cache(self):
+        # Worker states are completed, immutable snapshots. Reset/load creates
+        # a new adapter; each successful step replaces the snapshot and clears
+        # these derived values. Nothing is cached across physical ticks.
+        self._com_cache_state = self._state
+        self._com_frames = {}
+        self._com_rotations = {}
+
+    def _com_frame(self, body, link):
+        # Also handle a snapshot replacement outside stepSimulation. Keep the
+        # original Bullet transform, including its precision and principal
+        # inertial frame, rather than recomputing it with different arithmetic.
+        if self.__dict__.get('_com_cache_state') is not self._state:
+            self._invalidate_com_cache()
+        key = (body, link)
+        frame = self._com_frames.get(key)
+        if frame is None:
+            point, orient = self._actor_pose(body, link)
+            actor = self.actors[key]
+            pose = bullet.multiplyTransforms(point, orient, actor['local_com'], actor['principal_axes'])
+            frame = (pose, np.asarray(pose[0]))
+            self._com_frames[key] = frame
+        return frame
+
     def _com_pose(self, body, link):
-        point, orient = self._actor_pose(body, link)
-        actor = self.actors[(body, link)]
-        return bullet.multiplyTransforms(point, orient, actor['local_com'], actor['principal_axes'])
+        return self._com_frame(body, link)[0]
+
+    def _com_rotation(self, key, quaternion):
+        # Call only after _com_frame has checked the current state. LINK_FRAME
+        # force, point and torque use this same world-from-COM rotation.
+        matrix = self._com_rotations.get(key)
+        if matrix is None:
+            matrix = rotation(quaternion)
+            self._com_rotations[key] = matrix
+        return matrix
 
     def getBasePositionAndOrientation(self, bodyUniqueId, **kwargs):
         return self._com_pose(bodyUniqueId, -1)
@@ -169,13 +201,13 @@ class PhysXAdapter:
         if key not in self.keys:
             return
         force, point = np.asarray(forceObj), np.asarray(posObj)
+        (position, quaternion), centre = self._com_frame(*key)
         if flags == bullet.LINK_FRAME:
             # Bullet's LINK_FRAME is the link COM/principal frame, including
             # the URDF inertial origin. Preserve that API for external forces.
-            position, quaternion = self._com_pose(*key)
-            force = rotation(quaternion) @ force
-            point = np.asarray(position) + rotation(quaternion) @ point
-        centre = np.asarray(self._com_pose(*key)[0])
+            matrix = self._com_rotation(key, quaternion)
+            force = matrix @ force
+            point = centre + matrix @ point
         wrench = self.controls['wrenches'][self.keys[key]]
         wrench[:3] += force
         wrench[3:6] += np.cross(point-centre, force)
@@ -186,11 +218,12 @@ class PhysXAdapter:
         if key not in self.keys:
             return
         torque = np.asarray(torqueObj)
+        (position, quaternion), centre = self._com_frame(*key)
         if flags == bullet.LINK_FRAME:
-            torque = rotation(self._com_pose(*key)[1]) @ torque
+            torque = self._com_rotation(key, quaternion) @ torque
         wrench = self.controls['wrenches'][self.keys[key]]
         wrench[3:6] += torque
-        wrench[6:] = self._com_pose(*key)[0]
+        wrench[6:] = centre
 
     def _invalidate_contact_index(self):
         self._indexed_contacts = None
@@ -323,6 +356,7 @@ class PhysXAdapter:
             self.applyExternalTorque(key[0], child, torque, bullet.WORLD_FRAME)
             self.applyExternalTorque(key[0], joint['parent_link_index'], -torque, bullet.WORLD_FRAME)
         self._state = self.process.call('step', self.controls)
+        self._invalidate_com_cache()
         self._invalidate_contact_index()
         for key, column in self.dofs.items():
             force = float(self.controls['effort'][0, column])

@@ -1,16 +1,21 @@
 # Windows installer and EXE builds
 
-The private [0.1.3 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.3-windows-preview.1)
+The private [0.1.4 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.4-windows-preview.1)
 includes GPU physics. Its `EERSim-Setup-x64.exe` contains Python, PySide6,
 PyBullet, VTK, PhysX/OVStage, SciPy, default robots and fields, and the desktop
 LLVM-MinGW compiler for selected PROS workspaces. Recipients do not need Python,
 Conda, PROS tooling, a separate compiler, or WSL installed.
-The frozen application passed headless native compilation, Bullet/PhysX CPU,
-automatic fallback, and explicit missing-CUDA checks. Linux A100 execution
-validated the integrated GPU backend. A subsequent RTX 4070 Ti diagnostic capture
-of 0.1.3 also records Windows CUDA execution of the native PROS claw demo, preload
-placement, and completion of the 30-second mode at 120 Hz. See the
-[capture analysis](diagnostics-4070ti-followup.md) and [validation](validation.md).
+Version 0.1.4 includes contact conversion and per-state force-transform reuse,
+plus scoring/observation calculation reuse. Solver iterations, field collision
+geometry, motor equations and sensor sampling cadence retain their defaults.
+The release notes record the matched A100 performance/placement checks and
+Windows artifact validation for this build.
+
+Previous releases passed headless native compilation, Bullet/PhysX CPU,
+automatic fallback and explicit missing-CUDA checks. The supplied RTX 4070 Ti
+capture of 0.1.3 records Windows CUDA execution of the PROS claw demo and preload
+placement. Those older measurements do not establish 0.1.4 Windows performance.
+See the [capture analysis](diagnostics-4070ti-followup.md) and [validation](validation.md).
 
 CUDA physics requires an NVIDIA GPU with compute capability 7.0 or newer and a
 driver exposing CUDA 12.8 or newer. The x64 PhysX wheel also requires an

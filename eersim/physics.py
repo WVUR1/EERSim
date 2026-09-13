@@ -701,6 +701,10 @@ class World:
         for wheel in self._wheels:
             world_direction = rotation @ np.array(wheel["direction"])
             contacts = self._physics.getContactPoints(bodyA=self.robot, linkIndexA=wheel["index"], physicsClientId=self.client)
+            # Settings may be edited between ticks. Reuse their scalar values
+            # only within this wheel's contact loop, and read them lazily so an
+            # airborne wheel retains the same validation/force behavior.
+            tire_settings = None
             if self.performance.enabled:
                 self.performance.increment("world.tire_contact_reports", len(contacts))
             for contact in contacts:
@@ -719,14 +723,17 @@ class World:
                 relative = self._point_velocity(self.robot, wheel["index"], point) - self._point_velocity(contact[2], contact[4], point)
                 # tanh is a bounded Coulomb regularization; its product with slip
                 # always dissipates energy. Normal loads come from Bullet contacts.
-                mu = float(wheel.get("friction", self.config.friction))
-                slip_scale = float(wheel.get("slip_speed", 0.15))
+                if tire_settings is None:
+                    tire_settings = (float(wheel.get("friction", self.config.friction)),
+                                     float(wheel.get("slip_speed", 0.15)),
+                                     float(wheel.get("radius", 0.0254)),
+                                     float(wheel.get("roller_friction", 0.025)))
+                mu, slip_scale, radius, roller_friction = tire_settings
                 slip = float(np.dot(relative, direction))
                 driven_force = -mu * normal_load * math.tanh(slip / max(.01, slip_scale))
-                radius = float(wheel.get("radius", 0.0254))
                 stopping_force = abs(slip) * wheel["inertia"] / (self.dt * radius * radius)
                 driven_force = _clip(driven_force, -stopping_force, stopping_force)
-                roller_force = -float(wheel.get("roller_friction", 0.025)) * normal_load * math.tanh(float(np.dot(relative, lateral)) / .1)
+                roller_force = -roller_friction * normal_load * math.tanh(float(np.dot(relative, lateral)) / .1)
                 force = direction * driven_force + lateral * roller_force
                 self.performance.increment("world.tire_contacts_applied")
                 self._physics.applyExternalForce(self.robot, wheel["index"], force.tolist(), point.tolist(), self._physics.WORLD_FRAME, physicsClientId=self.client)
@@ -805,15 +812,19 @@ class World:
         self._last_torques = {motor["port"]: 0 for motor in self.motor_bindings}
 
     def _distances(self) -> dict[str, float]:
+        sensors = self.robot_settings.get("distance_sensors", [])
+        if not sensors:
+            return {}
         position, quaternion = self._physics.getBasePositionAndOrientation(self.robot, physicsClientId=self.client)
         rot = np.array(self._physics.getMatrixFromQuaternion(quaternion)).reshape(3, 3)
         result = {}
-        for sensor in self.robot_settings.get("distance_sensors", []):
+        for sensor in sensors:
             offset = np.array(_vec(sensor.get("position", [.22, 0, .07]), 3, "distance.position"))
             direction = np.array(_vec(sensor.get("direction", [1, 0, 0]), 3, "distance.direction"))
-            if np.linalg.norm(direction) < .001:
+            direction_length = np.linalg.norm(direction)
+            if direction_length < .001:
                 raise ValueError("Distance sensor direction cannot be zero")
-            ray_direction = rot @ (direction / np.linalg.norm(direction))
+            ray_direction = rot @ (direction / direction_length)
             origin = np.asarray(position) + rot @ offset
             limit = float(sensor.get("max_range", 2.0))
             if not math.isfinite(limit) or limit <= 0:
@@ -887,6 +898,10 @@ class World:
         """
         goals = [item for item in self.field_objects if item["scoring"].get("type") == "goal"]
         pins = [item for item in self.field_objects if item["scoring"].get("type") == "pin"]
+        # The world cannot move during this synchronous observation. Reuse a
+        # goal's pose and numeric metadata across pins, then discard the cache:
+        # custom movable goals, live edits and resets remain visible next call.
+        goal_geometry = {}
         placed = []
         for pin in pins:
             xyz, quat = self._physics.getBasePositionAndOrientation(pin["id"], physicsClientId=self.client)
@@ -896,12 +911,16 @@ class World:
             bottom = np.array(xyz) - np.sign(axis[2]) * axis * float(pin["scoring"].get("length", .165)) / 2
             if self._has_contact(pin["id"], self.robot):
                 continue
-            for goal in goals:
-                centre, _ = self._physics.getBasePositionAndOrientation(goal["id"], physicsClientId=self.client)
+            for goal_index, goal in enumerate(goals):
                 spec = goal["scoring"]
-                top = float(spec["height"]) + float(spec.get("base_z", 0))
-                clearance = float(spec.get("socket_radius", .027)) - float(pin["scoring"].get("radius", .020)) + .003
-                if np.linalg.norm(bottom[:2] - np.array(centre[:2])) > clearance:
+                if goal_index not in goal_geometry:
+                    centre, _ = self._physics.getBasePositionAndOrientation(goal["id"], physicsClientId=self.client)
+                    goal_geometry[goal_index] = (
+                        np.array(centre[:2]), float(spec["height"]) + float(spec.get("base_z", 0)),
+                        float(spec.get("socket_radius", .027)))
+                centre_xy, top, socket_radius = goal_geometry[goal_index]
+                clearance = socket_radius - float(pin["scoring"].get("radius", .020)) + .003
+                if np.linalg.norm(bottom[:2] - centre_xy) > clearance:
                     continue
                 if not top - float(spec.get("socket_depth", .055)) - .008 <= bottom[2] <= top + .002:
                     continue

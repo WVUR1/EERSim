@@ -11,9 +11,10 @@ are placeholders, not measured zero friction.
 """
 from __future__ import annotations
 
+from bisect import bisect_left
 from collections import Counter
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import math
 from numbers import Integral
 
@@ -28,10 +29,10 @@ class _Actor:
     body: int
     link: int
     dynamic: bool
+    endpoint: tuple[int, int] = field(init=False)
 
-    @property
-    def endpoint(self):
-        return self.body, self.link
+    def __post_init__(self):
+        object.__setattr__(self, 'endpoint', (self.body, self.link))
 
 
 class ContactReader:
@@ -69,8 +70,11 @@ class ContactReader:
             self._actors[path] = actor
             endpoints.add(actor.endpoint)
         self._prefixes = sorted(self._actors, key=len, reverse=True)
+        self._body_ids = frozenset(actor.body for actor in self._actors.values())
         dynamics = {path for path, actor in self._actors.items() if actor.dynamic}
         self._presence_paths = sorted(dynamics)
+        self._presence_path_set = frozenset(dynamics)
+        self._presence_bodies = tuple(self._actors[path].body for path in self._presence_paths)
         requested = manifest.get('contact_sensor_paths', sorted(dynamics))
         if not isinstance(requested, list) or len(requested) != len(set(requested)) or not set(requested) <= dynamics:
             raise ValueError('Contact subscriptions must name unique dynamic manifest actors')
@@ -138,7 +142,7 @@ class ContactReader:
         """
         if not isinstance(robot_body_id, Integral) or isinstance(robot_body_id, bool) or robot_body_id < 0:
             raise ValueError("Robot body ID must be a nonnegative integer")
-        if not any(actor.body == robot_body_id for actor in self._actors.values()):
+        if robot_body_id not in self._body_ids:
             raise ValueError("Robot body ID is absent from the contact manifest")
         total, unique_actors, inverse = self._read_payload()
         with self.performance.span("worker.contacts.pair_selection"):
@@ -146,6 +150,8 @@ class ContactReader:
             selected = other_is_robot[inverse] if total else np.zeros(0, dtype=bool)
             body_pairs = set()
             for sensor, start, count in zip(self._sensors, self._starts, self._counts):
+                if not count:
+                    continue
                 start, end = int(start), int(start + count)
                 # Compound collider IDs and repeated contact points may all resolve
                 # to the same body. Iterate unique IDs, never individual pin points.
@@ -153,7 +159,8 @@ class ContactReader:
                     other = unique_actors[int(code)]
                     if sensor.endpoint == other.endpoint:
                         raise RuntimeError(f"Contact reports an actor colliding with itself: {sensor.path}")
-                    body_pairs.add(tuple(sorted((sensor.body, other.body))))
+                    body_pairs.add((sensor.body, other.body) if sensor.body <= other.body
+                                   else (other.body, sensor.body))
                 if sensor.body == robot_body_id:
                     selected[start:end] = True
         with self.performance.span("worker.contacts.robot_materialization"):
@@ -170,7 +177,7 @@ class ContactReader:
         self.retained_pair_count = 0
         if poses_by_actor is None:
             return fresh_pairs
-        if not isinstance(poses_by_actor, Mapping) or set(poses_by_actor) != set(self._presence_paths):
+        if not isinstance(poses_by_actor, Mapping) or set(poses_by_actor) != self._presence_path_set:
             raise ValueError('Contact presence requires exactly all dynamic actor poses')
         poses = np.asarray([poses_by_actor[path] for path in self._presence_paths], dtype=np.float64)
         if poses.shape != (len(self._presence_paths), 7) or not np.isfinite(poses).all():
@@ -178,7 +185,7 @@ class ContactReader:
         retained = set()
         if previous_poses is not None:
             changed_rows = np.flatnonzero(np.any(poses != previous_poses, axis=1))
-            changed_bodies = {self._actors[self._presence_paths[int(row)]].body for row in changed_rows}
+            changed_bodies = {self._presence_bodies[int(row)] for row in changed_rows}
             retained = {pair for pair in previous_pairs - fresh_pairs
                         if robot_body_id not in pair and not changed_bodies.intersection(pair)}
         result = fresh_pairs | retained
@@ -233,31 +240,47 @@ class ContactReader:
         # separated by reporting endpoint. Keep contact multiplicity, not merely
         # a set of positions: compound leaves can have distinct coincident hits.
         pairs = {}
+        # The validated native buckets are contiguous and indices are ascending.
+        # Select once, preserving native order, instead of allocating an array
+        # for every empty/unselected sensor bucket on every simulation tick.
+        selected_indices = None if selected is None else np.flatnonzero(selected).tolist()
+        selection_start = 0
+        if selected_indices == []:
+            return []
         for sensor, start, count in zip(self._sensors, self._starts, self._counts):
+            if not count:
+                continue
             start, end = int(start), int(start + count)
-            indices = range(start, end) if selected is None else start + np.flatnonzero(selected[start:end])
+            if selected_indices is None:
+                indices = range(start, end)
+            else:
+                selection_end = bisect_left(selected_indices, end, selection_start)
+                indices = selected_indices[selection_start:selection_end]
+                selection_start = selection_end
             for index in indices:
                 other = self._id_cache[int(self._other_ids[index])]
                 if sensor.endpoint == other.endpoint:
                     raise RuntimeError(f"Contact reports an actor colliding with itself: {sensor.path}")
                 force = float(self._forces[index, 0])
-                normal = self._normals[index].astype(float)
                 # Pinned CPU and CUDA raw APIs keep the original actor1->actor0
                 # normal while negating force for a sensor on actor1. signbit
                 # preserves that orientation even for signed zero force.
-                if np.signbit(force):
-                    normal = -normal
+                reverse_normal = math.copysign(1., force) < 0
                 a, b = sensor.endpoint, other.endpoint
                 side = 0
                 if a > b:
                     a, b, side = b, a, 1
-                    normal = -normal
-                point = tuple(float(value) for value in self._points[index])
+                    reverse_normal = not reverse_normal
+                nx, ny, nz = self._normals[index].tolist()
+                normal = (-nx, -ny, -nz) if reverse_normal else (nx, ny, nz)
+                point = tuple(self._points[index].tolist())
                 contact = (0, a[0], b[0], a[1], b[1], point, point,
-                           tuple(float(value) for value in normal),
+                           normal,
                            float(self._separations[index, 0]), abs(force),
                            0., (0., 0., 0.), 0., (0., 0., 0.))
-                reports = pairs.setdefault((a, b), ([], []))
+                reports = pairs.get((a, b))
+                if reports is None:
+                    reports = pairs[(a, b)] = ([], [])
                 reports[side].append(contact)
         contacts = []
         for (a, b), (first, second) in pairs.items():

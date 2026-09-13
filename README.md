@@ -16,11 +16,14 @@ is reported separately in the [validation notes](docs/validation.md).
 ## Start here
 
 Download **EERSim-Setup-x64.exe** from the private
-[0.1.3 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.3-windows-preview.1).
+[0.1.4 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.4-windows-preview.1).
 It bundles Python, the PhysX GPU runtime, simulator dependencies, default robots
 and fields, and the native robot compiler. It installs for your Windows account
 without administrator privileges; a desktop shortcut is optional. This private
 build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
+Version 0.1.4 reduces repeated CPU work in contact conversion, force transforms,
+and scoring observations while retaining the same physics settings and field
+geometry. The release notes contain its matched A100 results and artifact checks.
 The integrated backend completed the full PROS claw routine on a Linux A100;
 Windows packaging, CPU execution, and fallback were checked headlessly. A supplied
 RTX 4070 Ti capture also verifies Windows CUDA physics and GPU rendering. A
