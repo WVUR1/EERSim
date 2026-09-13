@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView,
     QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QProgressBar,
-    QPushButton, QScrollArea, QSizePolicy, QSpinBox, QSplitter,
+    QPushButton, QScrollArea, QSizePolicy, QSlider, QSpinBox, QSplitter, QStyle, QStyleOptionSlider,
     QTabWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
@@ -55,6 +55,89 @@ DIGITAL_NAMES = ("l1", "l2", "r1", "r2", "up", "down", "left", "right", "x", "b"
 CARTRIDGES = {name: (preset.label, preset.rpm, preset.stall_torque)
               for name, preset in PHYSICAL_CARTRIDGES.items()}
 APPLY_STATUS = "Applying experiment settings and resetting physics…"
+
+
+def _replay_time(seconds):
+    seconds = max(0.0, float(seconds))
+    minutes, seconds = divmod(seconds, 60)
+    return f"{int(minutes):02d}:{seconds:06.3f}"
+
+
+def _timeline_position(x, start, span, minimum, maximum, upside_down=False):
+    """Map the handle's leading edge into the style-provided travel interval."""
+    fraction = min(1.0, max(0.0, (x - start) / span)) if span > 0 else 0.0
+    if upside_down:
+        fraction = 1.0 - fraction
+    return minimum + round(fraction * (maximum - minimum))
+
+
+class ReplayTimeline(QSlider):
+    """A video-style slider: groove clicks seek immediately, drags scrub."""
+    seek_started = Signal()
+    seek_requested = Signal(float)
+    seek_finished = Signal(float)
+    toggle_requested = Signal()
+
+    def __init__(self):
+        super().__init__(Qt.Orientation.Horizontal)
+        self._seeking = False
+        self.setRange(0, 0)
+        self.setMinimumWidth(90)
+        self.setAccessibleName("Recorded run timeline")
+        self.setToolTip("Click or drag to seek. Left/Right: small seek; Home/End: endpoints; Space: play/pause.")
+
+    def _at_pointer(self, event):
+        option = QStyleOptionSlider()
+        self.initStyleOption(option)
+        groove = self.style().subControlRect(QStyle.ComplexControl.CC_Slider, option,
+                                             QStyle.SubControl.SC_SliderGroove, self)
+        handle = self.style().subControlRect(QStyle.ComplexControl.CC_Slider, option,
+                                             QStyle.SubControl.SC_SliderHandle, self)
+        start, span = groove.x(), groove.width() - handle.width()
+        return _timeline_position(event.position().x() - handle.width() / 2,
+                                  start, span, self.minimum(), self.maximum(), option.upsideDown)
+
+    def cancel_seek(self):
+        self._seeking = False
+        self.setSliderDown(False)
+
+    def mousePressEvent(self, event):
+        if event.button() != Qt.MouseButton.LeftButton or not self.isEnabled():
+            return super().mousePressEvent(event)
+        self.setFocus()
+        self._seeking = True
+        self.setSliderDown(True)
+        self.seek_started.emit()
+        self.setValue(self._at_pointer(event))
+        self.seek_requested.emit(self.value() / 1000)
+        event.accept()
+
+    def mouseMoveEvent(self, event):
+        if not self._seeking:
+            return super().mouseMoveEvent(event)
+        self.setValue(self._at_pointer(event))
+        self.seek_requested.emit(self.value() / 1000)
+        event.accept()
+
+    def mouseReleaseEvent(self, event):
+        if not self._seeking or event.button() != Qt.MouseButton.LeftButton:
+            return super().mouseReleaseEvent(event)
+        self.setValue(self._at_pointer(event))
+        self._seeking = False
+        self.setSliderDown(False)
+        self.seek_finished.emit(self.value() / 1000)
+        event.accept()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Space:
+            if not event.isAutoRepeat():
+                self.toggle_requested.emit()
+            event.accept()
+            return
+        before = self.value()
+        super().keyPressEvent(event)
+        if self.value() != before:
+            self.seek_requested.emit(self.value() / 1000)
 
 
 class AppLogoState:
@@ -531,6 +614,7 @@ class SceneView(QWidget):
     camera_changed = Signal(float, float, float, object)
     key_changed = Signal(int, bool)
     focus_lost = Signal()
+    replay_toggle = Signal()
 
     def __init__(self, driving: bool = True):
         super().__init__()
@@ -593,7 +677,8 @@ class SceneView(QWidget):
         painter.drawText(28, 37, self.scene_name[:48].upper())
         painter.setPen(QColor("#b9c9d8"))
         painter.setFont(QFont("Segoe UI", 8))
-        painter.drawText(28, 55, "CONTACT DYNAMICS  /  SI UNITS  /  " + self.status)
+        scene_kind = "RECORDED MOTION" if self.status.startswith("REPLAY") else "CONTACT DYNAMICS"
+        painter.drawText(28, 55, scene_kind + "  /  SI UNITS  /  " + self.status)
         if self.score_text:
             badge_x = self.width() - 263 if self.width() >= 690 else 16
             badge_y = 16 if self.width() >= 690 else 78
@@ -643,6 +728,8 @@ class SceneView(QWidget):
         event.accept()
 
     def keyPressEvent(self, event: QKeyEvent):
+        if not self.driving and event.key() == Qt.Key.Key_Space and not event.isAutoRepeat():
+            self.replay_toggle.emit()
         if self.driving and not event.isAutoRepeat():
             self.key_changed.emit(event.key(), True)
         event.accept()
@@ -727,6 +814,14 @@ class Workbench(QMainWindow):
             self.config["workspace"] = str(workspace)
         self.engine = SimulationEngine(defer_configuration=True)
         self._state: dict = {}
+        self._replay: dict = {}
+        self._replay_pending = None
+        self._replay_pending_generation = -1
+        self._view_generation = 0
+        self._replay_dragging = False
+        self._replay_resume_after_seek = False
+        self._pending_replay_seek = None
+        self._replay_reason = ""
         self._built_workspace: str | None = None
         self._pending_workspace: str | None = None
         self._building = False
@@ -761,7 +856,9 @@ class Workbench(QMainWindow):
         layout.addWidget(split, 1)
         layout.addWidget(self._make_controls())
         self.statusBar().showMessage("Fixed physics steps preserve simulation fidelity when rendering slows.")
-        self.engine.frame.connect(self.scene.set_frame)
+        self.engine.frame.connect(self._on_live_frame)
+        self.engine.replay_frame.connect(self._on_replay_frame)
+        self.engine.replay_state.connect(self._on_replay_state)
         self.engine.state.connect(self._on_state)
         self.engine.log.connect(self._log)
         self.engine.built.connect(self._on_built)
@@ -769,11 +866,17 @@ class Workbench(QMainWindow):
         self.scene.camera_changed.connect(self.engine.set_camera)
         self.scene.key_changed.connect(self._key)
         self.scene.focus_lost.connect(self._release_keys)
+        self.scene.replay_toggle.connect(self._replay_toggle)
+        self._replay_seek_timer = QTimer(self)
+        self._replay_seek_timer.setSingleShot(True)
+        self._replay_seek_timer.setInterval(35)
+        self._replay_seek_timer.timeout.connect(self._flush_replay_seek)
         self._fill_widgets(self.config)
         self._controller_timer = QTimer(self)
         self._controller_timer.timeout.connect(self._poll_gamepad)
         self._controller_timer.start(25)
         QApplication.instance().applicationStateChanged.connect(self._application_state)
+        self._refresh_replay_display()
         QTimer.singleShot(0, self._apply_config)
 
     def _make_header(self, parent, workspace):
@@ -840,7 +943,8 @@ class Workbench(QMainWindow):
         layout.setSpacing(9)
         top = QHBoxLayout()
         top.addWidget(label("Simulation", "Title"))
-        top.addWidget(label("/ live world", "Muted"))
+        self.scene_subtitle = label("/ live world", "Muted")
+        top.addWidget(self.scene_subtitle)
         top.addStretch()
         self.camera_preset = QComboBox()
         self.camera_preset.addItems(["Orbit camera", "Top down", "Driver station", "Close view"])
@@ -848,10 +952,12 @@ class Workbench(QMainWindow):
         top.addWidget(self.camera_preset)
         layout.addLayout(top)
         self.scene = SceneView()
+        self.scene.setMinimumHeight(255)
         layout.addWidget(self.scene, 1)
         metrics = QHBoxLayout()
         metrics.setSpacing(9)
         self.metric_values = {}
+        self.metric_captions = {}
         for key, caption, initial in (("time", "SIMULATION TIME", "00:00.000"), ("remaining", "TIME REMAINING", "60.00 s"),
                                       ("rtf", "REAL-TIME FACTOR", "1.00×"), ("pose", "ROBOT POSITION", "0.00 / 0.00 m")):
             card = QFrame()
@@ -859,7 +965,8 @@ class Workbench(QMainWindow):
             box = QVBoxLayout(card)
             box.setContentsMargins(12, 9, 12, 9)
             box.setSpacing(2)
-            box.addWidget(label(caption, "MetricLabel"))
+            self.metric_captions[key] = label(caption, "MetricLabel")
+            box.addWidget(self.metric_captions[key])
             value = label(initial, "MetricValue")
             if key == "pose":
                 value.setStyleSheet("font-size: 16px;")
@@ -872,6 +979,35 @@ class Workbench(QMainWindow):
         self.progress.setValue(0)
         self.progress.setTextVisible(False)
         layout.addWidget(self.progress)
+        transport = QHBoxLayout()
+        transport.setSpacing(6)
+        self.replay_button = button("Replay last run", self._replay_enter)
+        self.replay_button.setEnabled(False)
+        self.replay_play_button = button("Play", self._replay_toggle)
+        self.replay_play_button.setEnabled(False)
+        self.replay_time = label("00:00.000 / 00:00.000", "Muted")
+        self.replay_time.setStyleSheet("font-size: 11px;")
+        self.replay_time.setAccessibleName("Replay position and duration")
+        self.replay_timeline = ReplayTimeline()
+        self.replay_timeline.setEnabled(False)
+        self.replay_timeline.seek_started.connect(self._replay_seek_started)
+        self.replay_timeline.seek_requested.connect(self._queue_replay_seek)
+        self.replay_timeline.seek_finished.connect(self._replay_seek_finished)
+        self.replay_timeline.toggle_requested.connect(self._replay_toggle)
+        self.replay_live_button = button("Live", self._replay_live)
+        self.replay_live_button.setEnabled(False)
+        self.replay_live_button.setToolTip("Return to the live world. Resume remains an explicit action.")
+        transport.addWidget(self.replay_button)
+        transport.addWidget(self.replay_play_button)
+        transport.addWidget(self.replay_time)
+        transport.addWidget(self.replay_timeline, 1)
+        transport.addWidget(self.replay_live_button)
+        layout.addLayout(transport)
+        self.replay_status = label("No recorded run yet · completed and stopped runs become available here.", "Muted")
+        self.replay_status.setStyleSheet("font-size: 11px;")
+        self.replay_status.setWordWrap(True)
+        self.replay_status.setMaximumHeight(34)
+        layout.addWidget(self.replay_status)
         return pane
 
     def _tab(self, name: str):
@@ -894,8 +1030,10 @@ class Workbench(QMainWindow):
         heading = QHBoxLayout()
         heading.addWidget(label("Experiment setup", "Title"))
         heading.addStretch()
-        heading.addWidget(button("Load", self._load_profile))
-        heading.addWidget(button("Save", self._save_profile))
+        self.load_profile_button = button("Load", self._load_profile)
+        self.save_profile_button = button("Save", self._save_profile)
+        heading.addWidget(self.load_profile_button)
+        heading.addWidget(self.save_profile_button)
         layout.addLayout(heading)
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
@@ -1162,7 +1300,8 @@ class Workbench(QMainWindow):
 
     def _telemetry_tab(self):
         layout = self._tab("Telemetry")
-        layout.addWidget(label("LIVE ROBOT STATE", "Section"))
+        self.telemetry_caption = label("LIVE ROBOT STATE", "Section")
+        layout.addWidget(self.telemetry_caption)
         self.pose_detail = label("Waiting for physics state…", "Muted", True)
         layout.addWidget(self.pose_detail)
         self.physics_detail = label("Physics initialization pending…", "Muted", True)
@@ -1223,7 +1362,7 @@ class Workbench(QMainWindow):
         self.pause_button.setEnabled(False)
         self.stop_button = button("Stop", self._stop, "Danger")
         self.stop_button.setEnabled(False)
-        self.step_button = button("Step", self.engine.single_step)
+        self.step_button = button("Step", self._single_step)
         self.step_button.setToolTip("Advance exactly one fixed physics step while paused.")
         self.reset_button = button("Reset", self._reset)
         actions = QGridLayout()
@@ -1301,6 +1440,8 @@ class Workbench(QMainWindow):
         return result
 
     def _apply_config(self):
+        if not self._live_action_allowed():
+            return False
         try:
             config = self._collect_config()
             for key in ("robot_urdf", "robot_config", "game_pack"):
@@ -1322,6 +1463,8 @@ class Workbench(QMainWindow):
             return False
 
     def _choose_workspace(self):
+        if not self._live_action_allowed():
+            return
         path = QFileDialog.getExistingDirectory(self, "Select a PROS workspace", self.workspace.text())
         if path:
             self.workspace.setText(str(Path(path)))
@@ -1332,11 +1475,14 @@ class Workbench(QMainWindow):
 
     def _workspace_changed(self):
         if hasattr(self, "start_button"):
-            self.start_button.setEnabled(self._built_workspace == self._workspace_key() and not self._state.get("running", False))
+            self.start_button.setEnabled(self._built_workspace == self._workspace_key() and not self._state.get("running", False)
+                                         and not self._replay_blocked())
             if self._built_workspace != self._workspace_key():
                 self.build_status.setText("Workspace changed · build before running")
 
     def _build(self):
+        if not self._live_action_allowed():
+            return
         key = self._workspace_key()
         if not key:
             self._on_failed("Select a PROS workspace containing a src folder.")
@@ -1370,8 +1516,12 @@ class Workbench(QMainWindow):
         self.build_status.setToolTip(str(path))
         self._log("Build complete. Select a competition mode and press Start.")
         self.statusBar().showMessage("Workspace built · ready to run.")
+        self._update_live_controls()
+        self._refresh_replay_display()
 
     def _start(self):
+        if not self._live_action_allowed():
+            return
         if self._built_workspace != self._workspace_key():
             self._on_failed("Build the selected workspace before starting.")
             return
@@ -1381,6 +1531,8 @@ class Workbench(QMainWindow):
             self.scene.setFocus()
 
     def _pause_resume(self):
+        if not self._live_action_allowed():
+            return
         if self._state.get("paused", False):
             self.engine.resume()
             self.scene.setFocus()
@@ -1389,11 +1541,15 @@ class Workbench(QMainWindow):
             self.engine.pause()
 
     def _stop(self):
+        if not self._live_action_allowed():
+            return
         self._neutral_controller()
         self._logo_event("stopped")
         self.engine.stop()
 
     def _reset(self):
+        if not self._live_action_allowed():
+            return
         self._neutral_controller()
         self._logo_event("reset")
         self.engine.reset()
@@ -1493,6 +1649,8 @@ class Workbench(QMainWindow):
                 self._on_failed(f"Cannot read hardware bindings: {exc}")
 
     def _urdf_selected(self, path, current=False):
+        if not self._live_action_allowed():
+            return
         try:
             from .importers import create_robot_config, inspect_robot_urdf
             inspection = inspect_robot_urdf(path)
@@ -1511,6 +1669,8 @@ class Workbench(QMainWindow):
             self._on_failed(f"Could not import robot: {exc}")
 
     def _accept_robot_import(self, patch, inspection):
+        if not self._live_action_allowed():
+            return
         self.urdf_path.setText(str(patch["robot_urdf"]))
         self._loaded_urdf_path = self.urdf_path.text()
         self.binding_path.setText(str(patch.get("robot_config", "")))
@@ -1525,6 +1685,8 @@ class Workbench(QMainWindow):
         self._logo_event("robot_import")
 
     def _edit_robot_setup(self):
+        if not self._live_action_allowed():
+            return
         self._urdf_selected(self.urdf_path.text(), current=True)
 
     def _scan_joints(self, path):
@@ -1563,11 +1725,15 @@ class Workbench(QMainWindow):
                                   float(upper) if upper is not None else 10000)
 
     def _move_joint(self):
+        if self._replay_blocked():
+            return
         joint = self.joint_select.currentText()
         if joint:
             self.engine.set_joint(joint, self.joint_target.value())
 
     def _robot_preset(self, name):
+        if not self._live_action_allowed():
+            return
         self.urdf_path.setText(str(ASSETS / "robots" / f"{name}.urdf"))
         self._loaded_urdf_path = self.urdf_path.text()
         self.binding_path.setText(str(ASSETS / "robots" / f"{name}.json"))
@@ -1575,11 +1741,15 @@ class Workbench(QMainWindow):
         self._bindings_selected(self.binding_path.text())
 
     def _game_preset(self, name):
+        if not self._live_action_allowed():
+            return
         self.config.pop("field_objects", None)
         self.game_path.setText(str(ASSETS / "games" / name))
         self._describe_game(self.game_path.text())
 
     def _import_field(self, path):
+        if not self._live_action_allowed():
+            return
         try:
             from .importers import default_import_directory, import_field
             destination = default_import_directory(self.workspace.text().strip() or None)
@@ -1643,10 +1813,13 @@ class Workbench(QMainWindow):
             field.setValue(value)
 
     def _camera_preset(self, index):
-        target = self._pose_values(self._state)[:3] if index == 3 else [0, 0, 0]
+        observed = self._replay if self._replay.get("active", False) else self._state
+        target = self._pose_values(observed)[:3] if index == 3 else [0, 0, 0]
         self.scene.set_camera(*((45, -52, 6.4), (0, -89, 5), (90, -24, 6.4), (45, -30, 1.3))[index], target=target)
 
     def _save_profile(self):
+        if not self._live_action_allowed():
+            return
         try:
             initial = _dialog_default("experiment.json", "experiments", getattr(self, "_profile_path", None),
                                       self.workspace.text().strip() or None)
@@ -1663,6 +1836,8 @@ class Workbench(QMainWindow):
             self._on_failed(str(exc))
 
     def _load_profile(self):
+        if not self._live_action_allowed():
+            return
         try:
             initial = _dialog_default("", "experiments", getattr(self, "_profile_path", None),
                                       self.workspace.text().strip() or None)
@@ -1679,6 +1854,8 @@ class Workbench(QMainWindow):
             self._on_failed(f"Could not load experiment profile: {exc}")
 
     def _load_demo(self):
+        if not self._live_action_allowed():
+            return
         try:
             from .demos import claw_demo_config
             config = claw_demo_config()
@@ -1731,6 +1908,8 @@ class Workbench(QMainWindow):
             self._logo_event("error")
 
     def _key(self, key, down):
+        if self._replay_blocked():
+            return
         if down:
             self._keys.add(key)
         else:
@@ -1752,15 +1931,21 @@ class Workbench(QMainWindow):
             self._neutral_controller()
 
     def _stick(self, side, x, y):
+        if self._replay_blocked():
+            return
         self._controller["analog"][side + "_x"] = x
         self._controller["analog"][side + "_y"] = y
         self._send_controller()
 
     def _digital(self, name, down):
+        if self._replay_blocked():
+            return
         self._controller["digital"][name] = down
         self._send_controller()
 
     def _send_controller(self):
+        if self._replay_blocked():
+            return
         self.left_stick.display(self._controller["analog"]["left_x"], self._controller["analog"]["left_y"])
         self.right_stick.display(self._controller["analog"]["right_x"], self._controller["analog"]["right_y"])
         for name, control in self.digital_buttons.items():
@@ -1777,6 +1962,8 @@ class Workbench(QMainWindow):
             self._neutral_controller()
 
     def _connect_gamepad(self):
+        if self._replay_blocked():
+            return
         if self._gamepad is not None:
             self._gamepad.quit()
             self._gamepad = None
@@ -1801,6 +1988,8 @@ class Workbench(QMainWindow):
             self.gamepad_status.setText(f"Gamepad connection failed: {exc}")
 
     def _poll_gamepad(self):
+        if self._replay_blocked():
+            return
         if self._gamepad is None or QApplication.applicationState() != Qt.ApplicationState.ApplicationActive:
             return
         if QApplication.activeModalWidget() is not None:
@@ -1830,6 +2019,230 @@ class Workbench(QMainWindow):
             self.gamepad_button.setText("Connect USB gamepad")
             self.gamepad_status.setText(f"Gamepad disconnected: {exc}")
             self._neutral_controller()
+
+    def _replay_blocked(self):
+        return bool(getattr(self, "_replay_pending", None) or getattr(self, "_replay", {}).get("active"))
+
+    def _live_action_allowed(self):
+        if self._replay_blocked():
+            self.statusBar().showMessage("Return to Live to change the simulation.")
+            return False
+        return True
+
+    def _single_step(self):
+        if self._live_action_allowed():
+            self.engine.single_step()
+
+    def _replay_enter(self):
+        if self._replay_blocked() or not self._replay.get("available") or self._building or self._pending_scene_applies:
+            return
+        self._neutral_controller()
+        self._live_scene_name = self.scene.scene_name
+        self._replay_pending = "enter"
+        self._replay_pending_generation = self._view_generation
+        self._update_live_controls()
+        self._refresh_replay_display()
+        self.engine.replay_enter()
+
+    def _replay_live(self):
+        if not self._replay.get("active") or self._replay_pending:
+            return
+        self._replay_seek_timer.stop()
+        self._pending_replay_seek = None
+        self._replay_dragging = False
+        self._replay_resume_after_seek = False
+        self._replay_pending = "live"
+        self._replay_pending_generation = self._view_generation
+        self._update_live_controls()
+        self._refresh_replay_display()
+        self.engine.replay_live()
+
+    def _replay_toggle(self):
+        if not self._replay.get("active") or self._replay_pending or self._replay_dragging:
+            return
+        if self._replay.get("playing"):
+            self.engine.replay_pause()
+        else:
+            self._flush_replay_seek()
+            self.engine.replay_play()
+
+    def _replay_seek_started(self):
+        if not self._replay.get("active") or self._replay_pending:
+            return
+        self._replay_dragging = True
+        self._replay_resume_after_seek = bool(self._replay.get("playing"))
+        self.engine.replay_pause()
+
+    def _queue_replay_seek(self, seconds):
+        if not self._replay.get("active") or self._replay_pending:
+            return
+        seconds = float(seconds)
+        if not math.isfinite(seconds):
+            return
+        duration = max(0.0, float(self._replay.get("duration_s", 0)))
+        self._pending_replay_seek = min(duration, max(0.0, seconds))
+        self.replay_time.setText(f"{_replay_time(self._pending_replay_seek)} / {_replay_time(duration)}")
+        if not self._replay_seek_timer.isActive():
+            self._replay_seek_timer.start()
+
+    def _flush_replay_seek(self):
+        self._replay_seek_timer.stop()
+        seconds, self._pending_replay_seek = self._pending_replay_seek, None
+        if seconds is not None and self._replay.get("active") and not self._replay_pending:
+            self.engine.replay_seek(seconds)
+
+    def _replay_seek_finished(self, seconds):
+        if not self._replay_dragging:
+            return
+        resume = self._replay_resume_after_seek
+        self._replay_dragging = False
+        self._replay_resume_after_seek = False
+        self._queue_replay_seek(seconds)
+        self._flush_replay_seek()
+        if resume and self._replay.get("active") and not self._replay_pending:
+            self.engine.replay_play()
+
+    def _on_live_frame(self, packet):
+        if self._replay_blocked():
+            return
+        if isinstance(packet, dict):
+            if packet.get("generation") != self._view_generation or "pixels" not in packet:
+                return
+            packet = packet["pixels"]
+        elif self._view_generation != 0:
+            return
+        self.scene.set_frame(packet)
+
+    def _on_replay_frame(self, packet):
+        if not self._replay.get("active") or self._replay_pending:
+            return
+        if not isinstance(packet, dict) or packet.get("generation") != self._view_generation or "pixels" not in packet:
+            return
+        self.scene.set_frame(packet["pixels"])
+
+    def _on_replay_state(self, state):
+        generation = int(state.get("generation", 0))
+        if generation < self._view_generation:
+            return
+        if self._replay_pending and generation <= self._replay_pending_generation:
+            return  # Old queued metadata cannot acknowledge a new source selection.
+        changed = generation != self._view_generation or bool(state.get("active")) != bool(self._replay.get("active"))
+        self._view_generation = generation
+        self._replay = dict(state)
+        self._replay_pending = None
+        if changed:
+            self._replay_seek_timer.stop()
+            self._pending_replay_seek = None
+            self._replay_dragging = False
+            self._replay_resume_after_seek = False
+            self.replay_timeline.cancel_seek()
+            self._neutral_controller()
+            camera = state.get("camera") or {}
+            if camera:
+                # Apply the acknowledged camera without echoing another engine command.
+                self.scene.yaw = float(camera.get("yaw", self.scene.yaw))
+                self.scene.pitch = float(camera.get("pitch", self.scene.pitch))
+                self.scene.distance = float(camera.get("distance", self.scene.distance))
+                target = camera.get("target", self.scene.target)
+                self.scene.target = list(target) if target is not None else [0., 0., 0.]
+        if self._state:
+            self._on_state(self._state)  # Refresh only from the authoritative live state.
+        else:
+            self._update_live_controls()
+            self._refresh_replay_display()
+        reason = str(state.get("reason") or "")
+        if reason and reason != self._replay_reason:
+            self._log("Replay: " + reason)
+            self.statusBar().showMessage(reason)
+        self._replay_reason = reason
+
+    def _update_live_controls(self):
+        blocked = self._replay_blocked()
+        running, paused = bool(self._state.get("running")), bool(self._state.get("paused"))
+        self.start_button.setEnabled(not blocked and not running and not self._building and self._built_workspace == self._workspace_key())
+        self.pause_button.setEnabled(not blocked and running)
+        self.pause_button.setText("Resume" if paused else "Pause")
+        self.stop_button.setEnabled(not blocked and running)
+        self.step_button.setEnabled(not blocked and (paused or not running))
+        self.reset_button.setEnabled(not blocked and not self._building)
+        self.apply_button.setEnabled(not blocked and not self._building)
+        self.build_button.setEnabled(not blocked and not running and not self._building)
+        self.demo_button.setEnabled(not blocked and not running and not self._building)
+        self.joint_button.setEnabled(not blocked and not running)
+        self.workspace.setEnabled(not blocked and not self._building)
+        self.load_profile_button.setEnabled(not blocked and not self._building)
+        self.save_profile_button.setEnabled(not blocked)
+        for control in self.mode_buttons.values():
+            control.setEnabled(not blocked and not running)
+        for index in range(min(5, self.tabs.count())):
+            self.tabs.widget(index).setEnabled(not blocked)
+        self.scene.driving = not blocked
+
+    def _refresh_replay_display(self):
+        active = bool(self._replay.get("active"))
+        pending = bool(self._replay_pending)
+        available = bool(self._replay.get("available"))
+        duration = max(0.0, float(self._replay.get("duration_s", 0)))
+        position = max(0.0, min(duration, float(self._replay.get("position_s", 0))))
+        count = int(self._replay.get("sample_count", 0))
+        rate = float(self._replay.get("effective_hz", self._replay.get("recording_hz", 0)) or 0)
+        self.replay_button.setEnabled(available and not active and not pending and not self._building and not self._pending_scene_applies)
+        self.replay_play_button.setEnabled(active and not pending and count > 1)
+        self.replay_play_button.setText("Pause" if self._replay.get("playing") else "Play")
+        self.replay_live_button.setEnabled(active and not pending)
+        self.replay_timeline.setEnabled(active and not pending and count > 1)
+        if not self._replay_dragging and self._pending_replay_seek is None:
+            previous = self.replay_timeline.blockSignals(True)
+            try:
+                self.replay_timeline.setRange(0, max(0, round(duration * 1000)))
+                self.replay_timeline.setValue(round(position * 1000))
+                self.replay_timeline.setSingleStep(max(1, round(1000 / rate)) if rate > 0 else 33)
+                self.replay_timeline.setPageStep(5000)
+            finally:
+                self.replay_timeline.blockSignals(previous)
+            self.replay_time.setText(f"{_replay_time(position)} / {_replay_time(duration)}")
+        title = next((title for key, title, *_ in MODES if key == self._replay.get("mode")), "Previous run")
+        termination = str(self._replay.get("termination", "recorded")).replace("_", " ")
+        resolution = f"{rate:g} samples/s" if rate > 0 else f"{count} recorded samples"
+        description = f"{title} · {termination} · {resolution} · recorded motion"
+        if active and self._replay.get("phase"):
+            description += " · " + str(self._replay["phase"]).replace("_", " ")
+        if self._replay.get("truncated"):
+            description += " · truncated recording"
+        if pending:
+            description = "Preparing replay… Live physics is paused." if self._replay_pending == "enter" else "Returning to the paused live world…"
+        elif self._replay.get("reason"):
+            description = str(self._replay["reason"])
+        elif not available:
+            description = "No recorded run yet · completed and stopped runs become available here."
+        self.replay_status.setText(description)
+        self.replay_status.setToolTip(description)
+        self.replay_button.setToolTip(description)
+        self.progress.setVisible(not active)
+        self.scene_subtitle.setText("/ recorded run" if active else "/ live world")
+        self.telemetry_caption.setText("LIVE TELEMETRY · PAUSED DURING REPLAY" if active or pending else "LIVE ROBOT STATE")
+        self.metric_captions["time"].setText("RECORDED TIME" if active else "SIMULATION TIME")
+        self.metric_captions["remaining"].setText("RECORDED MODE TIME" if active else "TIME REMAINING")
+        self.metric_captions["rtf"].setText("PLAYBACK" if active else "REAL-TIME FACTOR")
+        if active:
+            self.metric_values["time"].setText(_replay_time(position))
+            self.metric_values["remaining"].setText(f"{float(self._replay.get('mode_time', 0)):.2f} s")
+            self.metric_values["rtf"].setText("1×" if self._replay.get("playing") else "Paused")
+            self.metric_values["rtf"].setToolTip("Recorded simulated-time playback; this is not live physics throughput.")
+            x, y, *_ = self._pose_values(self._replay)
+            self.metric_values["pose"].setText(f"{x:.2f} / {y:.2f} m")
+            self.status_badge.setText("REPLAY")
+            self.scene.status = "REPLAY · PLAYING" if self._replay.get("playing") else "REPLAY · PAUSED"
+            self.scene.scene_name = str(self._replay.get("scene_name") or self._replay.get("field_name") or title)
+            placed = self._replay.get("placed_pins")
+            self.scene.score_text = f"RECORDED · {placed} pin placements" if placed is not None else ""
+        elif pending:
+            self.status_badge.setText("REPLAY LOADING")
+            self.scene.status = "REPLAY LOADING"
+        elif hasattr(self, "_live_scene_name"):
+            self.scene.scene_name = self._live_scene_name
+            del self._live_scene_name
+        self.scene.update()
 
     def _on_state(self, state):
         # A prior scene can still emit state while a replacement is queued.
@@ -1881,16 +2294,7 @@ class Workbench(QMainWindow):
         if isinstance(placed, (list, tuple, set)):
             placed = len(placed)
         self.scene.score_text = f"PROTOTYPE  ·  {placed} pin placements" if placed is not None else ""
-        self.start_button.setEnabled(not running and not self._building and self._built_workspace == self._workspace_key())
-        self.pause_button.setEnabled(running)
-        self.pause_button.setText("Resume" if paused else "Pause")
-        self.stop_button.setEnabled(running)
-        self.step_button.setEnabled(paused or not running)
-        self.build_button.setEnabled(not running and not self._building)
-        self.demo_button.setEnabled(not running and not self._building)
-        self.joint_button.setEnabled(not running)
-        for control in self.mode_buttons.values():
-            control.setEnabled(not running)
+        self._update_live_controls()
         motors = state.get("motors", {})
         if isinstance(motors, dict):
             rows = [(port, values) for port, values in motors.items()]
@@ -1910,6 +2314,7 @@ class Workbench(QMainWindow):
                 else:
                     item.setText(value)
         self.scene.update()
+        self._refresh_replay_display()
 
     def _log(self, message):
         if message == "Scene configuration applied" and self._pending_scene_applies:
@@ -1929,9 +2334,13 @@ class Workbench(QMainWindow):
         self._log("ERROR: " + str(message))
         self.tabs.setCurrentIndex(5)
         self.statusBar().showMessage(str(message))
+        self._update_live_controls()
+        self._refresh_replay_display()
 
     def closeEvent(self, event):
         self._controller_timer.stop()
+        self._replay_seek_timer.stop()
+        self._pending_replay_seek = None
         self._neutral_controller()
         if self._pygame:
             self._pygame.quit()
