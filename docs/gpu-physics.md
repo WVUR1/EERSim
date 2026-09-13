@@ -13,7 +13,7 @@ excluded robot controllers, tire forces, sensors, and rendering. They do not
 establish the integrated simulator's throughput or accuracy. The integrated
 backend has now completed the unchanged PROS claw program on a Linux A100,
 including physical grip, lift, navigation, release, and a red-goal placement.
-The 30-second run measured **0.0426× realtime** at 240 Hz and 100 TGS iterations.
+The original 0.1.1 run measured **0.0426× realtime** at 240 Hz and 100 TGS iterations.
 This establishes functionality, not a speed advantage over CPU physics.
 The Windows preview bundles the runtime and passed headless CPU/fallback checks.
 Supplied RTX 4070 Ti captures verify GPU dynamics, GPU broadphase, a valid CUDA
@@ -26,6 +26,12 @@ validate grasp forces, lift clearance, or trajectory accuracy. See the
 [follow-up analysis](diagnostics-4070ti-followup.md) and the
 [earlier neutral baseline](diagnostics-4070ti.md).
 See the [measurement record](validation.md#integrated-physx-acceptance).
+
+The [current A100 matched comparison](diagnostics-a100-iterations.md) runs the
+0.1.3 claw at 120 Hz: two 100-iteration runs pass placement at about 0.29x
+realtime, while both faster 32-iteration runs physically miss the goal. Solver
+iterations remain 100 by default. The report includes repeated trajectory and
+performance evidence plus a headless reproduction command.
 
 ## Install and select
 

@@ -235,3 +235,13 @@ tests required exact native sleep after eight simulated seconds. These failures
 persisted after verifying the same conda-forge Bullet 3.25 release used locally.
 Their cause remains undiagnosed; no contact thresholds or assertions were
 relaxed, and the Linux suite is not currently passing.
+
+## Repeated A100 acceptance at 120 Hz
+
+The [matched A100 report](diagnostics-a100-iterations.md) records two full
+30-second native claw runs at each solver setting using the current 0.1.3
+physics. Both 100-iteration runs pass physical lift, release and target-goal
+retention; both 32-iteration runs miss the goal despite completing the PROS
+program. Repeated physical trajectories match at each setting. The new
+selectable-rate benchmark and clock/report accounting pass 19 focused harness
+tests. These findings preserve the existing 100-iteration default.

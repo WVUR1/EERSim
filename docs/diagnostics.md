@@ -59,3 +59,8 @@ produces one report ZIP. This avoids accidentally comparing the default idle
 robot with the claw autonomy profile. See the
 [32-iteration capture analysis](diagnostics-4070ti-iterations.md) for the reason
 that a matched robot, program and background workload matter.
+
+For server-side GPU validation, see the [A100 paired acceptance results](diagnostics-a100-iterations.md).
+The headless harness validates lift and released goal placement as well as
+performance. This can run over SSH without GUI forwarding; Windows captures
+remain useful for Windows-specific renderer, driver and installer issues.

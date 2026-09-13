@@ -1,0 +1,481 @@
+{
+  "schema_version": 1,
+  "source_commit": "43a659f5a9927c6deabd08422f7cee95e56e99bd",
+  "source_archive_sha256": "8b516079ff2ae6faf9d113869dd104805c541294927a4fe88612dacf8bccdbc3",
+  "hardware": {
+    "gpu": "NVIDIA A100-SXM4-40GB",
+    "cpu": "AMD EPYC 7H12, two sockets, 256 logical CPUs",
+    "driver": "595.71.05",
+    "physical_gpu_index": 1,
+    "logical_cuda_device": 0
+  },
+  "environment": {
+    "python": "Python 3.11.15",
+    "packages": [
+      "numpy==2.4.6",
+      "ovphysx==0.5.11",
+      "ovstage==0.1.1.355824",
+      "packaging==23.2",
+      "pybullet==3.2.7",
+      "scipy==1.16.3"
+    ],
+    "rendering": false,
+    "profiling": true
+  },
+  "pair_checks": [
+    {
+      "pair": "first",
+      "only_configuration_difference": "physics_solver_iterations",
+      "source_unchanged": true,
+      "archive_sha256": "8cac13d390208a6581f0829235b6469fd35d90d494c63d9b48b64cb3bec0e87b",
+      "archive_bytes": 3169194
+    },
+    {
+      "pair": "repeat",
+      "only_configuration_difference": "physics_solver_iterations",
+      "source_unchanged": true,
+      "archive_sha256": "383f46beceb7f34d749955e8100b20fe8682957b576bc760b9af12e62a2e780d",
+      "archive_bytes": 3169117
+    }
+  ],
+  "repeat_checks": {
+    "100": {
+      "physical_csv_columns_identical": true,
+      "final_field_states_identical": true,
+      "configuration_and_native_source_identical": true
+    },
+    "32": {
+      "physical_csv_columns_identical": true,
+      "final_field_states_identical": true,
+      "configuration_and_native_source_identical": true
+    }
+  },
+  "cases": [
+    {
+      "pair": "first",
+      "iterations": 100,
+      "status": "passed",
+      "error": null,
+      "step_realtime_factor": 0.2922037766568382,
+      "loop_realtime_factor": 0.2814046226587301,
+      "competition_seconds": 30,
+      "competition_ticks": 3600,
+      "initialization_ticks": 13,
+      "competition_wall_seconds": 102.66807754244655,
+      "all_step_seconds": 104.25198507774621,
+      "native_step_mean_ms": 19.533396072792687,
+      "native_step_share_percent": 67.69574695231856,
+      "contact_read_mean_ms": 2.4665042545655806,
+      "lift_m": 0.19990865141153336,
+      "final_pin_position_m": [
+        -1.1958998441696167,
+        -0.5981673002243042,
+        0.08590985834598541
+      ],
+      "goal_center_m": [
+        -1.1961170434951782,
+        -0.5980585217475891,
+        0.0
+      ],
+      "pin_goal_planar_distance_m": 0.00024291624898477987,
+      "pin_axis_absolute_vertical": 0.9999953916200506,
+      "final_robot_contact": false,
+      "final_placements": [
+        {
+          "pin": "pin_goal_2",
+          "goal": "goal_neutral_2",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_0",
+          "goal": "goal_center_0",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_4",
+          "goal": "goal_neutral_4",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_1",
+          "goal": "goal_neutral_1",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_3",
+          "goal": "goal_neutral_3",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "demo_preload",
+          "goal": "goal_red_5",
+          "alliance": "red"
+        }
+      ],
+      "source_unchanged": true,
+      "gpu_scene_flags": 11,
+      "collision_shapes": 4514,
+      "evidence_json_sha256": "83aa9084b4b2163dd63911ce7b55f9a2b62fd432f79a4e7ceb9156a8b3670246",
+      "evidence_csv_sha256": "e472392b76cf2caca2e0d3222cbc739ff5d68fce785991f2d057336b2e308a4d"
+    },
+    {
+      "pair": "first",
+      "iterations": 32,
+      "status": "failed",
+      "error": "ValidationError: demo_preload is not retained in the intended near red goal (goal_red_5)",
+      "step_realtime_factor": 0.4414087422869307,
+      "loop_realtime_factor": 0.4198115411105877,
+      "competition_seconds": 30,
+      "competition_ticks": 3600,
+      "initialization_ticks": 13,
+      "competition_wall_seconds": 67.96421802742407,
+      "all_step_seconds": 69.00595941115171,
+      "native_step_mean_ms": 9.370867345142532,
+      "native_step_share_percent": 49.0637968182912,
+      "contact_read_mean_ms": 2.670114971499717,
+      "lift_m": 0.19963165372610092,
+      "final_pin_position_m": [
+        -1.1990793943405151,
+        -0.7061669826507568,
+        0.057741157710552216
+      ],
+      "goal_center_m": [
+        -1.1961170434951782,
+        -0.5980585217475891,
+        0.0
+      ],
+      "pin_goal_planar_distance_m": 0.10814903994665238,
+      "pin_axis_absolute_vertical": 0.5538407475541405,
+      "final_robot_contact": false,
+      "final_placements": [
+        {
+          "pin": "pin_goal_2",
+          "goal": "goal_neutral_2",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_0",
+          "goal": "goal_center_0",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_4",
+          "goal": "goal_neutral_4",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_1",
+          "goal": "goal_neutral_1",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_3",
+          "goal": "goal_neutral_3",
+          "alliance": "neutral"
+        }
+      ],
+      "source_unchanged": true,
+      "gpu_scene_flags": 11,
+      "collision_shapes": 4514,
+      "evidence_json_sha256": "085b6aa3e8cecfe2e0d032b5dfaaa8ecbc69eb326c6d7f829e8333219df5b6fa",
+      "evidence_csv_sha256": "56687cc789f5fa7011b35f40553292eee15564f2eaaf96f50613f3e3c4e61238"
+    },
+    {
+      "pair": "repeat",
+      "iterations": 100,
+      "status": "passed",
+      "error": null,
+      "step_realtime_factor": 0.2926871508694721,
+      "loop_realtime_factor": 0.2825175007912462,
+      "competition_seconds": 30,
+      "competition_ticks": 3600,
+      "initialization_ticks": 13,
+      "competition_wall_seconds": 102.49852072726935,
+      "all_step_seconds": 103.8602073318325,
+      "native_step_mean_ms": 19.5105669119845,
+      "native_step_share_percent": 67.87169028825417,
+      "contact_read_mean_ms": 2.4637287642501415,
+      "lift_m": 0.19990865141153336,
+      "final_pin_position_m": [
+        -1.1958998441696167,
+        -0.5981673002243042,
+        0.08590985834598541
+      ],
+      "goal_center_m": [
+        -1.1961170434951782,
+        -0.5980585217475891,
+        0.0
+      ],
+      "pin_goal_planar_distance_m": 0.00024291624898477987,
+      "pin_axis_absolute_vertical": 0.9999953916200506,
+      "final_robot_contact": false,
+      "final_placements": [
+        {
+          "pin": "pin_goal_2",
+          "goal": "goal_neutral_2",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_0",
+          "goal": "goal_center_0",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_4",
+          "goal": "goal_neutral_4",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_1",
+          "goal": "goal_neutral_1",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_3",
+          "goal": "goal_neutral_3",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "demo_preload",
+          "goal": "goal_red_5",
+          "alliance": "red"
+        }
+      ],
+      "source_unchanged": true,
+      "gpu_scene_flags": 11,
+      "collision_shapes": 4514,
+      "evidence_json_sha256": "4859fc4b018e0ccc1e76a678fa61582918b4f1675e025bfb3f96d5c040b171bd",
+      "evidence_csv_sha256": "136e53d33f7b18316c2c3a5dd7019e4846932400f13df189dd09bc04f912e614"
+    },
+    {
+      "pair": "repeat",
+      "iterations": 32,
+      "status": "failed",
+      "error": "ValidationError: demo_preload is not retained in the intended near red goal (goal_red_5)",
+      "step_realtime_factor": 0.43362250139947484,
+      "loop_realtime_factor": 0.4126985614655714,
+      "competition_seconds": 30,
+      "competition_ticks": 3600,
+      "initialization_ticks": 13,
+      "competition_wall_seconds": 69.18460159050301,
+      "all_step_seconds": 70.20245146844536,
+      "native_step_mean_ms": 9.444377658455569,
+      "native_step_share_percent": 48.60590444670922,
+      "contact_read_mean_ms": 2.765731701992259,
+      "lift_m": 0.19963165372610092,
+      "final_pin_position_m": [
+        -1.1990793943405151,
+        -0.7061669826507568,
+        0.057741157710552216
+      ],
+      "goal_center_m": [
+        -1.1961170434951782,
+        -0.5980585217475891,
+        0.0
+      ],
+      "pin_goal_planar_distance_m": 0.10814903994665238,
+      "pin_axis_absolute_vertical": 0.5538407475541405,
+      "final_robot_contact": false,
+      "final_placements": [
+        {
+          "pin": "pin_goal_2",
+          "goal": "goal_neutral_2",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_0",
+          "goal": "goal_center_0",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_4",
+          "goal": "goal_neutral_4",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_1",
+          "goal": "goal_neutral_1",
+          "alliance": "neutral"
+        },
+        {
+          "pin": "pin_goal_3",
+          "goal": "goal_neutral_3",
+          "alliance": "neutral"
+        }
+      ],
+      "source_unchanged": true,
+      "gpu_scene_flags": 11,
+      "collision_shapes": 4514,
+      "evidence_json_sha256": "43eb430bceedcfcdbdf4f5f71c3b03fa2c0578b932cf405e10184510330729c9",
+      "evidence_csv_sha256": "3fe87a0fa50723457460ffaf3bd67c470f0441fa20059a126242b4e9ea756c57"
+    }
+  ],
+  "cleanup": {
+    "owned_processes_remaining": 0,
+    "remote_workspace_removed": true,
+    "absence_verified": true,
+    "both_archives_retrieved_and_hash_verified": true
+  },
+  "limits": [
+    "Two repetitions of one autonomous fixture; not a survey of robots or physical calibration.",
+    "Step RTF excludes startup and benchmark observation/CSV; loop RTF includes initialization and observations.",
+    "Native synchronous step time includes execution, synchronization and readback; it is not GPU-kernel time.",
+    "Lifetime contact/state timers contain one startup read; native/control counts are 3613.",
+    "Linux geometry loader PyBullet3.2.7 differs from the Windows3.2.5 environment; within-pair versions match.",
+    "An SSH transport reset occurred during the repeat; all reports were recovered with complete30-second runs and no surviving owned processes."
+  ],
+  "trajectory_analysis": {
+    "mode_matched_trajectory_differences": [
+      {
+        "competition_seconds": [
+          0,
+          6
+        ],
+        "matched_ticks": 720,
+        "robot_xy_distance_m": {
+          "rms": 0.003970794242368495,
+          "mean": 0.0033889659018572402,
+          "maximum": 0.006264646515215068
+        },
+        "robot_abs_yaw_difference_deg": {
+          "rms": 1.7855994727935762,
+          "mean": 1.3864238105875395,
+          "maximum": 3.285160175243298
+        },
+        "preload_abs_height_difference_m": {
+          "rms": 0.0031130551678713943,
+          "mean": 0.0020184296493728957,
+          "maximum": 0.0072266459465026855
+        }
+      },
+      {
+        "competition_seconds": [
+          6,
+          10
+        ],
+        "matched_ticks": 480,
+        "robot_xy_distance_m": {
+          "rms": 0.0030284391779609892,
+          "mean": 0.002939900168785722,
+          "maximum": 0.004844985423886663
+        },
+        "robot_abs_yaw_difference_deg": {
+          "rms": 1.0858851849500604,
+          "mean": 1.013768867141881,
+          "maximum": 1.7789991812236372
+        },
+        "preload_abs_height_difference_m": {
+          "rms": 0.015297804586384139,
+          "mean": 0.007495157358547052,
+          "maximum": 0.057054102420806885
+        }
+      },
+      {
+        "competition_seconds": [
+          10,
+          14
+        ],
+        "matched_ticks": 480,
+        "robot_xy_distance_m": {
+          "rms": 0.021574129689521698,
+          "mean": 0.009986917830147468,
+          "maximum": 0.08905894881741779
+        },
+        "robot_abs_yaw_difference_deg": {
+          "rms": 0.7635743550888252,
+          "mean": 0.6560900933389776,
+          "maximum": 1.4889174699457166
+        },
+        "preload_abs_height_difference_m": {
+          "rms": 0.0893593584381209,
+          "mean": 0.08714558046000699,
+          "maximum": 0.13668254762887955
+        }
+      },
+      {
+        "competition_seconds": [
+          14,
+          18
+        ],
+        "matched_ticks": 480,
+        "robot_xy_distance_m": {
+          "rms": 0.09829075976957047,
+          "mean": 0.06885046222516791,
+          "maximum": 0.18631001305669054
+        },
+        "robot_abs_yaw_difference_deg": {
+          "rms": 1.2651544359578955,
+          "mean": 1.071501474193158,
+          "maximum": 2.2557478415631262
+        },
+        "preload_abs_height_difference_m": {
+          "rms": 0.040037450299003845,
+          "mean": 0.03620858627061049,
+          "maximum": 0.06957028806209564
+        }
+      },
+      {
+        "competition_seconds": [
+          18,
+          30
+        ],
+        "matched_ticks": 1440,
+        "robot_xy_distance_m": {
+          "rms": 0.0026020245013238037,
+          "mean": 0.002571825410799914,
+          "maximum": 0.003268910762201975
+        },
+        "robot_abs_yaw_difference_deg": {
+          "rms": 0.5306913427996788,
+          "mean": 0.5190936849922669,
+          "maximum": 0.6072111971289829
+        },
+        "preload_abs_height_difference_m": {
+          "rms": 0.028168700635433197,
+          "mean": 0.028168700635433197,
+          "maximum": 0.028168700635433197
+        }
+      },
+      {
+        "competition_seconds": [
+          0,
+          30
+        ],
+        "matched_ticks": 3600,
+        "robot_xy_distance_m": {
+          "rms": 0.03684137235352601,
+          "mean": 0.012610160707904895,
+          "maximum": 0.18631001305669054
+        },
+        "robot_abs_yaw_difference_deg": {
+          "rms": 1.094851971564857,
+          "mean": 0.8504369607376169,
+          "maximum": 3.285160175243298
+        },
+        "preload_abs_height_difference_m": {
+          "rms": 0.040360176655153936,
+          "mean": 0.029117742729269796,
+          "maximum": 0.13668254762887955
+        }
+      }
+    ],
+    "largest_xy_difference": {
+      "mode_time": 14.799999999999999,
+      "robot_xy_distance_m": 0.18631001305669054,
+      "robot_abs_yaw_difference_deg": 2.234295141270966,
+      "preload_abs_height_difference_m": 0.06383050978183746
+    },
+    "largest_yaw_difference": {
+      "mode_time": 3.408333333333333,
+      "robot_xy_distance_m": 0.005786564302130818,
+      "robot_abs_yaw_difference_deg": 3.285160175243298,
+      "preload_abs_height_difference_m": 0.00223696231842041
+    },
+    "final_robot_difference": {
+      "mode_time": 30.0,
+      "robot_xy_distance_m": 0.0021236260911986883,
+      "robot_abs_yaw_difference_deg": 0.5930582334565782,
+      "preload_abs_height_difference_m": 0.028168700635433197
+    }
+  }
+}
