@@ -7,6 +7,16 @@ import pytest
 from eersim import gui
 
 
+@pytest.fixture(autouse=True)
+def preserved_application():
+    # Other engine tests may retain a QCoreApplication in this process. These
+    # fake GUI tests must preserve it, not require a globally empty Qt runtime.
+    application_instance = gui.QApplication.instance
+    before = application_instance()
+    yield before
+    assert application_instance() is before
+
+
 class Control:
     def __init__(self):
         self.text = ""
@@ -286,5 +296,5 @@ def test_click_and_drag_emit_ordered_scrub_events_without_widget_construction():
     assert not slider._seeking
 
 
-def test_test_module_does_not_create_a_qt_application():
-    assert gui.QApplication.instance() is None
+def test_test_module_preserves_the_existing_qt_application(preserved_application):
+    assert gui.QApplication.instance() is preserved_application
