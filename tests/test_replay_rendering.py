@@ -107,6 +107,9 @@ class FakeBackend:
 
 @pytest.fixture
 def fake(monkeypatch):
+    # Existing tests exercise the unchanged eager explicit-CPU path. GPU tests
+    # below opt into descriptor mode without creating a real graphics context.
+    monkeypatch.setenv("EERSIM_RENDERER", "cpu")
     bullet = FakeBullet()
     monkeypatch.setattr(rendering, "bullet", bullet)
     monkeypatch.setattr(rendering, "RenderBackend", FakeBackend)

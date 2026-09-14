@@ -122,11 +122,16 @@ class PhysXProcess:
         self.connection.close()
 
 
-def diagnostic_thread_count():
-    """Explicit diagnostic override; keep the normal two-worker setting."""
-    value = os.environ.get('EERSIM_PHYSX_THREADS', '2')
-    if value not in ('0', '1', '2'):
-        raise ValueError('EERSIM_PHYSX_THREADS must be 0, 1, or 2; 0 runs inline tasks')
+def diagnostic_thread_count(configured=2):
+    """Use the saved CPU worker count, with the legacy environment override."""
+    from .config import validate_physics_cpu_threads
+    configured = validate_physics_cpu_threads(configured)
+    value = os.environ.get('EERSIM_PHYSX_THREADS')
+    if value is None:
+        return configured
+    if not value.isascii() or not value.isdecimal() or len(value) > 4 or int(value) > 1024:
+        raise ValueError('EERSIM_PHYSX_THREADS must be an integer between 0 and 1024; '
+                         '0 runs inline tasks')
     return int(value)
 
 
@@ -142,7 +147,7 @@ class _Runtime:
         self.dt = 1.0 / config['physics_hz']
         self.bindings, self.buffers = {}, {}
         self.physx = self.stage = self.contacts = None
-        threads = diagnostic_thread_count()
+        threads = diagnostic_thread_count(config.get('physics_cpu_threads', 2))
         gpu = config['physics_backend'] == 'physx_gpu'
         device = int(config.get('physics_device', 0))
         if gpu:

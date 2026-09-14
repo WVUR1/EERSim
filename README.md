@@ -16,15 +16,17 @@ is reported separately in the [validation notes](docs/validation.md).
 ## Start here
 
 Download **EERSim-Setup-x64.exe** from the private
-[0.1.5 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.5-windows-preview.1).
+[0.1.6 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.6-windows-preview.1).
 It bundles Python, the PhysX GPU runtime, simulator dependencies, default robots
 and fields, and the native robot compiler. It installs for your Windows account
 without administrator privileges; a desktop shortcut is optional. This private
 build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
-Version 0.1.5 adds recorded-run replay with a clickable, draggable timeline and
-Play/Pause, plus lower Python overhead in joint readings and force calculations.
-See [performance and replay validation](docs/performance-0.1.5.md) for measured
-scope and remaining limits. The earlier
+Version 0.1.6 improves viewport scheduling and scene reuse, avoids duplicate
+GPU replay scene imports, adds configurable PhysX CPU workers, and corrects the
+pin/goal collision surfaces that trapped the preplaced pins. Workspace builds
+are explicit. It also adds the academic/noncommercial license.
+See [0.1.6 validation and performance](docs/performance-0.1.6.md) for measured
+scope and remaining limits. [0.1.5 replay validation](docs/performance-0.1.5.md) and the earlier
 [0.1.4 results and artifact checks](docs/diagnostics-a100-0.1.4.md) remain available
 as historical evidence.
 Earlier validation completed the full PROS claw routine on a Linux A100
@@ -39,7 +41,7 @@ or general physical accuracy.
 
 Use **Robot → Import URDF…** and **Field → Import field…** to select custom
 designs from your own folders. The robot import preview supports motor setup and
-live jogging. Click **Apply settings & reset scene** after importing, and use
+live jogging. Click **Apply settings** after importing, and use
 **Save/Load** in **Experiment setup** to retain profiles. Keep meshes beside their
 URDFs; custom files do not need to be copied into the installation directory.
 Updates and uninstall preserve EERSim user data and external projects.
@@ -81,36 +83,28 @@ the current validation limits.
 
 ### Try the measured CPU settings
 
-The server CPU result used PhysX with zero dispatcher workers, which runs those
-tasks inline. The app still defaults to two workers. To try that configuration,
-close EERSim first and open PowerShell in the folder containing `EERSim.exe`:
+The measured server CPU configuration can be selected directly in **Field**:
+choose **Physics engine → PhysX · CPU**, **PhysX CPU workers · advanced → 0 · inline**,
+**Fixed physics rate → 120 Hz**, and **Solver iterations · advanced → 100**.
+Click **Apply settings**. The default worker count remains two; a higher worker
+count is not necessarily faster. Graphics can remain on GPU independently.
+PhysX CPU source installs need the optional `.[gpu]` dependencies described above.
 
-```powershell
-$env:EERSIM_PHYSX_THREADS = '0'
-.\EERSim.exe
-```
+For the bundled benchmark scene, first click **Load claw scoring demo**, then
+select those settings. Click **Build workspace**, choose **Match Auto**, and
+press **Start** for its 30-second mode. These reproduce the engine settings,
+not a guaranteed speedup: CPU, field contacts, and rendering affect throughput.
+The published performance measurements are headless server results.
 
-For a source checkout, use the same environment-variable line and run
-`.\launch.ps1` from the repository folder instead. PhysX CPU also needs the
-optional `.[gpu]` source dependencies described above.
-
-In **Field**, select **Physics engine → PhysX · CPU**, set **Fixed physics rate**
-to **120 Hz** and **Solver iterations · advanced** to **100**, then click
-**Apply settings & reset scene**. Graphics rendering is a separate setting and
-can remain on GPU. For the bundled benchmark scene, click **Load claw scoring demo**
-before making those settings, then select **Match Auto** for its 30-second run.
-
-This changes only programs launched from that PowerShell session; it does not
-change the app's defaults or the saved profile's worker count. Afterwards, remove
-the override and restart EERSim to return to two workers:
+The worker count is saved in experiment profiles. An existing
+`EERSIM_PHYSX_THREADS` environment variable takes precedence over the GUI value,
+including for host tasks used by CUDA physics. To remove a previous override
+from a PowerShell session, run the command below, then restart EERSim from that
+session using your normal EXE or `launch.ps1`:
 
 ```powershell
 Remove-Item Env:EERSIM_PHYSX_THREADS -ErrorAction SilentlyContinue
 ```
-
-These reproduce the measured engine settings, not a guaranteed speedup. The
-published results are headless server measurements; your CPU, field contacts,
-and rendering workload can produce different throughput.
 
 
 If launch reports `No module named 'PySide6'` or another missing dependency, run
@@ -165,12 +159,12 @@ ignored CAD/tool downloads, and Git LFS instructions for future oversized assets
    the live 3D preview while configuring its port. The built-in X-drive matches the validated EERKit workspace's motor
    ports, reversals, intake, and ADI pistons.
 3. In **Field**, choose a preset or use **Import field…** for a JSON pack or field
-   URDF. Adjust **Start pose** and **Sensors**, then click **Apply settings & reset scene**.
+   URDF. Adjust **Start pose** and **Sensors**, then click **Apply settings**.
 4. Choose a competition mode and start. Focus the field view to use the keyboard,
    or use the on-screen controls. **Driver station** in the Workspace tab lists key bindings.
 5. Pause/resume, advance one physics tick, reset, or export pose telemetry to CSV.
    Save an experiment profile to retain the workspace, asset paths, bindings,
-   starting pose, sensor seed, physics backend/device/iterations, timing settings,
+   starting pose, sensor seed, physics backend/device/iterations/CPU workers, timing settings,
    and camera view. CSV export is in **Telemetry**.
 
 An optional USB gamepad uses pygame (`python -m pip install 'eerkit-simulator[gamepad]'`).
@@ -182,14 +176,23 @@ or Shift-left-drag pan, and mouse-wheel zoom. The import preview fixes the robot
 base so a wheel test stays in view; joints and their motor loads still simulate.
 This setup preview uses Bullet independently of the main field's physics engine.
 
-For an immediately runnable mechanism example, click **Load claw scoring demo** in the
+For the bundled mechanism example, click **Load claw scoring demo** in the
 Workspace tab. This loads a separate six-motor X-drive, a lift and claw, one
 red/yellow preload, and ordinary PROS source from
-[`examples/claw_demo`](examples/claw_demo). It builds the program and selects
-Skills Auto; press **Start** to run it. The routine grips the preload, lifts it,
+[`examples/claw_demo`](examples/claw_demo). It selects Skills Auto and leaves
+the program unbuilt. Click **Build workspace**, then **Start** to run it. The routine grips the preload, lifts it,
 drives to a red alliance goal using the serial odometry interface, and releases
 it. The viewport reports prototype pin placements. Driver mode also supports
 the claw and lift using R1/R2 and L1/L2.
+
+Loading the demo, importing assets, applying settings, and pressing Start do not
+compile C++. Use **Build workspace** explicitly after changing robot source.
+Start reuses an unchanged, prepared scene; if the scene has already moved, it
+still resets before the new run. **Apply settings** reloads physical changes and
+also reloads unchanged settings, so use it after editing an external URDF, mesh,
+or game pack in place. Changing only viewport FPS or configured simulation speed
+keeps the current physics state. Camera orbit, pan, and zoom also leave it intact.
+Use **Reset** whenever you want to restore the starting state explicitly.
 
 ## Replay the previous run
 
@@ -198,7 +201,8 @@ viewport. Click anywhere on its timeline or drag the handle to scrub, then use
 **Play/Pause** to watch the recorded motion. Orbit, pan, zoom, and the closeup
 camera remain available. The recorded time includes initialization; recorded
 mode time is separate. **Live** returns to the current world and leaves it
-paused, so use **Resume** explicitly to continue robot execution.
+paused. If that run is still active, use **Resume** explicitly to continue it;
+a completed or stopped run needs **Start**.
 
 Replay displays saved robot and field poses. It does not rerun PROS, advance
 physics, resample sensors, or recompute scoring. The target capture rate is 30
@@ -220,6 +224,14 @@ the replay status explains the issue while live simulation continues. These
 bounds do not limit the whole application's memory usage.
 
 ## Performance reports and app status
+
+**Telemetry** shows the live viewport's completed rendering rate in wall-time FPS.
+It measures frames produced by the renderer, not Qt paint events or monitor
+refresh rate. Under load, the GUI displays the newest available frame rather
+than building a queue of stale images. The worker services render deadlines
+between fixed physics steps; slow individual steps or expensive frames can
+still limit smoothness.
+No physics steps or PROS calls are skipped to achieve a requested frame rate.
 
 In **Telemetry**, choose **Export performance diagnostics…** to create a local
 script for the selected robot, field, workspace, mode, and current settings.
@@ -307,7 +319,7 @@ exposes direct coordinates to Python experiments and other odometry adapters.
 | PhysX · NVIDIA CUDA | Requires the selected CUDA device and runtime; initialization errors stop the load instead of changing engines. |
 | PhysX · CPU | Uses PhysX CPU dynamics and requires the same PhysX runtime packages. |
 
-Click **Apply settings & reset scene** after changing engines. Save an explicit
+Click **Apply settings** after changing engines. Save an explicit
 engine selection when comparing experiments across machines: **Auto** can select
 different solvers on different computers. **CUDA physics device** is a logical
 ordinal starting at 0 after `CUDA_VISIBLE_DEVICES` filtering, not necessarily the
@@ -347,8 +359,9 @@ measurements, not performance results for this integrated backend.
 
 Both engines use a **240 Hz** fixed timestep by default, independent of display FPS.
 Rendering never increases the timestep or discards pending physics steps. When
-a machine falls behind, the renderer refreshes less often and the simulation
-can run slower than wall time. The GUI reports real-time factor and backlog.
+a machine cannot keep up, the simulation runs slower than wall time; slow
+individual ticks or frames can also reduce viewport smoothness. The GUI
+reports real-time factor and backlog.
 PROS delays, timestamps, and competition timers use the same simulation clock.
 **Solver iterations · advanced** defaults to 100. It controls Bullet's iteration
 limit or PhysX TGS position iterations; PhysX velocity iterations remain 1.
@@ -601,3 +614,12 @@ GPU measurements, installed-package checks, and their limits.
 - [PROS motor API](https://pros.cs.purdue.edu/v5/pros-4/motors.html): host API behavior, validated against EERKit's vendored PROS headers.
 - [VEX V5 motor performance](https://kb.vex.com/hc/en-us/articles/360044325872-Understanding-V5-Smart-Motor-11W-Performance): cartridge torque, speed, and power references.
 - [Official Override manual PDF](https://link.vex.com/docs/26-27/v5rc/game-manual), [2026–27 manual versions](https://www.vexrobotics.com/26-27-manuals), and [official field CAD](https://link.vex.com/docs/26-27/v5rc/field-cad): field-pack provenance. Consult the current manual for rules; the simulator does not adjudicate official scores or legality.
+
+## Licensing
+
+EERSim is source-available under the [EERSim Academic and Noncommercial License](LICENSE).
+Academic and noncommercial use is permitted under its terms. Commercial use
+requires prior written permission from Andrew Sarver at
+[ads00024@mix.wvu.edu](mailto:ads00024@mix.wvu.edu). Third-party dependencies,
+assets, and trademarks retain their separate terms; see the
+[licensing notes](docs/licensing.md).

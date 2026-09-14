@@ -10,6 +10,7 @@ import copy
 import importlib
 import json
 import math
+import os
 import sys
 import time
 import xml.etree.ElementTree as ET
@@ -54,7 +55,7 @@ ANALOG_NAMES = ("left_x", "left_y", "right_x", "right_y")
 DIGITAL_NAMES = ("l1", "l2", "r1", "r2", "up", "down", "left", "right", "x", "b", "y", "a")
 CARTRIDGES = {name: (preset.label, preset.rpm, preset.stall_torque)
               for name, preset in PHYSICAL_CARTRIDGES.items()}
-APPLY_STATUS = "Applying experiment settings and resetting physics…"
+APPLY_STATUS = "Applying experiment settings…"
 
 
 def _replay_time(seconds):
@@ -812,7 +813,7 @@ class Workbench(QMainWindow):
         self._loaded_urdf_path = self.config.get("robot_urdf", "")
         if workspace is not None:
             self.config["workspace"] = str(workspace)
-        self.engine = SimulationEngine(defer_configuration=True)
+        self.engine = SimulationEngine(defer_configuration=True, coalesce_frames=True)
         self._state: dict = {}
         self._replay: dict = {}
         self._replay_pending = None
@@ -1045,8 +1046,8 @@ class Workbench(QMainWindow):
         self._pose_tab()
         self._sensors_tab()
         self._telemetry_tab()
-        self.apply_button = button("Apply settings & reset scene", self._apply_config)
-        self.apply_button.setToolTip("Rebuilds the physics scene with these settings; ends the current run.")
+        self.apply_button = button("Apply settings", self._apply_config)
+        self.apply_button.setToolTip("Physical changes or reapplying unchanged settings reload the scene and end the run. Changing only viewport FPS or simulation speed keeps the current physics state. Use Apply after editing external asset files.")
         layout.addWidget(self.apply_button)
         return pane
 
@@ -1061,7 +1062,7 @@ class Workbench(QMainWindow):
         self.experiment_notes.hide()
         layout.addWidget(self.experiment_notes)
         self.demo_button = button("Load claw scoring demo", self._load_demo)
-        self.demo_button.setToolTip("Loads the example X-drive claw robot, current game field and PROS workspace, then builds the program.")
+        self.demo_button.setToolTip("Loads the example X-drive claw robot, current game field and PROS workspace. Press Build workspace when ready, then Start.")
         layout.addWidget(self.demo_button)
         layout.addWidget(label("Native PROS compatibility covers the APIs implemented by the simulator. Unsupported calls are reported by the build or runtime. Brain binaries and custom hardware protocols require adapters.", "Muted", True))
         layout.addWidget(label("DRIVER STATION", "Section"))
@@ -1199,6 +1200,12 @@ class Workbench(QMainWindow):
         self.physics_iterations = QSpinBox()
         self.physics_iterations.setRange(1, 255)
         self.physics_iterations.setToolTip("Advanced contact and joint solver setting. Default 100. Reducing iterations changes solver convergence; validate grasping and stacking after changes. Equal counts in Bullet and PhysX do not imply equivalent solvers.")
+        self.physics_cpu_threads = QSpinBox()
+        self.physics_cpu_threads.setRange(0, min(1024, max(2, os.cpu_count() or 1)))
+        self.physics_cpu_threads.setSpecialValueText("0 · inline")
+        self.physics_cpu_threads.setToolTip("PhysX CPU task workers, including host work for CUDA physics. 0 runs tasks inline; default 2. More workers are not always faster. EERSIM_PHYSX_THREADS overrides this setting when present. Does not parallelize fixed physics steps or PROS callbacks.")
+        self.physics_select.currentIndexChanged.connect(
+            lambda: self.physics_cpu_threads.setEnabled(self.physics_select.currentData() != "bullet"))
         self.physics_select.currentIndexChanged.connect(
             lambda: self.physics_device.setEnabled(self.physics_select.currentData() in ("auto", "physx_gpu")))
         self.physics_hz = QSpinBox()
@@ -1221,6 +1228,7 @@ class Workbench(QMainWindow):
         form.addRow("Physics engine", self.physics_select)
         form.addRow("CUDA physics device", self.physics_device)
         form.addRow("Solver iterations · advanced", self.physics_iterations)
+        form.addRow("PhysX CPU workers · advanced", self.physics_cpu_threads)
         form.addRow("Fixed physics rate", self.physics_hz)
         form.addRow("Viewport frame rate", self.render_fps)
         form.addRow("Graphics renderer", self.renderer_select)
@@ -1386,6 +1394,10 @@ class Workbench(QMainWindow):
         self.physics_device.setValue(int(config.get("physics_device", 0)))
         self.physics_device.setEnabled(self.physics_select.currentData() in ("auto", "physx_gpu"))
         self.physics_iterations.setValue(int(config.get("physics_solver_iterations", 100)))
+        threads = int(config.get("physics_cpu_threads", 2))
+        self.physics_cpu_threads.setMaximum(min(1024, max(2, os.cpu_count() or 1, threads)))
+        self.physics_cpu_threads.setValue(threads)
+        self.physics_cpu_threads.setEnabled(self.physics_select.currentData() != "bullet")
         self.render_fps.setValue(int(config.get("render_fps", 30)))
         self.renderer_select.setCurrentIndex(max(0, self.renderer_select.findData(config.get("renderer", "auto"))))
         self.gravity.setValue(float(config.get("gravity", 9.80665)))
@@ -1428,6 +1440,7 @@ class Workbench(QMainWindow):
                       physics_hz=self.physics_hz.value(), render_fps=self.render_fps.value(),
                       physics_backend=self.physics_select.currentData(), physics_device=self.physics_device.value(),
                       physics_solver_iterations=self.physics_iterations.value(),
+                      physics_cpu_threads=self.physics_cpu_threads.value(),
                       renderer=self.renderer_select.currentData(),
                       gravity=self.gravity.value(), friction=self.friction.value(),
                       plastic_friction=self.plastic_friction.value(), restitution=self.restitution.value(),
@@ -1439,7 +1452,7 @@ class Workbench(QMainWindow):
                               "distance": self.scene.distance, "target": self.scene.target.copy()})
         return result
 
-    def _apply_config(self):
+    def _apply_config(self, *, reuse_unchanged=False):
         if not self._live_action_allowed():
             return False
         try:
@@ -1454,7 +1467,7 @@ class Workbench(QMainWindow):
             self._pending_scene_applies += 1
             self._scene_apply_ready = False
             self._logo_event("begin")
-            self.engine.configure(config)
+            self.engine.configure(config, reuse_unchanged=reuse_unchanged)
             self.engine.set_camera(self.scene.yaw, self.scene.pitch, self.scene.distance, self.scene.target)
             self.statusBar().showMessage(APPLY_STATUS)
             return True
@@ -1525,8 +1538,9 @@ class Workbench(QMainWindow):
         if self._built_workspace != self._workspace_key():
             self._on_failed("Build the selected workspace before starting.")
             return
-        # Applying the visible settings is part of starting a repeatable run.
-        if self._apply_config():
+        # Start reuses an unchanged prepared scene; Session.start still resets
+        # any scene that has advanced. Apply explicitly reloads edited assets.
+        if self._apply_config(reuse_unchanged=True):
             self.engine.start(self._mode)
             self.scene.setFocus()
 
@@ -1864,7 +1878,10 @@ class Workbench(QMainWindow):
             if self._apply_config():
                 self._select_mode("skills_auto")
                 self.mode_buttons["skills_auto"].setChecked(True)
-                self._build()
+                self._built_workspace = None
+                self.start_button.setEnabled(False)
+                self.build_status.setText("Claw demo loaded · Build workspace before running")
+                self._log("Claw demo loaded. Press Build workspace, then Start.")
         except (OSError, ValueError, TypeError, AttributeError) as exc:
             self._on_failed(f"Could not load the claw scoring demo: {exc}")
 
@@ -2103,6 +2120,10 @@ class Workbench(QMainWindow):
             self.engine.replay_play()
 
     def _on_live_frame(self, packet):
+        if isinstance(packet, dict) and "frame_token" in packet:
+            packet = self.engine.take_frame(packet)
+            if packet is None:
+                return
         if self._replay_blocked():
             return
         if isinstance(packet, dict):
@@ -2114,6 +2135,10 @@ class Workbench(QMainWindow):
         self.scene.set_frame(packet)
 
     def _on_replay_frame(self, packet):
+        if isinstance(packet, dict) and "frame_token" in packet:
+            packet = self.engine.take_frame(packet)
+            if packet is None:
+                return
         if not self._replay.get("active") or self._replay_pending:
             return
         if not isinstance(packet, dict) or packet.get("generation") != self._view_generation or "pixels" not in packet:
@@ -2283,7 +2308,9 @@ class Workbench(QMainWindow):
         accelerated = bool(graphics.get("hardware_accelerated"))
         graphics_label = "GPU" if accelerated else "CPU" if graphics.get("backend") == "cpu" else "Graphics"
         reason = graphics.get("reason", "")
-        self.renderer_detail.setText(f"Graphics: {graphics_label} · {device}" + (f"\n{reason}" if reason else ""))
+        self.renderer_detail.setText(f"Graphics: {graphics_label} · {device}"
+                                     + f"\nLive rendered frames: {float(state.get('viewport_fps', 0)):.1f} FPS (wall time)"
+                                     + (f"\n{reason}" if reason else ""))
         self.renderer_detail.setToolTip(str(graphics.get("version", "")))
         self.progress.setValue(round(min(1, mode_time / duration) * 1000) if duration else 0)
         status = "PAUSED" if paused else "RUNNING" if running else "SCENE READY"

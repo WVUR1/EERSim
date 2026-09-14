@@ -1,0 +1,93 @@
+EERSim Academic and Noncommercial License
+Version 1.0
+
+Copyright (c) 2026 Andrew Sarver. All rights reserved except as granted below.
+Commercial permission requests: ads00024@mix.wvu.edu
+
+1. Scope
+
+This license covers the original EERSim code, documentation, and other material
+that Andrew Sarver makes available under these terms (the "Software"). It does
+not cover separately licensed dependencies, third-party code, VEX models or
+game assets, trademarks, or material supplied by users. Their owners' terms
+continue to apply. No rights belonging to another copyright holder are granted
+by this license.
+
+2. Academic and noncommercial permission
+
+You may use, study, run, copy, modify, and share the Software, including modified
+source and executable versions, without a license fee for noncommercial
+education, teaching, academic research, student robotics activities, personal
+learning, and other noncommercial experimentation. These permissions are
+conditional on compliance with this license and do not permit Commercial Use.
+
+Ordinary tuition, academic salaries, research grants, donations, and sponsorship
+of student activities do not, by themselves, make an otherwise permitted
+activity commercial. This exception does not authorize a paid service, a
+commercial product, or development performed for a customer's or employer's
+commercial business, even when an educational institution performs the work.
+
+3. Commercial use requires prior written permission
+
+Without a separate written license or written permission from Andrew Sarver,
+you may not use the Software primarily for commercial advantage or monetary
+compensation ("Commercial Use"). This includes:
+
+  - selling, renting, commercially licensing, or otherwise monetizing the
+    Software or a modified or derivative version;
+  - providing paid access, hosted simulation, consulting, training, or other
+    paid services that use the Software;
+  - incorporating the Software into a commercial product or service; and
+  - using the Software to develop, test, support, or operate a product or service
+    for a commercial business, whether or not the Software itself is sold.
+
+These restrictions apply to individuals and organizations, including nonprofit
+and educational organizations when conducting Commercial Use. A free copy,
+free trial, indirect payment, or a change of name does not create an exemption.
+
+Contact ads00024@mix.wvu.edu before beginning Commercial Use. A request,
+discussion, contribution, donation, or lack of response is not permission.
+Written permission must identify the authorized use and any applicable terms.
+
+4. Sharing and modifications
+
+Every copy or substantial portion of the Software that you share must retain
+this license, its copyright and permission-contact notices, and applicable
+third-party notices. Clearly identify your modifications without implying that
+Andrew Sarver authored or endorses them. Recipients receive permission for the
+Software directly under these same terms; you may not grant them commercial
+rights or remove these restrictions. You may apply compatible additional terms
+to your own contributions only if they preserve the permissions and conditions
+of this license for the Software.
+
+Independent robot workspaces, research results, data, and other original outputs
+do not become covered by this license merely because the Software processes or
+helps create them. This does not waive the requirement for permission when the
+use of the Software itself is Commercial Use.
+
+5. Rights reserved and third-party freedoms
+
+No trademark or endorsement permission is granted. Rights not expressly granted
+are reserved. Copyright exceptions and other rights that cannot lawfully be
+restricted remain available. Nothing in this license restricts rights granted
+under a separate third-party license, including rights to modify, replace,
+relink, or debug third-party libraries as that license permits. Previously
+granted licenses are not retroactively withdrawn by these terms.
+
+6. Termination
+
+The permissions granted here end if you violate these terms. Upon termination,
+stop uses that depend on this license and stop distributing the Software.
+Contact Andrew Sarver to resolve a violation and request reinstatement. Ending
+your use does not erase responsibility for an earlier violation.
+
+7. No warranty; limitation of liability
+
+To the extent allowed by applicable law, the Software is provided "as is" and
+"as available", without warranties or conditions, including those concerning
+merchantability, fitness for a particular purpose, accuracy, or noninfringement.
+You are responsible for evaluating simulation results and any use on physical
+hardware. To the extent allowed by law, the licensor and contributors are not
+liable for loss, injury, or damages arising from the Software or its use,
+whether the claim arises in contract, tort, or otherwise. Any liability that
+applicable law does not permit to be excluded remains unaffected.

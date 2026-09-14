@@ -1,0 +1,108 @@
+{
+  "method": "Four adjacent authored axial-ring convex bands per root; preserves flats and avoids whole-profile convex bridging. Source points unchanged except binary STL float32 quantization.",
+  "meshes": {
+    "pin_root_-1_band_0.stl": {
+      "source": "pin_root_-1.obj",
+      "source_sha256": "59c04857b155b37f97c4f6a3f5db77c1205b9c8f6617f2d82252826ea3ef9443",
+      "z_min_max_m": [
+        -0.01,
+        -0.009
+      ],
+      "vertices": 86,
+      "triangles": 168,
+      "closed_two_faces_per_edge": true,
+      "signed_volume_m3": 2.7245144484129208e-06
+    },
+    "pin_root_-1_band_1.stl": {
+      "source": "pin_root_-1.obj",
+      "source_sha256": "59c04857b155b37f97c4f6a3f5db77c1205b9c8f6617f2d82252826ea3ef9443",
+      "z_min_max_m": [
+        -0.009,
+        -0.0085
+      ],
+      "vertices": 86,
+      "triangles": 168,
+      "closed_two_faces_per_edge": true,
+      "signed_volume_m3": 1.3959570310649926e-06
+    },
+    "pin_root_-1_band_2.stl": {
+      "source": "pin_root_-1.obj",
+      "source_sha256": "59c04857b155b37f97c4f6a3f5db77c1205b9c8f6617f2d82252826ea3ef9443",
+      "z_min_max_m": [
+        -0.0085,
+        -0.0081
+      ],
+      "vertices": 86,
+      "triangles": 168,
+      "closed_two_faces_per_edge": true,
+      "signed_volume_m3": 1.158930275929853e-06
+    },
+    "pin_root_-1_band_3.stl": {
+      "source": "pin_root_-1.obj",
+      "source_sha256": "59c04857b155b37f97c4f6a3f5db77c1205b9c8f6617f2d82252826ea3ef9443",
+      "z_min_max_m": [
+        -0.0081,
+        -0.008
+      ],
+      "vertices": 86,
+      "triangles": 168,
+      "closed_two_faces_per_edge": true,
+      "signed_volume_m3": 2.870648461131609e-07
+    },
+    "pin_root_1_band_0.stl": {
+      "source": "pin_root_1.obj",
+      "source_sha256": "73e2641e9160fbb3f45face7b11c0776740cda41afe512aea39478c3d9dfbbfa",
+      "z_min_max_m": [
+        0.008,
+        0.0081
+      ],
+      "vertices": 86,
+      "triangles": 168,
+      "closed_two_faces_per_edge": true,
+      "signed_volume_m3": 2.870648461131617e-07
+    },
+    "pin_root_1_band_1.stl": {
+      "source": "pin_root_1.obj",
+      "source_sha256": "73e2641e9160fbb3f45face7b11c0776740cda41afe512aea39478c3d9dfbbfa",
+      "z_min_max_m": [
+        0.0081,
+        0.0085
+      ],
+      "vertices": 86,
+      "triangles": 168,
+      "closed_two_faces_per_edge": true,
+      "signed_volume_m3": 1.158930275929853e-06
+    },
+    "pin_root_1_band_2.stl": {
+      "source": "pin_root_1.obj",
+      "source_sha256": "73e2641e9160fbb3f45face7b11c0776740cda41afe512aea39478c3d9dfbbfa",
+      "z_min_max_m": [
+        0.0085,
+        0.009
+      ],
+      "vertices": 86,
+      "triangles": 168,
+      "closed_two_faces_per_edge": true,
+      "signed_volume_m3": 1.3959570310649943e-06
+    },
+    "pin_root_1_band_3.stl": {
+      "source": "pin_root_1.obj",
+      "source_sha256": "73e2641e9160fbb3f45face7b11c0776740cda41afe512aea39478c3d9dfbbfa",
+      "z_min_max_m": [
+        0.009,
+        0.01
+      ],
+      "vertices": 86,
+      "triangles": 168,
+      "closed_two_faces_per_edge": true,
+      "signed_volume_m3": 2.724514448412919e-06
+    }
+  },
+  "urdfs": [
+    "pin_blue_red.urdf",
+    "pin_blue_yellow.urdf",
+    "pin_red_blue.urdf",
+    "pin_red_yellow.urdf",
+    "pin_yellow_yellow.urdf"
+  ]
+}

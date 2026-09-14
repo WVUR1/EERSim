@@ -17,9 +17,27 @@ the flap/lift/loader joints. The tank example uses ports 1/2 left, 3/4 right and
 The sample robot has 10.73 kg total authored mass. Wheel diameter is 2 inches for
 the X-drive, matching the repository. Mass distribution, gearing efficiency and
 friction are examples requiring measurement. `generate_samples.py` regenerates
-all supplied robot, object and game wrappers using Python's standard library.
-Official meshes are supplied separately and regenerated with `tools/import_vex_cad.py`.
-Save your edited field or robot under another filename before running it.
+all supplied robot, object and game wrappers. Its offline goal/pin collider
+generator requires NumPy and SciPy (the PhysX extra includes SciPy). Official
+meshes are supplied separately and regenerated with `tools/import_vex_cad.py`.
+Save your edited field or robot under another filename before running the sample
+generator. From the repository root:
+
+```sh
+python assets/generate_samples.py
+```
+
+To generate only the corrected goal/pin collision assets into a separate review
+directory, without overwriting source assets:
+
+```sh
+python tools/build_goal_pin_colliders.py --repository . --output-assets build/collision-assets --root-bands
+python -m pytest tests/test_goal_pin_colliders.py tests/test_sample_collision_regeneration.py
+```
+
+Both generation paths retain the corrected goal lip and pin-root bands. The
+original root OBJ/STL files remain as source profiles and negative-control test
+geometry; the final pin URDFs reference the new axial-band STLs.
 
 Robot binding files contain a `motors` array. Each row has a unique smart `port`
 (1–21, optionally negative), a movable URDF `joint`, physical `cartridge`
@@ -133,20 +151,39 @@ The measured CAD grid pitch is 598.058534 mm. Pin overall dimensions are
 80.293 by 76.793 by 165 mm: the large central flange joins two tapered ends.
 Cups are 80 mm diameter and 164.5 mm high, with two hollow ends.
 
-Pin dynamic collision uses two convex tapered ends, sampled rounded tips and a
-beveled D-shaped flange. Measured cross-sections preserve the recessed local -Y
-face on both tapers and the tips' 2.25 mm D-flat. The 48-sided circular portions
-have under 0.09 mm chord error; convexification of the recessed taper, root
-fillets and tiny molded details adds separate approximation error. This is not
-a uniform 0.09 mm bound on the whole collision model. Cups use hollow convex sectors sampled from measured inner/outer
-profiles. The inner polygon circumscribes the circular opening (under 0.77 mm
+Pin dynamic collision uses two convex tapered ends, sampled rounded tips, a
+beveled D-shaped flange, and four adjacent axial-ring convex bands per root.
+The bands avoid filling the concave root fillet with one convex hull. Measured
+cross-sections preserve the recessed local -Y face on both tapers and the tips'
+2.25 mm D-flat. The 48-sided circular portions have under 0.09 mm chord error;
+convexification within each leaf and omitted molded details add separate
+approximation error. This is not a uniform 0.09 mm bound on the whole collision
+model. Each pin has 13 URDF leaves; the PhysX exporter's exact subdivision for
+GPU cooking limits produces 64 convex shapes per pin. Cups use hollow convex
+sectors sampled from measured inner/outer profiles. The inner polygon circumscribes the circular opening (under 0.77 mm
 angular error at the rim), avoiding false interference in the authored stacks.
 Intermediate CAD samples preserve the tapered body and the true flared lip.
 Their openings remain physically accessible.
-Goals use 1,408-triangle hollow meshes sampled from actual CAD radial sections,
-preserving the taper, narrow seat and flared lip while omitting molded ribs and
-fastener details. Full assembly triangle collision was much slower under contact.
-Goal risers, mounting plates and perimeter structural rails are box approximations.
+Goals use 5,312-triangle hollow contact meshes. Their corrected inner profile
+uses 64 radial samples per ring and preserves the CAD's horizontal annular
+shoulder at socket z = 76.5 mm, instead of joining its edges with a diagonal
+ramp. The original outer-wall vertices/faces are retained and the cap winding is
+consistent. Molded ribs and fastener details remain omitted. Goal risers,
+mounting plates and perimeter structural rails are box approximations.
+
+`goal_profile.json` records the official `goal_socket.obj` source hash and sampled
+inner/outer sections; `pin_root_bands.json` records the source root profiles and
+band bounds. The source CAD definition is `276-9250-003_Master`, with original
+STEP provenance in `cad_manifest.json`. Displayed CAD meshes have a declared
+0.25 mm chord tolerance. An offline comparison at 216 axial heights and 192
+angular rays measured a maximum inward goal-profile deviation of 0.129 mm and
+outward deviation of 0.026 mm relative to that triangle mesh; these are sampled
+measurements, not global analytic-surface error bounds. Static tests find no
+strict pin/goal mesh intersections at the original five seated-pin poses.
+Contact offsets, native cooking, insertion/extraction, and stacking still need
+backend-specific validation. No performance or physical-accuracy guarantee
+follows from those static checks. Official positions, visuals, mass, inertia,
+friction, and solver settings were not changed by this collider correction.
 The white panels use their exact exported CAD shape and installation positions.
 Toggle visuals separate the actual fixed mounts and rotor at the authored axle;
 rotor contact uses its conservative measured box envelope. These collision models

@@ -67,6 +67,13 @@ def _field_objects(data: dict[str, Any]):
         yield from (item for item in objects if isinstance(item, dict))
 
 
+def validate_physics_cpu_threads(value: int) -> int:
+    """Bound an explicit dispatcher request; zero runs PhysX tasks inline."""
+    if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 1024:
+        raise ValueError("physics_cpu_threads must be an integer between 0 and 1024")
+    return value
+
+
 def default_config() -> dict[str, Any]:
     return SimConfig().to_dict()
 
@@ -80,6 +87,7 @@ class SimConfig:
     physics_hz: int = 240
     physics_backend: str = "auto"
     physics_device: int = 0
+    physics_cpu_threads: int = 2
     physics_solver_iterations: int = 100
     gravity: float = 9.80665
     friction: float = 0.9
@@ -116,6 +124,7 @@ class SimConfig:
         if (isinstance(self.physics_device, bool) or not isinstance(self.physics_device, int)
                 or self.physics_device < 0):
             raise ValueError("physics_device must be a nonnegative integer CUDA device index")
+        validate_physics_cpu_threads(self.physics_cpu_threads)
         if (isinstance(self.physics_solver_iterations, bool)
                 or not isinstance(self.physics_solver_iterations, int)
                 or not 1 <= self.physics_solver_iterations <= 255):

@@ -119,7 +119,7 @@ def test_invalid_activity_requests_are_rejected_before_native_access(payload):
         _Runtime.__new__(_Runtime).diagnostics(payload)
 
 
-@pytest.mark.parametrize('setting,expected', [(None, 2), ('0', 0), ('1', 1), ('2', 2)])
+@pytest.mark.parametrize('setting,expected', [(None, 2), ('0', 0), ('1', 1), ('2', 2), ('8', 8), ('256', 256), ('1024', 1024)])
 def test_explicit_thread_override_preserves_default_two(monkeypatch, setting, expected):
     if setting is None:
         monkeypatch.delenv('EERSIM_PHYSX_THREADS', raising=False)
@@ -128,7 +128,7 @@ def test_explicit_thread_override_preserves_default_two(monkeypatch, setting, ex
     assert diagnostic_thread_count() == expected
 
 
-@pytest.mark.parametrize('value', ['-1', '3', 'many', ''])
+@pytest.mark.parametrize('value', ['-1', '1025', 'many', '', '2.0', ' 2', '2 ', '+2', '999999999999', '٢'])
 def test_invalid_thread_override_is_not_silently_ignored(monkeypatch, value):
     monkeypatch.setenv('EERSIM_PHYSX_THREADS', value)
     with pytest.raises(ValueError, match='EERSIM_PHYSX_THREADS'):

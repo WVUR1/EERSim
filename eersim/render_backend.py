@@ -7,7 +7,8 @@ from .gpu_probe import probe_gpu
 
 
 class RenderBackend:
-    def __init__(self, client: int, mode: str = "auto", base_inertial_frames: dict | None = None, physics_api=None):
+    def __init__(self, client: int, mode: str = "auto", base_inertial_frames: dict | None = None, physics_api=None,
+                 visual_shapes=None):
         # The environment override also gives headless CI a deliberate CPU path.
         mode = os.environ.get("EERSIM_RENDERER", mode).lower()
         if mode not in ("auto", "gpu", "cpu"):
@@ -15,6 +16,9 @@ class RenderBackend:
         self.client, self.mode = client, mode
         self.base_inertial_frames = base_inertial_frames
         self.physics_api = physics_api
+        # Recorded scenes already own complete visual descriptors. They do not
+        # need a Bullet client unless this backend falls back to TinyRenderer.
+        self.visual_shapes = None if visual_shapes is None else tuple(visual_shapes)
         self.renderer = None
         self.initialized = False
         self.status = {"backend": "cpu", "device": "Bullet TinyRenderer", "hardware_accelerated": False,
@@ -29,11 +33,15 @@ class RenderBackend:
                     try:
                         import pybullet as bullet
                         from .rendering import HardwareRenderer
-                        bodies = [bullet.getBodyUniqueId(i, physicsClientId=self.client)
-                                  for i in range(bullet.getNumBodies(physicsClientId=self.client))]
-                        self.renderer = HardwareRenderer(self.client, bodies,
-                                                         base_inertial_frames=self.base_inertial_frames,
-                                                         physics_api=self.physics_api)
+                        arguments = {"base_inertial_frames": self.base_inertial_frames,
+                                     "physics_api": self.physics_api}
+                        if self.visual_shapes is None:
+                            bodies = [bullet.getBodyUniqueId(i, physicsClientId=self.client)
+                                      for i in range(bullet.getNumBodies(physicsClientId=self.client))]
+                        else:
+                            bodies = list(dict.fromkeys(shape[0] for shape in self.visual_shapes))
+                            arguments["visual_shapes"] = self.visual_shapes
+                        self.renderer = HardwareRenderer(self.client, bodies, **arguments)
                         self.status = {"backend": "opengl", "device": info.get("device", "OpenGL"),
                                        "hardware_accelerated": info.get("hardware_accelerated", False),
                                        "version": info.get("version", ""), "reason": ""}

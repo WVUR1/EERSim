@@ -24,12 +24,42 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="pin_root_-1.stl" />
+        <mesh filename="pin_root_-1_band_0.stl" />
       </geometry>
     </collision>
     <collision>
       <geometry>
-        <mesh filename="pin_root_1.stl" />
+        <mesh filename="pin_root_-1_band_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_root_-1_band_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_root_-1_band_3.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_root_1_band_0.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_root_1_band_1.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_root_1_band_2.stl" />
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="pin_root_1_band_3.stl" />
       </geometry>
     </collision>
     <collision>

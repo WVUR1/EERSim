@@ -51,7 +51,7 @@ driver remains a machine prerequisite.
 
 In **Field → Physics engine**, choose **Auto · CUDA when available**,
 **Bullet · CPU**, **PhysX · NVIDIA CUDA**, or **PhysX · CPU**, then click
-**Apply settings & reset scene**. **Auto** attempts CUDA and falls back to
+**Apply settings**. **Auto** attempts CUDA and falls back to
 Bullet when runtime dependencies, device checks, or scene initialization fail.
 The reason appears in Field, Telemetry, and the log. Explicit PhysX selections
 raise an error on failure. A running scene does not silently change solvers
@@ -74,9 +74,16 @@ python -m eersim --headless --demo claw --physics-backend physx_gpu \
   --physics-device 0 --solver-iterations 100 --seconds 30 --csv claw-cuda.csv
 ```
 
-The JSON keys are `physics_backend`, `physics_device`, and
-`physics_solver_iterations`. Saved experiments retain all three. Pin an explicit
+The JSON keys are `physics_backend`, `physics_device`,
+`physics_solver_iterations`, and `physics_cpu_threads`. Saved experiments
+retain these settings. Pin an explicit
 backend for comparisons across machines; **Auto** can select different engines.
+
+**PhysX CPU workers · advanced** controls host physics tasks for both PhysX
+backends. It defaults to two; zero runs tasks inline. More workers are not
+necessarily faster. `EERSIM_PHYSX_THREADS`, when set, overrides the saved or GUI
+value. This setting does not parallelize CPU graphics, fixed physics steps, or
+PROS callbacks.
 
 ## Physics, graphics, and timing
 

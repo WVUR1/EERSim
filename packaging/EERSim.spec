@@ -97,6 +97,19 @@ analysis = Analysis(
               "vtkmodules.qt", "vtkmodules.wx", "pytest", "cadquery", "OCP"],
     noarchive=False,
 )
+# Qt's automatic plugin collection includes an unused GPL-only virtual
+# keyboard. EERSim uses desktop QtWidgets, not this optional input method.
+# Retain normal platform, image, icon, style, and keyboard/input processing.
+# Source: https://doc.qt.io/qt-6.8/qtvirtualkeyboard-index.html#licenses-and-attributions
+
+def keep_qt_payload(entry):
+    destination = str(entry[0]).replace("\\", "/").casefold()
+    omitted = {"qt6virtualkeyboard.dll", "qtvirtualkeyboardplugin.dll"}
+    return not (destination.startswith("pyside6/") and destination.rsplit("/", 1)[-1] in omitted)
+
+
+analysis.binaries = [entry for entry in analysis.binaries if keep_qt_payload(entry)]
+analysis.datas = [entry for entry in analysis.datas if keep_qt_payload(entry)]
 pyz = PYZ(analysis.pure)
 
 # Add the compiler tree after Analysis so its executables, target libraries,

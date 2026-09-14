@@ -1,20 +1,22 @@
 # Windows installer and EXE builds
 
-The private [0.1.4 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.4-windows-preview.1)
-includes GPU physics. Its `EERSim-Setup-x64.exe` contains Python, PySide6,
-PyBullet, VTK, PhysX/OVStage, SciPy, default robots and fields, and the desktop
-LLVM-MinGW compiler for selected PROS workspaces. Recipients do not need Python,
-Conda, PROS tooling, a separate compiler, or WSL installed.
-Version 0.1.4 includes contact conversion and per-state force-transform reuse,
-plus scoring/observation calculation reuse. Solver iterations, field collision
-geometry, motor equations and sensor sampling cadence retain their defaults.
-The [0.1.4 validation report](diagnostics-a100-0.1.4.md) records the matched
-A100 performance/placement checks and Windows artifact validation for this build.
+The private [0.1.6 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.6-windows-preview.1)
+contains Python, PySide6, PyBullet, VTK, PhysX/OVStage, SciPy, default robots and
+fields, and the desktop LLVM-MinGW compiler for selected PROS workspaces.
+Recipients do not need Python, Conda, a separate compiler, or WSL installed.
+It includes viewport scheduling and loading improvements, CPU worker controls,
+and the corrected goal/pin collision geometry. See the
+[0.1.6 validation report](performance-0.1.6.md) for measurements and limits.
+
+The installer displays the [academic/noncommercial license](../LICENSE).
+Commercial use requires prior written permission from Andrew Sarver; see
+[licensing](licensing.md) and the included [Qt/PySide notices](notices/qt-pyside6.md).
+Third-party libraries retain their separate licenses.
 
 Previous releases passed headless native compilation, Bullet/PhysX CPU,
 automatic fallback and explicit missing-CUDA checks. The supplied RTX 4070 Ti
 capture of 0.1.3 records Windows CUDA execution of the PROS claw demo and preload
-placement. Those older measurements do not establish 0.1.4 Windows performance.
+placement. Those older measurements do not establish 0.1.6 Windows performance.
 See the [capture analysis](diagnostics-4070ti-followup.md) and [validation](validation.md).
 
 CUDA physics requires an NVIDIA GPU with compute capability 7.0 or newer and a
@@ -47,12 +49,37 @@ artifacts must not be described as signed or verified-publisher releases.
    setup dialog. Hold the jog buttons to test joints in the movable 3D preview.
 3. Open **Field → Import field…** to choose a game-pack JSON or a complete field
    URDF. Built-in field and robot presets are already available.
-4. Click **Apply settings & reset scene**. **Save/Load** in **Experiment setup**
+4. Click **Apply settings**. **Save/Load** in **Experiment setup**
    stores and restores experiment profiles.
 
 The application reads external designs in place. Generated import wrappers and
 the writable copy of the bundled claw demo live in EERSim's per-user data
 directory. There is no need to modify the installed `_internal` assets.
+
+## Scene setup and live performance
+
+**Load claw scoring demo** selects the bundled robot, field, PROS workspace, and
+Skills Auto mode. Click **Build workspace** explicitly, then **Start**. Loading
+the demo, importing assets, applying settings, and starting a run do not compile
+robot source. Rebuild explicitly after editing that source.
+
+Start can reuse an unchanged prepared scene. It still resets a scene that has
+already advanced. **Apply settings** reloads physical changes and unchanged
+settings; use it after editing external asset files. Applying only viewport FPS
+or configured simulation speed changes keeps the current physics state. Camera
+movement does not reload the scene. **Reset** explicitly restores initial state.
+
+**Field → PhysX CPU workers · advanced** selects host task workers, including
+CPU work used by CUDA physics. The default is two; zero runs tasks inline.
+The control offers the detected CPU count and preserves a larger saved count.
+More workers do not necessarily improve performance. `EERSIM_PHYSX_THREADS`,
+when set, overrides this profile/GUI value. Fixed physics steps and PROS callbacks
+remain ordered regardless of worker count.
+
+**Telemetry** reports completed live rendering FPS in wall time, independently
+of physics rate. This is not a measurement of Qt painting or monitor refresh.
+The GUI takes the newest rendered frame when busy. No physics steps are dropped;
+individual slow physics steps and expensive rendering can still limit smoothness.
 
 ## Build the installer
 

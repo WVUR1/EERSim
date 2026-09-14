@@ -2,13 +2,14 @@
 #ifndef BundleRoot
   #error BundleRoot must identify a complete EERSim directory bundle.
 #endif
-#define AppVersion "0.1.5"
+#define AppVersion "0.1.6"
 
 [Setup]
 AppId={{95A78754-70D4-4D44-8E83-9241A32DDA25}
 AppName=EERSim
 AppVersion={#AppVersion}
 AppPublisher=WVU Robotics Club
+LicenseFile={#BundleRoot}\_internal\LICENSE
 DefaultDirName={localappdata}\Programs\EERSim
 DefaultGroupName=EERSim
 PrivilegesRequired=lowest

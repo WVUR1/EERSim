@@ -53,6 +53,17 @@ def test_slow_physics_services_pause_and_retains_unprocessed_time(monkeypatch):
     """An expensive contact tick must not lock controls behind sixteen ticks."""
     app = QCoreApplication.instance() or QCoreApplication([])
     states = []
+    clocks, pre_pause = [], []
+
+    class ObservedClock(engine.FixedStepClock):
+        def __init__(self, hz):
+            super().__init__(hz)
+            self.added = 0.0
+            clocks.append(self)
+
+        def add(self, elapsed, speed=1.0):
+            super().add(elapsed, speed)
+            self.added += elapsed * speed
 
     class SlowSession:
         dt = 1 / 240
@@ -63,6 +74,18 @@ def test_slow_physics_services_pause_and_retains_unprocessed_time(monkeypatch):
             self.running = self.paused = False
             self.manual_joints = {}
             self.steps = 0
+
+        @property
+        def paused(self):
+            return self._paused
+
+        @paused.setter
+        def paused(self, value):
+            if value:
+                # Observe retained work before Pause deliberately clears wall-time
+                # backlog. Render/telemetry cadence must not decide this assertion.
+                pre_pause.append((self.steps, clocks[-1].pending, clocks[-1].added))
+            self._paused = value
 
         def start(self, mode, executable):
             self.running = True
@@ -86,6 +109,7 @@ def test_slow_physics_services_pause_and_retains_unprocessed_time(monkeypatch):
         def close(self):
             self.stop()
 
+    monkeypatch.setattr(engine, "FixedStepClock", ObservedClock)
     monkeypatch.setattr(engine, "Session", SlowSession)
     worker = engine.SimulationEngine(defer_configuration=True)
     worker.state.connect(states.append)
@@ -97,8 +121,11 @@ def test_slow_physics_services_pause_and_retains_unprocessed_time(monkeypatch):
             app.processEvents()
             time.sleep(.005)
         assert any(state["paused"] and state["steps"] == 2 for state in states), states
-        assert any(state["steps"] == 2 and not state["paused"]
-                   and state["physics_backlog_s"] > .1 for state in states), states
+        assert len(pre_pause) == 1, pre_pause
+        steps, pending, credited = pre_pause[0]
+        assert steps == 2 and pending > .1, pre_pause
+        assert pending == pytest.approx(credited - steps * SlowSession.dt, abs=1e-10)
+        assert any(state["paused"] and state["physics_backlog_s"] == 0 for state in states), states
     finally:
         worker.close()
 

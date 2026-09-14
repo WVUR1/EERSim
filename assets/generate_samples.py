@@ -6,6 +6,7 @@ or certified competition dimensions. Units are metres, kilograms, radians.
 from __future__ import annotations
 
 from copy import deepcopy
+import importlib.util
 import json
 import math
 import struct
@@ -74,11 +75,12 @@ def wheel_stripe(part, radius, width, rpy, axis):
 
 def save_urdf(robot, path):
     ET.indent(robot)
-    ET.ElementTree(robot).write(path, encoding="utf-8", xml_declaration=True)
+    # Serialize bytes so Windows cannot translate canonical XML LF to CRLF.
+    path.write_bytes(ET.tostring(robot, encoding="utf-8", xml_declaration=True))
 
 
 def save_json(data, path):
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 def make_robot(omni=True):
@@ -207,7 +209,11 @@ def convex_mesh(filename, vertices):
     lines = ["# EERsim CAD-profile collision hull; units metres"]
     lines.extend("v " + " ".join(f"{v:.9f}" for v in point) for point in vertices)
     lines.extend(f"f 1 {i} {i+1}" for i in range(2, len(vertices)))
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    # OBJ files are binary-tagged because provenance stores their byte hashes.
+    # Retain an existing file's format; new profiles use the shipped CRLF form
+    # even when regenerated on Linux. Geometry and binary STL are unchanged.
+    newline = "\r\n" if not path.exists() or b"\r\n" in path.read_bytes() else "\n"
+    path.write_bytes((newline.join(lines) + newline).encode("utf-8"))
     # Bullet's OBJ loader inserts an extra compound around each convex object,
     # preventing changeDynamics from reaching leaf margins. STL imports the
     # same vertex hull directly. Keep the small OBJ alongside it for inspection.
@@ -232,31 +238,20 @@ def cad_visual(filename):
     return "../meshes/override/" + ("lod/" if lod.exists() else "") + filename
 
 
+def collision_generator():
+    """Load the shared offline generator from this checkout, without sys.path edits."""
+    path = ROOT.parent / "tools" / "build_goal_pin_colliders.py"
+    spec = importlib.util.spec_from_file_location("eersim_goal_pin_generator", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Cannot load the goal/pin collision generator")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def make_goal_socket_collision():
-    """A small hollow static mesh from measured CAD socket cross-sections."""
-    profile = json.loads((ROOT / "objects" / "goal_profile.json").read_text(encoding="utf-8"))["sections"]
-    vertices, faces = [], []
-    count = len(profile[0]["inner"])
-    for section in profile:
-        for side in ("inner", "outer"):
-            for i, radius in enumerate(section[side]):
-                angle = i * math.tau / count
-                vertices.append((radius*math.cos(angle), radius*math.sin(angle), section["z"]))
-    for level in range(len(profile)-1):
-        for side in range(2):
-            for i in range(count):
-                a = level*2*count + side*count + i
-                b = level*2*count + side*count + (i+1)%count
-                c, d = a+2*count, b+2*count
-                faces.extend([(a,b,c),(b,d,c)] if side else [(a,c,b),(b,c,d)])
-    for level in (0, len(profile)-1):
-        for i in range(count):
-            a, b = level*2*count+i, level*2*count+(i+1)%count
-            faces.extend([(a,b,a+count),(b,b+count,a+count)])
-    lines = ["# CAD-profile approximation; metres; open tapered goal socket"]
-    lines.extend("v "+" ".join(f"{v:.9f}" for v in point) for point in vertices)
-    lines.extend("f "+" ".join(str(v+1) for v in face) for face in faces)
-    (ROOT / "objects" / "goal_socket_collision.obj").write_text("\n".join(lines)+"\n", encoding="utf-8")
+    """Regenerate the CAD lip, retaining its shoulder and correct face winding."""
+    collision_generator().build_goal(ROOT.parent, ROOT)
 
 
 def make_pin_and_goals():
@@ -315,6 +310,10 @@ def make_pin_and_goals():
                      "pin_tip_-1.obj", "pin_tip_1.obj", "pin_flange.obj"):
             mesh_geometry(part, str(Path(mesh).with_suffix(".stl")), "collision")
         save_urdf(robot, ROOT / "objects" / f"pin_{top}_{bottom}.urdf")
+    # Keep the original root profiles as reproducible inputs, then replace each
+    # whole-root hull with the CAD-faithful axial bands. Otherwise regeneration
+    # would silently restore the convex bridge that intersects the goal lip.
+    collision_generator().build_root_bands(ROOT.parent, ROOT)
     for name, kind, color in [("red", "alliance", colors["red"]), ("blue", "alliance", colors["blue"]),
                               ("neutral", "neutral", ".065 .075 .085 1"), ("center", "center", ".065 .075 .085 1")]:
         robot = ET.Element("robot", name=f"override_goal_{name}")

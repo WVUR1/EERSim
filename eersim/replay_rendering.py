@@ -1,4 +1,4 @@
-"""Recorded-pose rendering in an owned, collision-free Bullet client.
+"""Recorded-pose rendering with a lazily created visual-only Bullet fallback.
 
 The clip supplies world link-origin poses and link-local visuals. The private
 scene uses identity inertial frames, so no live-world COM transform is applied
@@ -7,7 +7,9 @@ again. No simulation step or collision shape is created by this module.
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import threading
+import time
 
 import numpy as np
 import pybullet as bullet
@@ -59,8 +61,9 @@ class ReplayRenderer:
 
     The caller owns the clip and closes this renderer before disposing the clip.
     ``set_frame`` accepts a ReplayFrame; ``render`` accepts the same orbit camera
-    parameters as World.render. GPU setup is deferred until the first render,
-    using the existing visible TinyRenderer fallback on unsupported graphics.
+    parameters as World.render. GPU setup consumes recorded visual descriptors
+    directly. Bullet geometry is created only for the selected CPU renderer or
+    the existing visible TinyRenderer fallback on unsupported graphics.
     """
     def __init__(self, clip, *, renderer="auto"):
         self._owner = threading.get_ident()
@@ -69,25 +72,62 @@ class ReplayRenderer:
         self.client = -1
         self._backend = None
         self._body_rows = {}
+        self._cpu_scene_seconds = None
+        self._first_render_seconds = None
         self._camera = {"yaw": -45., "pitch": -55., "distance": 5., "target": (0., 0., 0.)}
+        mode = os.environ.get("EERSIM_RENDERER", renderer).lower()
+        if mode not in ("auto", "gpu", "cpu"):
+            raise ValueError("renderer must be auto, gpu, or cpu")
+        began = time.perf_counter()
         scene = clip.scene
         self._row_count = len(scene.row_keys)
-        poses = _poses(scene.initial_poses, self._row_count)
-        # Validate descriptors before creating any Bullet resources.
-        shapes = [self._shape_arguments(visual) for visual in scene.visuals]
+        self._poses = _poses(scene.initial_poses, self._row_count)
+        self._visuals = tuple(scene.visuals)
+        # Validate descriptors before creating any graphics or Bullet resources.
+        self._shapes = tuple(self._shape_arguments(visual) for visual in self._visuals)
+        self._descriptor_seconds = time.perf_counter() - began
+        try:
+            if mode == "cpu":
+                self._ensure_cpu_scene()
+                self._pose_provider = _RecordedPoses(self.client, self._body_rows, self._poses)
+                self._backend = RenderBackend(self.client, mode,
+                    base_inertial_frames={body: _IDENTITY for body in self._body_rows},
+                    physics_api=self._pose_provider)
+            else:
+                # Virtual IDs are private descriptor indices, never live-world
+                # body IDs. HardwareRenderer must not query Bullet for them.
+                rows = {body: visual.row for body, visual in enumerate(self._visuals)}
+                shapes = tuple((body, -1, visual.kind, tuple(float(value) for value in visual.dimensions),
+                    arguments.get("fileName", ""),
+                    arguments["visualFramePosition"], arguments["visualFrameOrientation"], arguments["rgbaColor"],
+                    0 if visual.texture_path else -1)
+                    for body, (visual, arguments) in enumerate(zip(self._visuals, self._shapes)))
+                self._pose_provider = _RecordedPoses(-1, rows, self._poses)
+                self._backend = RenderBackend(-1, mode,
+                    base_inertial_frames={body: _IDENTITY for body in rows},
+                    physics_api=self._pose_provider, visual_shapes=shapes)
+            self._update_status()
+        except BaseException:
+            self.close()
+            raise
+
+    def _ensure_cpu_scene(self):
+        if self.client >= 0:
+            return
+        began = time.perf_counter()
         try:
             self.client = bullet.connect(bullet.DIRECT)
             if self.client < 0:
                 raise RuntimeError("Could not create the private replay renderer client")
-            # Pinned assets belong to this clip, not a process-wide file cache
-            # that can outlive many discarded recordings.
+            # Preserve the existing CPU fallback's uncached asset lifetime;
+            # GPU replay does not make this or any other Bullet scene call.
             bullet.setPhysicsEngineParameter(enableFileCaching=0, physicsClientId=self.client)
             textures = {}
-            for visual, arguments in zip(scene.visuals, shapes):
+            for visual, arguments in zip(self._visuals, self._shapes):
                 shape = bullet.createVisualShape(**arguments, physicsClientId=self.client)
                 if shape < 0:
                     raise RuntimeError("Bullet could not load a recorded replay visual")
-                row = poses[visual.row]
+                row = self._poses[visual.row]
                 body = bullet.createMultiBody(
                     baseMass=0., baseCollisionShapeIndex=-1, baseVisualShapeIndex=shape,
                     basePosition=tuple(row[:3]), baseOrientation=tuple(row[3:]),
@@ -105,15 +145,18 @@ class ReplayRenderer:
                         textures[path] = texture
                     bullet.changeVisualShape(body, -1, textureUniqueId=textures[path],
                                              rgbaColor=tuple(visual.rgba), physicsClientId=self.client)
-            self._pose_provider = _RecordedPoses(self.client, self._body_rows, poses)
-            self._backend = RenderBackend(
-                self.client, renderer,
-                base_inertial_frames={body: _IDENTITY for body in self._body_rows},
-                physics_api=self._pose_provider)
-            self.renderer_status = dict(self._backend.status)
+            self._cpu_scene_seconds = time.perf_counter() - began
         except BaseException:
             self.close()
             raise
+
+    def _update_status(self):
+        self.renderer_status = dict(self._backend.status)
+        self.renderer_status["replay_load"] = {
+            "visual_count": len(self._visuals), "cpu_visual_scene_created": self.client >= 0,
+            "descriptor_validation_seconds": self._descriptor_seconds,
+            "cpu_visual_construction_seconds": self._cpu_scene_seconds,
+            "first_render_seconds": self._first_render_seconds}
 
     def _shape_arguments(self, visual):
         if not isinstance(visual.row, (int, np.integer)) or not 0 <= visual.row < self._row_count:
@@ -162,7 +205,7 @@ class ReplayRenderer:
     def set_frame(self, frame):
         self._check_owner()
         poses = _poses(frame.poses, self._row_count)
-        previous = self._pose_provider.poses
+        previous = self._poses
         changed = np.any(poses != previous, axis=1)
         try:
             for body, row_index in self._body_rows.items():
@@ -170,7 +213,7 @@ class ReplayRenderer:
                     row = poses[row_index]
                     bullet.resetBasePositionAndOrientation(body, tuple(row[:3]), tuple(row[3:]),
                                                            physicsClientId=self.client)
-            self._pose_provider.poses = poses
+            self._poses = self._pose_provider.poses = poses
         except BaseException:
             self.close()
             raise
@@ -194,10 +237,14 @@ class ReplayRenderer:
         if not (16 <= width <= 4096 and 16 <= height <= 4096):
             raise ValueError("Replay image dimensions must be between 16 and 4096")
         self.set_camera(yaw=yaw, pitch=pitch, distance=distance, target=target)
+        began = time.perf_counter()
         pixels = self._backend.render(width, height, **self._camera)
-        self.renderer_status = dict(self._backend.status)
         if pixels is not None:
+            if self._first_render_seconds is None:
+                self._first_render_seconds = time.perf_counter() - began
+            self._update_status()
             return pixels
+        self._ensure_cpu_scene()
         camera = self._camera
         view = bullet.computeViewMatrixFromYawPitchRoll(camera["target"], camera["distance"],
                                                         camera["yaw"], camera["pitch"], 0, 2)
@@ -209,6 +256,9 @@ class ReplayRenderer:
         pixels = np.asarray(image[2], dtype=np.uint8).reshape(height, width, 4).copy()
         depth = np.asarray(image[3]).reshape(height, width)
         pixels[depth >= .99999] = [9, 20, 32, 255]
+        if self._first_render_seconds is None:
+            self._first_render_seconds = time.perf_counter() - began
+        self._update_status()
         return pixels
 
     def close(self):
@@ -225,3 +275,5 @@ class ReplayRenderer:
                 bullet.disconnect(physicsClientId=self.client)
                 self.client = -1
             self._clip = None
+            self._visuals = self._shapes = ()
+            self._body_rows.clear()

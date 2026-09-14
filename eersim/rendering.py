@@ -72,11 +72,14 @@ class HardwareRenderer:
     frames captured when each body was loaded. It is required for Bullet rigid
     bodies, whose getDynamicsInfo inertial-frame fields are not initialized in
     some supported engine versions. ``physics_api`` supplies authoritative live
-    poses; imported visual geometry remains in the non-stepping Bullet scene.
+    poses. ``visual_shapes`` can supply immutable Bullet-format descriptors
+    directly, with captured inertial frames for every body, without any Bullet
+    scene. Otherwise visual geometry is read from the non-stepping Bullet scene.
     """
 
     def __init__(self, client: int, body_ids: Iterable[int],
-                 base_inertial_frames: dict[int, tuple] | None = None, physics_api=None):
+                 base_inertial_frames: dict[int, tuple] | None = None, physics_api=None,
+                 visual_shapes=None):
         import vtk
         from vtk.util.numpy_support import vtk_to_numpy
 
@@ -97,6 +100,16 @@ class HardwareRenderer:
         self.status = {"backend": "vtk-opengl", "renderer": self.renderer_name,
                        "vendor": "", "version": "", "hardware": False,
                        "hardware_accelerated": False, "device": self.renderer_name}
+        body_ids = tuple(body_ids)
+        descriptors = None
+        if visual_shapes is not None:
+            descriptors = {body: [] for body in body_ids}
+            if base_inertial_frames is None or any(body not in base_inertial_frames for body in body_ids):
+                raise ValueError("Descriptor rendering needs an inertial frame for every body")
+            for shape in visual_shapes:
+                if shape[0] not in descriptors:
+                    raise ValueError("Visual descriptor refers to an unknown body")
+                descriptors[shape[0]].append(shape)
         self._renderer = vtk.vtkRenderer()
         self._renderer.SetBackground(9 / 255, 20 / 255, 32 / 255)
         self._renderer.SetBackgroundAlpha(1.)
@@ -129,23 +142,22 @@ class HardwareRenderer:
         self._renderer.AddLight(fill)
         try:
             for body in body_ids:
-                inertia = p.getDynamicsInfo(body, -1, physicsClientId=client)
                 if base_inertial_frames is not None and body in base_inertial_frames:
                     inertial_position, inertial_rotation = base_inertial_frames[body]
-                elif len(inertia) > 10 and inertia[10] == 1:
-                    # Bullet 3.2.5 leaves these fields uninitialized for rigid
-                    # bodies loaded with maximal coordinates. A finite-looking
-                    # quaternion can still be arbitrary memory; do not repair
-                    # or normalize it. World records the frame at load time.
-                    raise ValueError(f"GPU rendering needs the captured base inertial frame for maximal-coordinate body {body}")
                 else:
+                    inertia = p.getDynamicsInfo(body, -1, physicsClientId=client)
+                    if len(inertia) > 10 and inertia[10] == 1:
+                        # Bullet 3.2.5 can leave this frame uninitialized for
+                        # maximal-coordinate bodies. Use the captured frame.
+                        raise ValueError(f"GPU rendering needs the captured base inertial frame for maximal-coordinate body {body}")
                     inertial_position, inertial_rotation = inertia[3], inertia[4]
                 if (len(inertial_position) != 3 or len(inertial_rotation) != 4 or
                         not np.isfinite([*inertial_position, *inertial_rotation]).all()):
                     raise ValueError(f"Body {body} has an invalid captured base inertial frame")
                 self._base_inertials[body] = _inverse_rigid(_matrix(inertial_position, inertial_rotation))
-                for shape in p.getVisualShapeData(body, flags=p.VISUAL_SHAPE_DATA_TEXTURE_UNIQUE_IDS,
-                                                 physicsClientId=client) or ():
+                shapes = descriptors[body] if descriptors is not None else p.getVisualShapeData(
+                    body, flags=p.VISUAL_SHAPE_DATA_TEXTURE_UNIQUE_IDS, physicsClientId=client) or ()
+                for shape in shapes:
                     self._add_shape(shape)
         except Exception:
             self.close()

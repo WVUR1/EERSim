@@ -4,9 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eerkit-simulator"
-version = "0.1.5"
+version = "0.1.6"
 description = "WVU EERKit desktop autonomy lab with rigid-body physics and a native PROS runtime"
 requires-python = ">=3.11,<3.14"
+license = {file = "LICENSE"}
 dependencies = ["numpy>=1.26,<3", "pybullet>=3.2.5,<4", "PySide6>=6.8,<6.10", "vtk>=9.5,<9.7"]
 
 [project.optional-dependencies]
@@ -27,7 +28,8 @@ eersim = ["_native/*.cpp", "_native/*.md", "_native/*.dll", "_native/*.so",
           "_native/physx/include/*/*.h", "_native/physx/include/*/*/*.h"]
 
 [tool.setuptools.data-files]
-"share/eersim" = ["README.md", "environment.yml"]
+"share/eersim" = ["README.md", "environment.yml", "LICENSE"]
+"share/eersim/docs/notices" = ["docs/notices/*.txt", "docs/notices/*.md", "docs/notices/*.json"]
 "share/eersim/docs" = ["docs/*.png", "docs/*.md", "docs/*.mp4", "docs/*.json"]
 "share/eersim/assets" = ["assets/README.md", "assets/cad_manifest.json", "assets/generate_samples.py"]
 "share/eersim/assets/logos" = ["assets/logos/*.png"]
