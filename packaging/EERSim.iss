@@ -2,7 +2,7 @@
 #ifndef BundleRoot
   #error BundleRoot must identify a complete EERSim directory bundle.
 #endif
-#define AppVersion "0.1.7"
+#define AppVersion "0.1.8"
 
 [Setup]
 AppId={{95A78754-70D4-4D44-8E83-9241A32DDA25}

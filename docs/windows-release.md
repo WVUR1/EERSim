@@ -1,15 +1,20 @@
 # Windows installer and EXE builds
 
-The private [0.1.7 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.7-windows-preview.1)
+The private [0.1.8 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.8-windows-preview.1)
 contains Python, PySide6, PyBullet, VTK, PhysX/OVStage, SciPy, default robots and
 fields, and the desktop LLVM-MinGW compiler for selected PROS workspaces.
-Recipients do not need Python, Conda, a separate compiler, or WSL installed.
-Version 0.1.7 adds visible Reset progress, prevents conflicting commands during
+Recipients do not need Python, Conda, a separate desktop compiler, or WSL installed.
+Version 0.1.8 adds the separate [PID tuning lab](pid-tuning.md), with motor and
+drivetrain discovery, simulation capture, candidate fitting, and physical-robot
+logger preparation. Physical firmware builds require a separate PROS CLI/ARM
+toolchain. See the [0.1.8 validation record](pid-tuning-0.1.8.md).
+
+Version 0.1.7 added visible Reset progress, prevents conflicting commands during
 the rebuild, strengthens PhysX worker shutdown, and keeps the engine available
 after a failed Reset. See the [Reset validation and limits](reset-0.1.7.md). It retains the viewport,
 loading, CPU worker, and goal/pin collision improvements from 0.1.6. The
 [0.1.6 validation report](performance-0.1.6.md) records those earlier measurements
-and limits; it does not establish performance or CUDA reset reliability for 0.1.7.
+and limits; it does not establish performance or CUDA reset reliability for 0.1.8.
 
 The installer displays the [academic/noncommercial license](../LICENSE).
 Commercial use requires prior written permission from Andrew Sarver; see
@@ -19,7 +24,7 @@ Third-party libraries retain their separate licenses.
 Previous releases passed headless native compilation, Bullet/PhysX CPU,
 automatic fallback and explicit missing-CUDA checks. The supplied RTX 4070 Ti
 capture of 0.1.3 records Windows CUDA execution of the PROS claw demo and preload
-placement. Those older measurements do not establish 0.1.7 Windows performance.
+placement. Those older measurements do not establish 0.1.8 Windows performance.
 See the [capture analysis](diagnostics-4070ti-followup.md) and [validation](validation.md).
 
 CUDA physics requires an NVIDIA GPU with compute capability 7.0 or newer and a
@@ -42,6 +47,30 @@ Keep custom files in your own folders, outside the installation directory.
 Current private previews are **unsigned** because the organization has no
 code-signing certificate. Windows may show an unknown-publisher warning. These
 artifacts must not be described as signed or verified-publisher releases.
+
+## Version 0.1.8: PID tuning utility
+
+The 0.1.8 source adds **PID tuning…** beside **Build workspace**. Its separate
+window discovers supported motor/group declarations, supports tank/H/X-drive
+axis mappings, records simulation commands and encoders, and fits candidate
+outer PID gains. Characterization and candidate validation drive mapped motors
+in the complete simulated scene. Capture and tuning do not rebuild robot code.
+
+Physical-robot capture uses an explicitly prepared, built, and uploaded copy of
+a standard PROS 4 project. The logger retains normal robot callbacks; it cannot
+attach to an existing flashed binary without an instrumented firmware build.
+This workflow requires the PROS CLI and ARM toolchain in addition to the desktop
+compiler bundled with EERSim. Connected-device recording and hardware gain
+transfer have not been validated. See the [PID tuning guide](pid-tuning.md) for
+the workflow, controller units, export formats, and current limitations.
+
+The targeted acceptance run passed 176 tests with two expected skips. A
+compiled, unchanged PROS fixture produced 162 automatic motor samples; a
+separate characterization fitted candidate gains that were then exercised
+on a simple Bullet rotor, recording a final position of 90 degrees. These
+checks do not validate physical hardware, CUDA tuning, or the installer
+wizard. See the [validation record](pid-tuning-0.1.8.md) for the fixture
+bounds and the distinction between source and packaging checks.
 
 ## Import custom robots and fields
 

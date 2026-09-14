@@ -15,6 +15,7 @@ from .bridge import build_workspace
 from .config import default_config
 from .runner import FixedStepClock, Session
 from .replay_engine import ReplayController
+from .tuning_simulation import SimulationTuner
 
 
 class _LatestFrame:
@@ -96,6 +97,8 @@ class SimulationEngine(QObject):
     replay_state = Signal(dict)
     log = Signal(str)
     built = Signal(str)
+    tuning_sample = Signal(dict)
+    tuning_status = Signal(dict)
     reset_completed = Signal(dict)
     failed = Signal(str)
 
@@ -160,6 +163,15 @@ class SimulationEngine(QObject):
     def set_joint(self, joint: str, position: float):
         self._send("joint", joint, float(position))
 
+    def tuning_capture(self, enabled, target=None):
+        self._send("tuning_capture", bool(enabled), copy.deepcopy(target))
+
+    def tuning_experiment(self, request):
+        self._send("tuning_experiment", copy.deepcopy(request))
+
+    def tuning_cancel(self):
+        self._send("tuning_cancel")
+
     def export_csv(self, path: str):
         self._send("export", path)
 
@@ -217,6 +229,9 @@ class SimulationEngine(QObject):
         # Keep ownership when native process/world cleanup fails. A following
         # Apply retries it before creating another replacement scene.
         self._retired_sessions = []
+        tuning = SimulationTuner(
+            lambda sample: self.tuning_sample.emit(sample),
+            lambda status: self.tuning_status.emit(status))
 
         def retry_retired_sessions():
             for previous in tuple(self._retired_sessions):
@@ -242,11 +257,18 @@ class SimulationEngine(QObject):
                 last_replay_state = status
 
         def state_payload(**values):
-            return {**session.state(), "viewport_fps": cadence.fps(time.perf_counter()), **values}
+            return {**session.state(), "viewport_fps": cadence.fps(time.perf_counter()),
+                    "tuning_active": tuning.active, "motor_capture_active": tuning.capturing, **values}
 
         def complete_step():
             nonlocal last_state
             was_running = bool(session.running)
+            if tuning.active:
+                observed = tuning.step(session)
+                if not tuning.active:
+                    # Publish completion before rendering can clear dirty.
+                    last_state = 0.0
+                return observed
             observed = session.step()
             replay.capture(session, observed)
             if not session.running:
@@ -271,6 +293,31 @@ class SimulationEngine(QObject):
                             break
                         if action == "close":
                             return
+                        if action.startswith("tuning_"):
+                            try:
+                                if action == "tuning_cancel":
+                                    tuning.cancel(session)
+                                elif session is None or not scene_valid or replay.active:
+                                    raise ValueError("Apply a valid scene and return to Live before tuning")
+                                elif action == "tuning_capture":
+                                    tuning.capture(session, *args)
+                                elif action == "tuning_experiment":
+                                    tuning.cancel(session) if tuning.active else None
+                                    tuning.experiment(session, args[0])
+                                    replay.finish(session, "stopped")
+                                    clock.pending = 0
+                                    last_wall = time.perf_counter()
+                            except Exception as exc:
+                                if tuning.active:
+                                    tuning.cancel(session)
+                                self.tuning_status.emit({"state": "error", "message": str(exc)})
+                            last_state = 0
+                            dirty = True
+                            continue
+                        if tuning.active and action in ("configure", "build", "start", "reset", "stop", "pause", "joint", "replay_enter"):
+                            tuning.cancel(session, "Experiment stopped by simulation controls")
+                        elif tuning.capturing and action in ("configure", "build", "reset", "replay_enter"):
+                            tuning.cancel(session, "Capture ended; start a new capture after changing the scene")
                         reuse_configuration = False
                         if action == "configure" and scene_valid:
                             try:
@@ -367,6 +414,8 @@ class SimulationEngine(QObject):
                                 raise ValueError("Fix and apply the scene settings before starting")
                             scene_valid = False
                             session.start(args[0], executable)
+                            if tuning.capturing:
+                                tuning.capture(session, True, tuning.target)
                             scene_valid = True
                             replay.begin(session, camera)
                             last_renderer = None
@@ -448,7 +497,7 @@ class SimulationEngine(QObject):
                         self._closing.wait(.015)
                         continue
                     render_interval = 1.0 / max(1.0, float(config.get("render_fps", 30)))
-                    active = (session.running or bool(session.manual_joints)) and not session.paused
+                    active = (session.running or bool(session.manual_joints) or tuning.active) and not session.paused
                     if active:
                         clock.add(now - last_wall, float(config.get("speed", 1.0)))
                         count = clock.take(16)
@@ -459,7 +508,7 @@ class SimulationEngine(QObject):
                         for index in range(count):
                             complete_step()
                             measured_steps += 1
-                            if not session.running and not session.manual_joints:
+                            if not session.running and not session.manual_joints and not tuning.active:
                                 break
                             if time.perf_counter() >= work_deadline:
                                 # Return unprocessed ticks to the accumulator so
@@ -510,6 +559,11 @@ class SimulationEngine(QObject):
                         scene_valid = False
                     pending_reset_generation = None
                     clock.pending = 0
+                    if tuning.active or tuning.capturing:
+                        try:
+                            tuning.cancel(session, f"Tuning stopped: {exc}", state="error")
+                        except Exception as tuning_error:
+                            self.log.emit(f"Tuning cleanup: {tuning_error}")
                     self.failed.emit(str(exc))
                     self.log.emit(f"Error: {exc}")
                     if session is not None:
@@ -539,6 +593,11 @@ class SimulationEngine(QObject):
                 replay.close()
             finally:
                 if session is not None:
+                    if tuning.active or tuning.capturing:
+                        try:
+                            tuning.cancel(session)
+                        except Exception as exc:
+                            self.log.emit(f"Tuning close: {exc}")
                     retire_session(session)
                 else:
                     retry_retired_sessions()

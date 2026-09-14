@@ -78,6 +78,7 @@ class Session:
         self.init_ticks = 0
         self.duration = 0.0
         self.controller = {"analog": {}, "digital": {}}
+        self.motor_observer = None
         self.manual_joints: dict[str, float] = {}
         self.samples: list[dict] = []
         self.dropped_samples = 0
@@ -177,6 +178,9 @@ class Session:
                 self.elapsed_ticks += 1
         if self.manual_joints and not self.running:
             commands["joints"] = dict(self.manual_joints)
+        if self.motor_observer is not None:
+            observation = native_input if self.running and self.runtime is not None else self.world.snapshot()
+            self.motor_observer(observation, commands)
         with self.performance.span("session.world.step"):
             snapshot = self.world.step(commands)
         self.performance.increment("session.steps")

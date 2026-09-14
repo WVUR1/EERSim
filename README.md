@@ -16,11 +16,18 @@ is reported separately in the [validation notes](docs/validation.md).
 ## Start here
 
 Download **EERSim-Setup-x64.exe** from the private
-[0.1.7 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.7-windows-preview.1).
+[0.1.8 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.8-windows-preview.1).
 It bundles Python, the PhysX GPU runtime, simulator dependencies, default robots
 and fields, and the native robot compiler. It installs for your Windows account
 without administrator privileges; a desktop shortcut is optional. This private
 build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
+Version 0.1.8 adds a separate **PID tuning…** window for motor groups and
+tank/H/X-drivetrains, automatic simulation logging, response fitting, and
+candidate validation. A separate PROS logger-copy workflow supports physical
+robot recordings without edits to your original source. See the
+[tuning guide](docs/pid-tuning.md) and [0.1.8 validation](docs/pid-tuning-0.1.8.md);
+the gains remain candidates requiring real-mechanism testing.
+
 Version 0.1.7 keeps Reset visibly busy until the replacement scene has rendered,
 blocks conflicting actions during that work, and strengthens PhysX worker
 shutdown. Scene rebuilding can still take several seconds; a Windows CUDA
@@ -175,6 +182,15 @@ ignored CAD/tool downloads, and Git LFS instructions for future oversized assets
 An optional USB gamepad uses pygame (`python -m pip install 'eerkit-simulator[gamepad]'`).
 The robot receives ordinary `pros::Controller` values, including button edges.
 Keyboard input is released when the viewport loses focus.
+
+Click **PID tuning…** beside **Build workspace** for a separate motor and
+drivetrain tuning window. It discovers supported PROS motor groups, records
+existing code without added logging calls, characterizes mapped simulated motors,
+and compares candidate PID gains. Recording and tuning do not rebuild your
+workspace. An explicit prepare/build/upload workflow adds passive physical-robot
+logging to a separate project copy. See the [PID tuning guide](docs/pid-tuning.md)
+for tank/H/X-drive mappings, capture import/export, controller units, and the
+limits of transferring candidate gains to hardware.
 
 Both the field view and import preview support left-drag orbit, right/middle-drag
 or Shift-left-drag pan, and mouse-wheel zoom. The import preview fixes the robot

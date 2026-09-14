@@ -824,6 +824,8 @@ class Workbench(QMainWindow):
         self._replay_resume_after_seek = False
         self._pending_replay_seek = None
         self._replay_reason = ""
+        self._tuning_window = None
+        self._tuning_close_pending = False
         self._built_workspace: str | None = None
         self._pending_workspace: str | None = None
         self._building = False
@@ -905,9 +907,26 @@ class Workbench(QMainWindow):
         header.addWidget(button("Browse…", self._choose_workspace))
         self.build_button = button("Build workspace", self._build, "Primary")
         header.addWidget(self.build_button)
+        header.addWidget(button("PID tuning…", self._open_tuning))
         self.status_badge = label("LOADING WORLD", "Badge")
         header.addWidget(self.status_badge)
         parent.addLayout(header)
+
+    def _open_tuning(self):
+        from .tuning_gui import TuningWindow
+        if self._tuning_window is None:
+            self._tuning_window = TuningWindow(self._workspace_key(), self._collect_config(), self.engine, parent=self)
+            self._tuning_window.shutdown_finished.connect(self._tuning_closed)
+        else:
+            self._tuning_window.set_workspace(self._workspace_key(), self._collect_config())
+        self._tuning_window.show()
+        self._tuning_window.raise_()
+        self._tuning_window.activateWindow()
+
+    def _tuning_closed(self):
+        if self._tuning_close_pending:
+            self._tuning_close_pending = False
+            QTimer.singleShot(0, self.close)
 
     def _logo_event(self, event):
         self._logo.event(event)
@@ -2346,7 +2365,7 @@ class Workbench(QMainWindow):
                                      + (f"\n{reason}" if reason else ""))
         self.renderer_detail.setToolTip(str(graphics.get("version", "")))
         self.progress.setValue(round(min(1, mode_time / duration) * 1000) if duration else 0)
-        status = "PAUSED" if paused else "RUNNING" if running else "SCENE READY"
+        status = "PID TUNING" if state.get("tuning_active") else "PAUSED" if paused else "RUNNING" if running else "SCENE READY"
         self.status_badge.setText(status)
         self.scene.status = status
         scoring = state.get("scoring") or {}
@@ -2399,6 +2418,13 @@ class Workbench(QMainWindow):
         self._refresh_replay_display()
 
     def closeEvent(self, event):
+        if self._tuning_window is not None and self._tuning_window.busy:
+            self._tuning_close_pending = True
+            self._tuning_window.close()
+            event.ignore()
+            return
+        if self._tuning_window is not None:
+            self._tuning_window.close()
         self._controller_timer.stop()
         self._replay_seek_timer.stop()
         self._pending_replay_seek = None
