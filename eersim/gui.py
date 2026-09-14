@@ -56,6 +56,7 @@ DIGITAL_NAMES = ("l1", "l2", "r1", "r2", "up", "down", "left", "right", "x", "b"
 CARTRIDGES = {name: (preset.label, preset.rpm, preset.stall_torque)
               for name, preset in PHYSICAL_CARTRIDGES.items()}
 APPLY_STATUS = "Applying experiment settings…"
+RESET_STATUS = "Resetting scene…"
 
 
 def _replay_time(seconds):
@@ -826,6 +827,7 @@ class Workbench(QMainWindow):
         self._built_workspace: str | None = None
         self._pending_workspace: str | None = None
         self._building = False
+        self._reset_pending = False
         self._pending_scene_applies = 0
         self._scene_apply_ready = False
         self._logo = AppLogoState()
@@ -863,6 +865,7 @@ class Workbench(QMainWindow):
         self.engine.state.connect(self._on_state)
         self.engine.log.connect(self._log)
         self.engine.built.connect(self._on_built)
+        self.engine.reset_completed.connect(self._on_reset_completed)
         self.engine.failed.connect(self._on_failed)
         self.scene.camera_changed.connect(self.engine.set_camera)
         self.scene.key_changed.connect(self._key)
@@ -912,7 +915,7 @@ class Workbench(QMainWindow):
 
     def _refresh_logo(self):
         state = self._state
-        loading = not state or bool(self._pending_scene_applies or self._scene_apply_ready)
+        loading = not state or bool(self._pending_scene_applies or self._scene_apply_ready or getattr(self, "_reset_pending", False))
         name = self._logo.name(state, building=self._building, loading=loading)
         if name == self._shown_logo:
             return
@@ -1373,6 +1376,7 @@ class Workbench(QMainWindow):
         self.step_button = button("Step", self._single_step)
         self.step_button.setToolTip("Advance exactly one fixed physics step while paused.")
         self.reset_button = button("Reset", self._reset)
+        self.reset_button.setToolTip("Restore the robot and field to the last applied starting state. The camera stays in place.")
         actions = QGridLayout()
         actions.setSpacing(6)
         actions.addWidget(self.start_button, 0, 0)
@@ -1466,6 +1470,7 @@ class Workbench(QMainWindow):
             self._neutral_controller()
             self._pending_scene_applies += 1
             self._scene_apply_ready = False
+            self.reset_button.setEnabled(False)
             self._logo_event("begin")
             self.engine.configure(config, reuse_unchanged=reuse_unchanged)
             self.engine.set_camera(self.scene.yaw, self.scene.pitch, self.scene.distance, self.scene.target)
@@ -1564,9 +1569,28 @@ class Workbench(QMainWindow):
     def _reset(self):
         if not self._live_action_allowed():
             return
+        if self._pending_scene_applies or getattr(self, "_scene_apply_ready", False):
+            self.statusBar().showMessage(APPLY_STATUS)
+            return
         self._neutral_controller()
-        self._logo_event("reset")
+        self._reset_pending = True
+        self._logo_event("begin")
+        self._update_live_controls()
+        self._refresh_replay_display()
+        self.statusBar().showMessage(RESET_STATUS)
         self.engine.reset()
+
+    def _on_reset_completed(self, state):
+        # Only the worker's successful reset can acknowledge this request;
+        # queued pre-reset telemetry must not make the button look ready.
+        if not getattr(self, "_reset_pending", False):
+            return
+        self._reset_pending = False
+        self._on_state(state)
+        self._logo_event("reset")
+        message = "Scene reset to the last applied starting state."
+        self.statusBar().showMessage(message)
+        self._log(message)
 
     def _select_mode(self, mode):
         self._mode = mode
@@ -1925,7 +1949,7 @@ class Workbench(QMainWindow):
             self._logo_event("error")
 
     def _key(self, key, down):
-        if self._replay_blocked():
+        if self._replay_blocked() or getattr(self, "_reset_pending", False):
             return
         if down:
             self._keys.add(key)
@@ -1948,20 +1972,20 @@ class Workbench(QMainWindow):
             self._neutral_controller()
 
     def _stick(self, side, x, y):
-        if self._replay_blocked():
+        if self._replay_blocked() or getattr(self, "_reset_pending", False):
             return
         self._controller["analog"][side + "_x"] = x
         self._controller["analog"][side + "_y"] = y
         self._send_controller()
 
     def _digital(self, name, down):
-        if self._replay_blocked():
+        if self._replay_blocked() or getattr(self, "_reset_pending", False):
             return
         self._controller["digital"][name] = down
         self._send_controller()
 
     def _send_controller(self):
-        if self._replay_blocked():
+        if self._replay_blocked() or getattr(self, "_reset_pending", False):
             return
         self.left_stick.display(self._controller["analog"]["left_x"], self._controller["analog"]["left_y"])
         self.right_stick.display(self._controller["analog"]["right_x"], self._controller["analog"]["right_y"])
@@ -1979,7 +2003,7 @@ class Workbench(QMainWindow):
             self._neutral_controller()
 
     def _connect_gamepad(self):
-        if self._replay_blocked():
+        if self._replay_blocked() or getattr(self, "_reset_pending", False):
             return
         if self._gamepad is not None:
             self._gamepad.quit()
@@ -2005,7 +2029,7 @@ class Workbench(QMainWindow):
             self.gamepad_status.setText(f"Gamepad connection failed: {exc}")
 
     def _poll_gamepad(self):
-        if self._replay_blocked():
+        if self._replay_blocked() or getattr(self, "_reset_pending", False):
             return
         if self._gamepad is None or QApplication.applicationState() != Qt.ApplicationState.ApplicationActive:
             return
@@ -2041,6 +2065,9 @@ class Workbench(QMainWindow):
         return bool(getattr(self, "_replay_pending", None) or getattr(self, "_replay", {}).get("active"))
 
     def _live_action_allowed(self):
+        if getattr(self, "_reset_pending", False):
+            self.statusBar().showMessage(RESET_STATUS)
+            return False
         if self._replay_blocked():
             self.statusBar().showMessage("Return to Live to change the simulation.")
             return False
@@ -2051,7 +2078,7 @@ class Workbench(QMainWindow):
             self.engine.single_step()
 
     def _replay_enter(self):
-        if self._replay_blocked() or not self._replay.get("available") or self._building or self._pending_scene_applies:
+        if self._replay_blocked() or getattr(self, "_reset_pending", False) or not self._replay.get("available") or self._building or self._pending_scene_applies:
             return
         self._neutral_controller()
         self._live_scene_name = self.scene.scene_name
@@ -2182,14 +2209,20 @@ class Workbench(QMainWindow):
         self._replay_reason = reason
 
     def _update_live_controls(self):
-        blocked = self._replay_blocked()
+        resetting = bool(getattr(self, "_reset_pending", False))
+        blocked = self._replay_blocked() or resetting
+        self.reset_button.setText("Resetting…" if resetting else "Reset")
+        if resetting:
+            self.status_badge.setText("RESETTING")
+            self.scene.status = "RESETTING"
         running, paused = bool(self._state.get("running")), bool(self._state.get("paused"))
         self.start_button.setEnabled(not blocked and not running and not self._building and self._built_workspace == self._workspace_key())
         self.pause_button.setEnabled(not blocked and running)
         self.pause_button.setText("Resume" if paused else "Pause")
         self.stop_button.setEnabled(not blocked and running)
         self.step_button.setEnabled(not blocked and (paused or not running))
-        self.reset_button.setEnabled(not blocked and not self._building)
+        self.reset_button.setEnabled(not blocked and not self._building
+                                     and not self._pending_scene_applies and not getattr(self, "_scene_apply_ready", False))
         self.apply_button.setEnabled(not blocked and not self._building)
         self.build_button.setEnabled(not blocked and not running and not self._building)
         self.demo_button.setEnabled(not blocked and not running and not self._building)
@@ -2211,7 +2244,7 @@ class Workbench(QMainWindow):
         position = max(0.0, min(duration, float(self._replay.get("position_s", 0))))
         count = int(self._replay.get("sample_count", 0))
         rate = float(self._replay.get("effective_hz", self._replay.get("recording_hz", 0)) or 0)
-        self.replay_button.setEnabled(available and not active and not pending and not self._building and not self._pending_scene_applies)
+        self.replay_button.setEnabled(available and not active and not pending and not self._building and not self._pending_scene_applies and not getattr(self, "_reset_pending", False))
         self.replay_play_button.setEnabled(active and not pending and count > 1)
         self.replay_play_button.setText("Pause" if self._replay.get("playing") else "Play")
         self.replay_live_button.setEnabled(active and not pending)
@@ -2350,6 +2383,7 @@ class Workbench(QMainWindow):
         self.log_view.appendPlainText(f"[{time.strftime('%H:%M:%S')}] {message}")
 
     def _on_failed(self, message):
+        self._reset_pending = False
         self._pending_scene_applies = 0
         self._scene_apply_ready = False
         self._building = False

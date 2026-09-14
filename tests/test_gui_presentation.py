@@ -104,6 +104,7 @@ def test_apply_default_reload_and_start_opt_in_are_forwarded(tmp_path):
     status = Field()
     obj = SimpleNamespace(_live_action_allowed=lambda: True, _collect_config=lambda: deepcopy(config),
         _neutral_controller=lambda: None, _pending_scene_applies=0, _scene_apply_ready=False,
+        reset_button=Field(),
         _logo_event=lambda event: None, _on_failed=lambda message: pytest.fail(message),
         engine=SimpleNamespace(configure=lambda value, **kw: calls.append((value, kw)),
                                set_camera=lambda *args: None),
@@ -112,6 +113,7 @@ def test_apply_default_reload_and_start_opt_in_are_forwarded(tmp_path):
     assert gui.Workbench._apply_config(obj, reuse_unchanged=True)
     assert calls == [(config, {"reuse_unchanged": False}), (config, {"reuse_unchanged": True})]
     assert obj._pending_scene_applies == 2 and status.message == gui.APPLY_STATUS
+    assert not obj.reset_button.enabled
 
 
 def test_frame_acknowledgement_happens_even_when_pending_view_blocks_display():

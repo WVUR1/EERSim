@@ -96,6 +96,7 @@ class SimulationEngine(QObject):
     replay_state = Signal(dict)
     log = Signal(str)
     built = Signal(str)
+    reset_completed = Signal(dict)
     failed = Signal(str)
 
     def __init__(self, defer_configuration: bool = False, coalesce_frames: bool = False):
@@ -206,10 +207,30 @@ class SimulationEngine(QObject):
         measured_wall, measured_steps, rtf = last_wall, 0, 0.0
         dirty = True
         last_renderer = None
+        # Native scene reset also invalidates its renderer. Acknowledge only
+        # after that new live view has actually produced its first frame.
+        pending_reset_generation = None
         cadence = _RenderCadence()
         replay = ReplayController(self.log.emit)
         replay_wall = last_wall
         last_replay_state = None
+        # Keep ownership when native process/world cleanup fails. A following
+        # Apply retries it before creating another replacement scene.
+        self._retired_sessions = []
+
+        def retry_retired_sessions():
+            for previous in tuple(self._retired_sessions):
+                try:
+                    previous.close()
+                except Exception as exc:
+                    self.log.emit(f"Scene cleanup still pending: {exc}")
+                else:
+                    self._retired_sessions.remove(previous)
+
+        def retire_session(previous):
+            if not any(previous is item for item in self._retired_sessions):
+                self._retired_sessions.append(previous)
+            retry_retired_sessions()
 
         def replay_status():
             nonlocal last_replay_state
@@ -296,7 +317,7 @@ class SimulationEngine(QObject):
                             last_state = last_render = 0.0
                             cadence.reset()
                             dirty = True
-                            if session is not None and action in ("replay_enter", "replay_live"):
+                            if session is not None and scene_valid and action in ("replay_enter", "replay_live"):
                                 self.state.emit(state_payload(real_time_factor=0., physics_backlog_s=0.))
                             replay_status()
                             continue
@@ -307,12 +328,16 @@ class SimulationEngine(QObject):
                             replay.leave()
                             replay.discard()
                         if action == "configure":
-                            # Construct successfully before discarding the previous scene.
+                            # One old failed cleanup may remain owned after a
+                            # replacement. Never accumulate more native scenes.
+                            retry_retired_sessions()
+                            if self._retired_sessions:
+                                raise RuntimeError("Previous scene cleanup is still pending. Retry Apply after its native worker stops; another scene was not created.")
                             scene_valid = False
                             replacement = Session(args[0], self.log.emit)
-                            if session is not None:
-                                session.close()
-                            session = replacement
+                            previous, session = session, replacement
+                            if previous is not None:
+                                retire_session(previous)
                             config = args[0]
                             clock = FixedStepClock(config.get("physics_hz", 240))
                             last_renderer = None
@@ -329,6 +354,8 @@ class SimulationEngine(QObject):
                                 session.controller = args[0]
                         elif session is None:
                             raise ValueError("Apply valid scene settings before using simulation controls")
+                        elif not scene_valid and action in ("step", "joint", "resume"):
+                            raise ValueError("Apply scene settings or retry Reset before using simulation controls")
                         elif action == "build":
                             session.stop()
                             executable = None
@@ -338,7 +365,9 @@ class SimulationEngine(QObject):
                         elif action == "start":
                             if not scene_valid:
                                 raise ValueError("Fix and apply the scene settings before starting")
+                            scene_valid = False
                             session.start(args[0], executable)
+                            scene_valid = True
                             replay.begin(session, camera)
                             last_renderer = None
                             clock.pending = 0
@@ -354,9 +383,12 @@ class SimulationEngine(QObject):
                             replay.finish(session, "stopped")
                             clock.pending = 0
                         elif action == "reset":
+                            scene_valid = False
                             session.reset()
+                            scene_valid = True
                             last_renderer = None
                             clock.pending = 0
+                            pending_reset_generation = replay.generation
                         elif action == "step":
                             session.paused = True
                             complete_step()
@@ -406,10 +438,14 @@ class SimulationEngine(QObject):
                             dirty = not replay.active
                             if not replay.active:
                                 last_render = 0.
-                                self.state.emit(state_payload(real_time_factor=0., physics_backlog_s=0.))
+                                if scene_valid:
+                                    self.state.emit(state_payload(real_time_factor=0., physics_backlog_s=0.))
                         else:
                             replay_status()
                         self._closing.wait(.001 if playing else .015)
+                        continue
+                    if not scene_valid:
+                        self._closing.wait(.015)
                         continue
                     render_interval = 1.0 / max(1.0, float(config.get("render_fps", 30)))
                     active = (session.running or bool(session.manual_joints)) and not session.paused
@@ -454,6 +490,8 @@ class SimulationEngine(QObject):
                     if dirty and render_now - last_render >= render_interval:
                         last_render = render_now
                         pixels = session.world.render(960, 720, **camera)
+                        if pending_reset_generation is not None and pixels is None:
+                            raise RuntimeError("The reset scene renderer did not return a frame")
                         cadence.record(time.perf_counter())
                         replay_status()
                         self._emit_frame("live", replay.generation, pixels)
@@ -462,17 +500,36 @@ class SimulationEngine(QObject):
                             last_renderer = copy.deepcopy(renderer)
                             self.log.emit(f"Renderer: {renderer.get('device', 'unknown')} · {renderer.get('reason', '')}")
                             self.state.emit(state_payload(real_time_factor=rtf, physics_backlog_s=clock.pending))
+                        if pending_reset_generation == replay.generation:
+                            self.reset_completed.emit(state_payload(real_time_factor=0., physics_backlog_s=0.))
+                            pending_reset_generation = None
                         dirty = False
                     self._closing.wait(0.001 if active else 0.015)
                 except Exception as exc:
-                    if session is not None:
-                        session.stop()
-                        replay.finish(session, "failed")
+                    if pending_reset_generation is not None:
+                        scene_valid = False
+                    pending_reset_generation = None
                     clock.pending = 0
                     self.failed.emit(str(exc))
                     self.log.emit(f"Error: {exc}")
                     if session is not None:
-                        self.state.emit(state_payload(real_time_factor=0.0))
+                        try:
+                            session.stop()
+                        except Exception as cleanup_error:
+                            scene_valid = False
+                            self.log.emit(f"Scene disable after failure: {cleanup_error}")
+                        try:
+                            replay.finish(session, "failed")
+                        except Exception as replay_error:
+                            self.log.emit(f"Replay finalization after failure: {replay_error}")
+                        if scene_valid:
+                            try:
+                                self.state.emit(state_payload(real_time_factor=0.0))
+                            except Exception as state_error:
+                                scene_valid = False
+                                self.log.emit(f"Scene observation after failure: {state_error}")
+                    if not scene_valid:
+                        self.log.emit("Scene is unavailable. Apply scene settings to recover, or retry Reset.")
                     replay_status()
         except Exception as exc:
             self.failed.emit(str(exc))
@@ -482,4 +539,6 @@ class SimulationEngine(QObject):
                 replay.close()
             finally:
                 if session is not None:
-                    session.close()
+                    retire_session(session)
+                else:
+                    retry_retired_sessions()

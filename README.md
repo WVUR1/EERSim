@@ -16,13 +16,18 @@ is reported separately in the [validation notes](docs/validation.md).
 ## Start here
 
 Download **EERSim-Setup-x64.exe** from the private
-[0.1.6 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.6-windows-preview.1).
+[0.1.7 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.7-windows-preview.1).
 It bundles Python, the PhysX GPU runtime, simulator dependencies, default robots
 and fields, and the native robot compiler. It installs for your Windows account
 without administrator privileges; a desktop shortcut is optional. This private
 build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
-Version 0.1.6 improves viewport scheduling and scene reuse, avoids duplicate
-GPU replay scene imports, adds configurable PhysX CPU workers, and corrects the
+Version 0.1.7 keeps Reset visibly busy until the replacement scene has rendered,
+blocks conflicting actions during that work, and strengthens PhysX worker
+shutdown. Scene rebuilding can still take several seconds; a Windows CUDA
+reset crash fix has not been established.
+
+Version 0.1.6 introduced viewport scheduling and scene reuse, avoided duplicate
+GPU replay scene imports, added configurable PhysX CPU workers, and corrected the
 pin/goal collision surfaces that trapped the preplaced pins. Workspace builds
 are explicit. It also adds the academic/noncommercial license.
 See [0.1.6 validation and performance](docs/performance-0.1.6.md) for measured
@@ -192,7 +197,14 @@ still resets before the new run. **Apply settings** reloads physical changes and
 also reloads unchanged settings, so use it after editing an external URDF, mesh,
 or game pack in place. Changing only viewport FPS or configured simulation speed
 keeps the current physics state. Camera orbit, pan, and zoom also leave it intact.
-Use **Reset** whenever you want to restore the starting state explicitly.
+Use **Reset** to stop robot code and restore the robot, field objects, and
+random seed to the last applied starting state. It preserves the camera and
+does not build the workspace or apply pending edits. Reset recreates the
+physics scene, so a complex field or PhysX initialization can take a while.
+The **Resetting…** indicator remains visible until the replacement scene has
+rendered; repeat resets and conflicting actions are disabled during that work.
+A failed reset reports its error and can recover through **Apply settings** or
+another Reset. See the [Reset validation and limits](docs/reset-0.1.7.md).
 
 ## Replay the previous run
 

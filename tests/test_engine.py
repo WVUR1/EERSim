@@ -167,7 +167,7 @@ def test_rtf_counts_completed_work_and_resets_between_lifecycle_changes(monkeypa
             return {"steps": self.steps, "running": self.running, "paused": self.paused}
 
         def render(self, *args, **kwargs):
-            return None
+            return 0  # A successful reset must publish a first frame before acknowledgment.
 
         def reset(self):
             clock.advance(7)

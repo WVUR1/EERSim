@@ -1,12 +1,15 @@
 # Windows installer and EXE builds
 
-The private [0.1.6 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.6-windows-preview.1)
+The private [0.1.7 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.7-windows-preview.1)
 contains Python, PySide6, PyBullet, VTK, PhysX/OVStage, SciPy, default robots and
 fields, and the desktop LLVM-MinGW compiler for selected PROS workspaces.
 Recipients do not need Python, Conda, a separate compiler, or WSL installed.
-It includes viewport scheduling and loading improvements, CPU worker controls,
-and the corrected goal/pin collision geometry. See the
-[0.1.6 validation report](performance-0.1.6.md) for measurements and limits.
+Version 0.1.7 adds visible Reset progress, prevents conflicting commands during
+the rebuild, strengthens PhysX worker shutdown, and keeps the engine available
+after a failed Reset. See the [Reset validation and limits](reset-0.1.7.md). It retains the viewport,
+loading, CPU worker, and goal/pin collision improvements from 0.1.6. The
+[0.1.6 validation report](performance-0.1.6.md) records those earlier measurements
+and limits; it does not establish performance or CUDA reset reliability for 0.1.7.
 
 The installer displays the [academic/noncommercial license](../LICENSE).
 Commercial use requires prior written permission from Andrew Sarver; see
@@ -16,7 +19,7 @@ Third-party libraries retain their separate licenses.
 Previous releases passed headless native compilation, Bullet/PhysX CPU,
 automatic fallback and explicit missing-CUDA checks. The supplied RTX 4070 Ti
 capture of 0.1.3 records Windows CUDA execution of the PROS claw demo and preload
-placement. Those older measurements do not establish 0.1.6 Windows performance.
+placement. Those older measurements do not establish 0.1.7 Windows performance.
 See the [capture analysis](diagnostics-4070ti-followup.md) and [validation](validation.md).
 
 CUDA physics requires an NVIDIA GPU with compute capability 7.0 or newer and a
@@ -67,7 +70,12 @@ Start can reuse an unchanged prepared scene. It still resets a scene that has
 already advanced. **Apply settings** reloads physical changes and unchanged
 settings; use it after editing external asset files. Applying only viewport FPS
 or configured simulation speed changes keeps the current physics state. Camera
-movement does not reload the scene. **Reset** explicitly restores initial state.
+movement does not reload the scene. **Reset** stops robot code and restores the
+robot, field objects, and seeded noise to the last applied starting state.
+It keeps the camera and does not build code or apply pending edits.
+**Resetting…** remains visible until the rebuilt scene has rendered; conflicting
+actions are disabled during that work. Complex scenes and PhysX initialization
+can still take several seconds.
 
 **Field → PhysX CPU workers · advanced** selects host task workers, including
 CPU work used by CUDA physics. The default is two; zero runs tasks inline.

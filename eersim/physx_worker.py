@@ -110,15 +110,29 @@ class PhysXProcess:
         process = getattr(self, 'process', None)
         if process is None:
             return
-        if process.is_alive():
+        # A completed request leaves this serialized channel empty. After a
+        # timeout/connection failure, do not send into a possibly blocked pipe.
+        if process.is_alive() and not self.failed:
             try:
                 self.connection.send(('close', None))
                 process.join(5)
-            except (EOFError, BrokenPipeError, OSError):
+            except (EOFError, OSError, ValueError):
+                pass
+        for stop in (process.terminate, process.kill):
+            if not process.is_alive():
+                break
+            try:
+                stop()
+                process.join(5)
+            except OSError:
+                # An exit can race the stop call. Check again, then escalate if
+                # needed; a failed terminate must not prevent the kill attempt.
                 pass
         if process.is_alive():
-            process.terminate()
-            process.join(5)
+            self.failed = True
+            # Retain both handles so the owner can retry. In particular, World
+            # must not delete this worker's runtime directory while it is live.
+            raise RuntimeError(f'PhysX worker did not exit after terminate and kill; see {self.log_path}')
         self.connection.close()
 
 

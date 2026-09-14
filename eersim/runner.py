@@ -241,5 +241,15 @@ class Session:
             writer.writerows(self.samples)
 
     def close(self) -> None:
-        self.stop()
+        stop_error = None
+        try:
+            self.stop()
+        except Exception as exc:
+            stop_error = exc
+        # A partially reset scene can reject disable/snapshot calls. Always
+        # release the world, while preserving failures that still own resources.
         self.world.close()
+        if stop_error is not None:
+            if self.runtime is not None:
+                raise stop_error
+            self.log(f"Scene disable during close: {stop_error}")
