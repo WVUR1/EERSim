@@ -1,8 +1,11 @@
 # Windows installer and EXE builds
 
-The private [0.1.8 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.8-windows-preview.1)
-contains Python, PySide6, PyBullet, VTK, PhysX/OVStage, SciPy, default robots and
+The Windows installer contains Python, PySide6, PyBullet, VTK, PhysX/OVStage, SciPy, default robots and
 fields, and the desktop LLVM-MinGW compiler for selected PROS workspaces.
+Published builds are available in the [private releases](https://github.com/WVUR1/EERSim/releases).
+The local 0.1.9 build includes [desktop feedback improvements](desktop-feedback.md);
+GitHub publication is pending approval.
+
 Recipients do not need Python, Conda, a separate desktop compiler, or WSL installed.
 Version 0.1.8 adds the separate [PID tuning lab](pid-tuning.md), with motor and
 drivetrain discovery, simulation capture, candidate fitting, and physical-robot

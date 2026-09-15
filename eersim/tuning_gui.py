@@ -18,12 +18,13 @@ from PySide6.QtCore import QPointF, QRectF, QSettings, Qt, QThread, QTimer, Sign
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
-    QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-    QPlainTextEdit, QProgressBar, QPushButton, QSpinBox, QSplitter,
+    QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
+    QPlainTextEdit, QProgressBar, QPushButton, QScrollArea, QSpinBox,
     QTabWidget, QVBoxLayout, QWidget,
 )
 
 from .gui_styles import GOLD, STYLESHEET
+from .gui_feedback import FeedbackConsole, ErrorReporter, HelpFormLayout, help_label, apply_help
 
 
 MAX_SAMPLES = 60_000
@@ -44,6 +45,34 @@ def _finite(value):
         return math.isfinite(float(value))
     except (ValueError, TypeError):
         return False
+
+
+def _error_feedback(message, operation):
+    """Keep user recovery steps beside the failure; raw output stays available."""
+    text = str(message).strip() or "The operation did not complete."
+    lower, stage = text.lower(), str(operation).lower()
+    if ("pros" in lower or "arm-none-eabi" in lower) and any(word in lower for word in ("not found", "not installed", "no such file", "does not exist")):
+        title = "PROS tools are unavailable"
+        recovery = "Install the PROS CLI and its ARM toolchain. In Live capture, use CLI… to select the installed executable, then retry the hardware action."
+    elif "upload" in stage:
+        title = "Upload did not complete"
+        recovery = "Check the Brain's USB connection, serial port and selected program slot. Build the logger workspace successfully before retrying Upload. The console contains the CLI output."
+    elif "build" in stage:
+        title = "Logger build did not complete"
+        recovery = "Check the first compiler error in Console and confirm the PROS CLI and ARM toolchain are installed. Correct the logger workspace or prepare a fresh copy, then retry Build."
+    elif "prepar" in stage:
+        title = "Logger copy could not be prepared"
+        recovery = "Choose a writable parent folder outside the selected PROS workspace, confirm the source workspace contains a PROS project, and retry Prepare logger copy."
+    elif "record" in stage or "connected logger" in stage:
+        title = "Recording did not complete"
+        recovery = "Check the serial port and USB connection. The Brain must be running a program built from the prepared logger workspace. Reconnect and record a fresh trial. Stopping recording does not stop the robot program."
+    elif any(word in stage for word in ("analyz", "candidate", "capture", "reading")) and any(word in lower for word in ("voltage", "capture", "encoder", "sample", "timestamp", "excitation")):
+        title = "Capture cannot be used for tuning"
+        recovery = "Select the matching target and axis, then record a fresh continuous trial with a baseline, a voltage pulse and its coast response. Characterize in simulation provides this pulse; position/velocity commands may not expose the voltage needed to identify a model."
+    else:
+        title = "Tuning operation did not complete"
+        recovery = "Review the message and Console details, correct the indicated setting, then retry the action. Export any useful capture before restarting the simulator."
+    return title, text + "\n\n" + recovery, "Operation: " + str(operation) + "\n\n" + text
 
 
 def project_samples(samples, target, axis, mode="position"):
@@ -149,12 +178,19 @@ class _Job(QThread):
         super().__init__(parent)
         self.cancel = threading.Event()
         self.work = work
+        self.outcome = "running"
 
     def run(self):
         try:
-            self.result.emit(self.work(self.cancel, self.update.emit))
+            result = self.work(self.cancel, self.update.emit)
+            self.outcome = "cancelled" if self.cancel.is_set() else "succeeded"
+            self.result.emit(result)
         except Exception as exc:
-            self.error.emit(str(exc))
+            if self.cancel.is_set() or isinstance(exc, InterruptedError):
+                self.outcome = "cancelled"
+            else:
+                self.outcome = "failed"
+                self.error.emit(str(exc))
 
 
 class GroupDialog(QDialog):
@@ -166,8 +202,9 @@ class GroupDialog(QDialog):
         self.resize(600, 500)
         self.original = target or {}
         self.target = None
+        self.errors = ErrorReporter(self, log=getattr(getattr(parent, "console", None), "append", lambda message: None))
         layout = QVBoxLayout(self)
-        form = QFormLayout()
+        form = HelpFormLayout()
         self.name = QLineEdit(self.original.get("name", "My mechanism"))
         self.kind = QComboBox()
         for label, kind in (("Single joint", "motor"), ("Shared motor group", "motor_group"),
@@ -177,21 +214,21 @@ class GroupDialog(QDialog):
         self.kind.setCurrentIndex(max(0, index))
         self.ports = QLineEdit(", ".join(str(port) for port in self.original.get("ports", [1])))
         self.ports.setPlaceholderText("Signed PROS ports, for example: 1, -2, 3, -4")
-        form.addRow("Name", self.name)
-        form.addRow("Topology", self.kind)
-        form.addRow("Ports", self.ports)
+        form.addRow("Name", self.name, "A display name for this target. Naming a group does not change your PROS source code.")
+        form.addRow("Topology", self.kind, "Choose a joint, shared mechanism, Tank, H-drive or X-drive. Drivetrain side/corner assignments generate forward, turn and strafe axes automatically.")
+        form.addRow("Ports", self.ports, "Signed PROS motor ports from 1 to 21. A negative number reverses that motor's logical direction. Each physical port appears once; drivetrain assignments fill this list for you.")
         layout.addLayout(form)
         self.role_panel = QWidget()
-        role_form = QFormLayout(self.role_panel)
+        role_form = HelpFormLayout(self.role_panel)
         role_form.setContentsMargins(0, 0, 0, 0)
         self.role_fields = {}
         self.role_labels = {}
         for name in dict.fromkeys(name for roles in ROLE_AXES.values() for name in roles):
-            label, field = QLabel(name + " motor ports"), QLineEdit()
+            label, field = name + " motor ports", QLineEdit()
             field.setPlaceholderText("For example: 1, -2, 3")
             field.textEdited.connect(self._roles_edited)
-            role_form.addRow(label, field)
-            self.role_fields[name], self.role_labels[name] = field, label
+            role_form.addRow(label, field, "List every motor in this side or corner, separated by commas. Use negative ports for reversed motors, for example 1, -2. All motors here share the same axis coefficients.")
+            self.role_fields[name], self.role_labels[name] = field, role_form.labelForField(field)
         layout.addWidget(self.role_panel)
         self.hint = QLabel()
         self.hint.setWordWrap(True)
@@ -201,11 +238,18 @@ class GroupDialog(QDialog):
         self.advanced = QCheckBox("Advanced: edit axis coefficients directly")
         self.advanced.toggled.connect(self.axes.setVisible)
         self.advanced.toggled.connect(self._advanced_changed)
-        layout.addWidget(self.advanced)
+        advanced_help = "Optional custom coefficients, one number per listed port in the same order. Values range from -1 to 1 and each axis must include a nonzero coefficient. Normal grouped Tank, H and X drives use the role fields above."
+        apply_help(self.advanced, "Advanced axis coefficients", advanced_help)
+        advanced_row = QHBoxLayout()
+        advanced_row.addWidget(self.advanced, 1)
+        advanced_row.addWidget(help_label("Coefficients", advanced_help, self))
+        layout.addLayout(advanced_row)
+        apply_help(self.axes, "Custom axis coefficients", advanced_help)
         layout.addWidget(self.axes)
         self.axes.hide()
         default = QPushButton("Generate weights from motor assignments")
-        default.clicked.connect(self._defaults)
+        default.clicked.connect(lambda: self._defaults(show_message=True))
+        apply_help(default, "Generate axis weights", "Rebuild the axis coefficients from the selected topology and motor assignments. This replaces any advanced coefficient edits.")
         layout.addWidget(default)
         self.error = QLabel()
         self.error.setWordWrap(True)
@@ -304,7 +348,7 @@ class GroupDialog(QDialog):
             raise ValueError("Each physical motor port may appear only once.")
         return ports
 
-    def _defaults(self):
+    def _defaults(self, show_message=False):
         try:
             kind = self.kind.currentData()
             if kind in ROLE_AXES:
@@ -318,6 +362,8 @@ class GroupDialog(QDialog):
             self.error.clear()
         except (ValueError, TypeError) as exc:
             self.error.setText(str(exc))
+            if show_message:
+                self.errors.warning("Check motor assignments", str(exc), "Fill in the motor ports for each required role, then generate the weights again.")
 
     def _save(self):
         try:
@@ -346,6 +392,11 @@ class GroupDialog(QDialog):
             self.accept()
         except (ValueError, TypeError) as exc:
             self.error.setText(str(exc))
+            self.errors.warning("Check motor mapping", str(exc), "Correct the highlighted mapping fields and choose Save again. Each physical motor port can belong to only one role.")
+
+    def done(self, result):
+        self.errors.dismiss()
+        super().done(result)
 
 
 class TuningWindow(QMainWindow):
@@ -355,7 +406,8 @@ class TuningWindow(QMainWindow):
         super().__init__(parent)
         self.setWindowFlag(Qt.WindowType.Window, True)
         self.setWindowTitle("EERSim · PID tuning lab")
-        self.resize(1120, 820)
+        available = self.screen().availableGeometry()
+        self.resize(min(1120, available.width()), min(820, max(1, available.height() - 60)))
         self.setStyleSheet(STYLESHEET)
         self.workspace = str(workspace or "")
         self.config = copy.deepcopy(config)
@@ -386,6 +438,14 @@ class TuningWindow(QMainWindow):
         self._capture_source = "simulation"
         self._actual_period_ms = None
         self._connections = []
+        self._operation_title = "Tuning operation"
+        self._operation_failed = False
+        self._last_engine_error = None
+        self._engine_failure_reported = False
+        self.console = FeedbackConsole(self)
+        self.console.hide()
+        self.hardware_log = self.console.editor
+        self.errors = ErrorReporter(self, log=self.console.append)
         self._build_ui()
         if engine is not None:
             for name, callback in (("tuning_sample", self._sample), ("tuning_status", self._engine_status),
@@ -476,13 +536,20 @@ class TuningWindow(QMainWindow):
         self.target_combo.currentIndexChanged.connect(self._target_changed)
         self.axis_combo = QComboBox()
         self.axis_combo.currentIndexChanged.connect(self._selection_changed)
-        row.addWidget(QLabel("Target"))
+        target_help = "Select a joint or motor group discovered in the current PROS workspace or robot mapping. Use Add group or Edit mapping when the source code cannot describe its layout. Discovery does not build or run your code."
+        axis_help = "Select shaft movement, forward, turn or strafe. Drivetrain feedback is projected from motor encoders; these are not odometry distance or IMU heading PID values."
+        apply_help(self.target_combo, "Tuning target", target_help)
+        apply_help(self.axis_combo, "Control axis", axis_help)
+        row.addWidget(help_label("Target", target_help, self))
         row.addWidget(self.target_combo, 2)
-        row.addWidget(QLabel("Axis"))
+        row.addWidget(help_label("Axis", axis_help, self))
         row.addWidget(self.axis_combo, 1)
         self.refresh_button = self._button("Refresh workspace", self.refresh_targets, row)
         self.add_button = self._button("Add group", self._add_group, row)
         self.edit_button = self._button("Edit mapping", self._edit_group, row)
+        apply_help(self.refresh_button, "Refresh workspace", "Rescan the selected workspace and applied robot mapping for motor groups. This does not compile the workspace.")
+        apply_help(self.add_button, "Add motor group", "Create a saved manual joint or drivetrain mapping. Assign multiple motors to each side or corner using signed PROS ports.")
+        apply_help(self.edit_button, "Edit target mapping", "Adjust this target's name, ports, reversal signs or drivetrain roles. The override is saved for this workspace without editing its source code.")
         layout.addLayout(row)
         self.mapping = QLabel()
         self.mapping.setWordWrap(True)
@@ -501,9 +568,13 @@ class TuningWindow(QMainWindow):
         self.status = QLabel("Ready")
         self.status.setWordWrap(True)
         footer.addWidget(self.status, 1)
+        self.console_button = self._button("Console", self._toggle_console, footer)
+        apply_help(self.console_button, "Diagnostic console", "Show or hide the bounded operation log. Drag the console's title bar to detach it into a separate window.")
         self.cancel_button = self._button("Stop / cancel", self.cancel_work, footer)
         self.cancel_button.setObjectName("Danger")
+        apply_help(self.cancel_button, "Stop capture or experiment", "Stop the current simulated tuning experiment or cancel its background task. For a physical robot this ends logging only; the robot keeps following its program and controls. Scene reset finishes its current rebuild.")
         layout.addLayout(footer)
+        self.menuBar().addMenu("View").addAction(self.console.toggleViewAction())
         self._sync_controls()
 
     def _setup_tab(self):
@@ -513,7 +584,7 @@ class TuningWindow(QMainWindow):
                       "VEX cartridge limits are modeled; candidate gains require testing on the physical mechanism.")
         note.setWordWrap(True)
         layout.addWidget(note)
-        form = QFormLayout()
+        form = HelpFormLayout()
         self.mode_combo = QComboBox()
         self.mode_combo.addItem("Position (motor degrees)", "position")
         self.mode_combo.addItem("Velocity (motor RPM)", "velocity")
@@ -529,15 +600,22 @@ class TuningWindow(QMainWindow):
         for widget in (self.voltage, self.duration, self.travel, self.step_target, self.large_error, self.antiwind):
             widget.valueChanged.connect(self._selection_changed)
         self.period.valueChanged.connect(self._period_changed)
-        for label, widget in (("Controller", self.mode_combo), ("Characterization / output limit", self.voltage),
-                              ("Powered interval", self.duration), ("Maximum travel from start", self.travel),
-                              ("Controller period", self.period), ("Validation step (deg or RPM)", self.step_target),
-                              ("EERKit integral activation error", self.large_error), ("EERKit integral limit", self.antiwind)):
-            form.addRow(label, widget)
+        for label, widget, explanation in (
+                ("Controller", self.mode_combo, "Position controls relative motor-shaft degrees; velocity controls motor RPM. Use the same feedback units and PID formula in your robot code. Changing the controller invalidates the current candidate."),
+                ("Characterization / output limit", self.voltage, "Voltage in millivolts for the characterization pulse and the candidate PID output limit. 3000 mV is 3 V; the maximum is 12000 mV. A pulse too weak to move the mechanism cannot identify its response."),
+                ("Powered interval", self.duration, "Duration of the powered pulse or validation interval in simulation seconds. A short baseline and coast interval are captured too. Wall-clock rendering speed does not change this duration."),
+                ("Maximum travel from start", self.travel, "Stop the experiment if any active motor exceeds this displacement from its initial encoder position. Units are motor-shaft degrees, before any external gearing. Choose a bound within the mechanism's usable travel."),
+                ("Controller period", self.period, "Requested milliseconds between PID updates. Simulation aligns the interval with physics steps; the exact actual interval is retained in candidate exports. Match this interval in your robot code."),
+                ("Validation step (deg or RPM)", self.step_target, "A nonzero signed target. Position mode uses motor degrees relative to the initial position and must stay inside the travel bound. Velocity mode uses motor RPM."),
+                ("EERKit integral activation error", self.large_error, "Accumulate integral only while absolute error is below this threshold and nonzero, matching EERKit PID behavior. Outside that range the accumulated error resets. Units match the selected controller's error."),
+                ("EERKit integral limit", self.antiwind, "Limit the accumulated-error contribution before multiplying by Ki, in error units times seconds. The accumulator itself is not clipped, matching EERKit's controller. Larger values can increase windup.")):
+            form.addRow(label, widget, explanation)
         layout.addLayout(form)
         actions = QHBoxLayout()
         self.characterize_button = self._button("Characterize in simulation", self._characterize, actions, True)
         self.reset_button = self._button("Reset simulation", self._reset, actions)
+        apply_help(self.characterize_button, "Characterize mechanism", "Stop simulated user code and apply a bounded voltage pulse through the selected motor bindings. This begins a fresh capture without rebuilding the PROS workspace.")
+        apply_help(self.reset_button, "Reset simulation", "Restore the applied robot and field starting state before repeating a trial. The current candidate gains are preserved so you can reset and then validate them.")
         layout.addLayout(actions)
         explanation = QLabel("Characterization captures a short voltage pulse and its return to coast. It stops at the travel bound. "
                              "Simulation reset rebuilds the applied starting scene. Return a physical robot to its start by hand before a repeat test.")
@@ -547,9 +625,17 @@ class TuningWindow(QMainWindow):
         self.discovery_notes = QPlainTextEdit()
         self.discovery_notes.setReadOnly(True)
         self.discovery_notes.setMaximumHeight(130)
+        self.discovery_notes.hide()
         layout.addWidget(self.discovery_notes)
         layout.addStretch()
-        self.tabs.addTab(page, "Setup")
+        self._add_scrollable_tab(page, "Setup")
+
+    def _add_scrollable_tab(self, page, title):
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(page)
+        scroll.setAccessibleName(title + " settings")
+        self.tabs.addTab(scroll, title)
 
     def _capture_tab(self):
         page = QWidget()
@@ -559,6 +645,12 @@ class TuningWindow(QMainWindow):
         self.import_button = self._button("Import capture…", self._import, row)
         self.save_capture_button = self._button("Export capture…", self._save_capture, row)
         self.clear_button = self._button("Clear capture", self._clear_capture, row)
+        for button, title, explanation in (
+                (self.record_button, "Record live simulation", "Record the selected motors while you run the existing program in the main simulator. This observes feedback; it does not build or start code."),
+                (self.import_button, "Import a capture", "Open a single continuous JSON, JSONL, CSV or logger trial. Select the matching signed motor ports and axis after import."),
+                (self.save_capture_button, "Export recorded trial", "Save the current motor samples as JSONL or CSV, including source, time, capture identity and available telemetry."),
+                (self.clear_button, "Clear current capture", "Discard this window's current samples and candidate. Export them first if you want to keep the trial.")):
+            apply_help(button, title, explanation)
         layout.addLayout(row)
         self.capture_label = QLabel("0 samples · one trial per capture")
         layout.addWidget(self.capture_label)
@@ -583,28 +675,37 @@ class TuningWindow(QMainWindow):
         self.slot = QSpinBox()
         self.slot.setRange(1, 8)
         self.slot.setValue(8)
-        self.slot.setPrefix("Slot ")
-        self.slot.setToolTip("The selected V5 program slot is replaced when Upload is pressed.")
+        slot_help = "Choose which V5 Brain program slot to replace when you press Upload. Upload is a separate explicit action and does not start the program automatically."
+        apply_help(self.slot, "V5 program slot", slot_help)
+        slot_caption = help_label("Program slot", slot_help, self)
+        slot_caption.setMaximumWidth(115)
+        row.addWidget(slot_caption)
+        self.slot.setMaximumWidth(80)
         row.addWidget(self.slot)
         self.upload_button = self._button("3 · Upload", self._hardware_upload, row)
+        apply_help(self.prepare_button, "Prepare telemetry workspace", "Choose a parent folder for a new logger workspace copy. The original callbacks and workspace are preserved. Logger sampling is at least 20 ms; the exact interval is shown in the console.")
+        apply_help(self.build_button, "Build logger program", "Compile the prepared workspace with an installed PROS CLI and ARM toolchain. If the CLI is not discovered, use the PROS CLI field below to select it.")
+        apply_help(self.upload_button, "Upload logger program", "Replace the selected V5 program slot with the successfully built logger program. Connect the Brain and verify the slot before pressing this button.")
         layout.addLayout(row)
         row = QHBoxLayout()
         self.hardware_port = QLineEdit()
         self.hardware_port.setPlaceholderText("Serial port (for example COM4 or /dev/ttyACM1)")
+        port_help = "Optional Brain serial port, such as COM4 on Windows or /dev/ttyACM1 on Linux. Leave empty for PROS discovery. Connect/record reads logger output; stopping recording does not stop the physical robot program."
+        apply_help(self.hardware_port, "Brain serial port", port_help)
+        row.addWidget(help_label("Serial", port_help, self))
         row.addWidget(self.hardware_port, 1)
         self.cli_path = QLineEdit(str(self._settings.value("pros_cli", "")))
         self.cli_path.setPlaceholderText("PROS CLI: automatic discovery")
-        self.cli_path.setToolTip("Optional path to pros.exe / the PROS command. Leave empty to discover an installed CLI.")
+        cli_help = "Optional path to an installed PROS CLI executable, such as pros.exe. Leave empty for discovery from PATH or the PROS VS Code extension. Hardware build, upload and recording need PROS; the physical robot build also needs its ARM toolchain."
+        apply_help(self.cli_path, "PROS CLI executable", cli_help)
+        row.addWidget(help_label("PROS CLI", cli_help, self))
         row.addWidget(self.cli_path, 1)
         self.cli_button = self._button("CLI…", self._choose_cli, row)
         self.hardware_record_button = self._button("4 · Connect / record", self._hardware_record, row)
+        apply_help(self.cli_button, "Select PROS executable", "Browse to an existing PROS CLI executable. Selecting it saves this preference; no install, build or upload starts automatically.")
+        apply_help(self.hardware_record_button, "Record physical robot", "Read complete telemetry scans from the uploaded passive logger while you operate the robot normally. This button does not start motion; Stop / cancel only ends recording.")
         layout.addLayout(row)
-        self.hardware_log = QPlainTextEdit()
-        self.hardware_log.setReadOnly(True)
-        self.hardware_log.setMaximumBlockCount(1000)
-        self.hardware_log.setMaximumHeight(75)
-        layout.addWidget(self.hardware_log)
-        self.tabs.addTab(page, "Live capture")
+        self._add_scrollable_tab(page, "Live capture")
 
     def _results_tab(self):
         page = QWidget()
@@ -614,6 +715,12 @@ class TuningWindow(QMainWindow):
         self.tune_button = self._button("Find candidate gains", self._tune, row, True)
         self.validate_button = self._button("Validate in simulation", self._validate, row)
         self.export_button = self._button("Export gains / report…", self._export, row)
+        for button, title, explanation in (
+                (self.analyze_button, "Analyze recorded response", "Inspect the recorded motor response without calculating gains. Missing voltage is acceptable for inspection but prevents model identification."),
+                (self.tune_button, "Find candidate gains", "Fit the selected axis response from a continuous voltage-driven capture, then compare PID candidates across model uncertainty. Keep a usable pulse and its response in the capture."),
+                (self.validate_button, "Validate candidate in simulation", "Run the saved candidate and its exact controller settings through the current physics scene. Reset first to repeat the same starting condition; simulation validation does not validate the physical robot."),
+                (self.export_button, "Export PID candidate", "Save gains, units, exact controller period, model quality, settings and predictions in a JSON report. Use matching PID behavior and units when transferring gains.")):
+            apply_help(button, title, explanation)
         layout.addLayout(row)
         self.gain_label = QLabel("No candidate yet")
         self.gain_label.setObjectName("Title")
@@ -630,7 +737,7 @@ class TuningWindow(QMainWindow):
         note.setWordWrap(True)
         note.setObjectName("Muted")
         layout.addWidget(note)
-        self.tabs.addTab(page, "Tune / results")
+        self._add_scrollable_tab(page, "Tune / results")
 
     def _target(self):
         return self.target_combo.currentData()
@@ -667,30 +774,61 @@ class TuningWindow(QMainWindow):
         self.hardware_port.setEnabled(not busy)
         self.cli_path.setEnabled(not busy)
         self.cli_button.setEnabled(not busy)
-        self.cancel_button.setEnabled(busy and not self._closing)
+        self.cancel_button.setEnabled(bool(self._jobs or self._capturing or self._experiment) and not self._closing)
 
     def _launch(self, title, work, done=None):
         if self._jobs or self._closing:
             return
         job = _Job(work, self)
         self._jobs.add(job)
-        self.status.setText(title)
-        self.progress.setRange(0, 0)
+        self._begin_operation(title)
         job.update.connect(self._job_update)
         job.error.connect(self._error)
-        job.result.connect(lambda result: done(result) if done is not None and not self._closing else None)
+        job.result.connect(lambda result: self._job_result(job, result, done))
         job.finished.connect(lambda: self._job_finished(job))
         self._sync_controls()
         job.start()
 
+    def _begin_operation(self, title):
+        self._operation_title = str(title)
+        self._operation_failed = False
+        self._last_engine_error = None
+        self._engine_failure_reported = False
+        self.status.setText(self._operation_title)
+        self.console.append(self._operation_title)
+        self.progress.setRange(0, 0)
+
+    def _finish_progress(self, success):
+        self.progress.setRange(0, 100)
+        self.progress.setValue(100 if success else 0)
+
+    def _job_result(self, job, result, done):
+        if self._closing or job.cancel.is_set() or job.outcome == "cancelled":
+            return
+        if done is not None:
+            try:
+                done(result)
+            except Exception as exc:
+                job.outcome = "failed"
+                self._error(str(exc))
+
     def _job_finished(self, job):
         self._jobs.discard(job)
+        hardware_recording = self._hardware_active
         if self._hardware_active:
             self._hardware_active = False
             self._capturing = False
         job.deleteLater()
-        self.progress.setRange(0, 100)
-        self.progress.setValue(100)
+        cancelled = job.outcome == "cancelled" or job.cancel.is_set()
+        success = job.outcome == "succeeded" and not cancelled and not self._operation_failed
+        self._finish_progress(success)
+        if cancelled:
+            message = ("Recording stopped. The physical robot continues following its program."
+                       if hardware_recording else "Operation cancelled.")
+            self.status.setText(message)
+            self.console.append(message)
+        elif success:
+            self.console.append("Completed: " + self._operation_title)
         self._sync_controls()
         if self._closing and not self._jobs:
             QTimer.singleShot(0, self.close)
@@ -704,19 +842,30 @@ class TuningWindow(QMainWindow):
         elif isinstance(update, dict):
             if "message" in update:
                 self.status.setText(str(update["message"]))
+                self.console.append(str(update["message"]))
             if "progress" in update or "fraction" in update:
-                self.progress.setRange(0, 100)
-                value = float(update.get("fraction", update.get("progress", 0)))
-                self.progress.setValue(round(value * 100 if value <= 1 else value))
+                raw = update.get("fraction", update.get("progress", 0))
+                if _finite(raw):
+                    self.progress.setRange(0, 100)
+                    value = float(raw)
+                    self.progress.setValue(max(0, min(99, round(value * 100 if value <= 1 else value))))
         else:
-            self.hardware_log.appendPlainText(str(update))
-            self.status.setText(str(update)[-250:])
+            self.console.append(str(update))
 
     @Slot(str)
     def _error(self, message):
+        self._operation_failed = True
+        self._finish_progress(False)
         if not self._closing:
-            self.status.setText("Could not complete: " + str(message))
-            self.hardware_log.appendPlainText(str(message))
+            title, explanation, details = _error_feedback(message, self._operation_title)
+            self.status.setText(title + ": " + (str(message).splitlines() or ["No additional details"])[0][:220])
+            self.errors.error(title, explanation, details)
+
+    def _toggle_console(self):
+        visible = not self.console.isVisible()
+        self.console.setVisible(visible)
+        if visible:
+            self.console.raise_()
 
     def refresh_targets(self):
         def work(cancel, progress):
@@ -726,7 +875,11 @@ class TuningWindow(QMainWindow):
 
     def _discovered(self, result):
         self.targets = result.get("targets", [])
-        self.discovery_notes.setPlainText("\n".join(str(w) for w in result.get("warnings", [])))
+        warnings = [str(warning) for warning in result.get("warnings", [])]
+        self.discovery_notes.setPlainText("\n".join(warnings))
+        self.discovery_notes.setVisible(bool(warnings))
+        for warning in warnings:
+            self.console.append("Discovery: " + warning)
         self._populate_targets()
         self.status.setText(f"Found {len(self.targets)} targets. Select a mechanism and axis to begin.")
 
@@ -856,8 +1009,8 @@ class TuningWindow(QMainWindow):
         self._clear_capture()
         self._capture_source = "simulation"
         self._capturing = True
+        self._begin_operation("Recording simulation feedback. Run your code in the main window, then Stop / cancel here.")
         self.engine.tuning_capture(True, copy.deepcopy(self._target()))
-        self.status.setText("Recording live simulation. Run your code in the main window, then Stop / cancel here.")
         self._sync_controls()
 
     def _experiment_request(self, kind):
@@ -869,7 +1022,7 @@ class TuningWindow(QMainWindow):
         self._clear_capture(preserve_result=kind == "validate")
         self._capture_source = "simulation"
         self._experiment = True
-        self.status.setText("Starting " + kind + " experiment…")
+        self._begin_operation("Starting " + kind + " experiment…")
         self.tabs.setCurrentIndex(1)
         self._sync_controls()
         self.engine.tuning_experiment(request)
@@ -885,6 +1038,12 @@ class TuningWindow(QMainWindow):
         if self._closing or self._hardware_active:
             return
         state = status.get("state")
+        engine_failure = bool(status.get("engine_failure"))
+        # Reset also stops an old observer; that acknowledgement is not reset
+        # completion and must not replace the active scene-rebuild feedback.
+        if self._reset_pending and state in ("cancelled", "idle") and not engine_failure:
+            self.console.append(str(status.get("message", "Previous tuning observer stopped.")))
+            return
         if _finite(status.get("controller_period_ms")):
             self._actual_period_ms = float(status["controller_period_ms"])
             previous = self.period.blockSignals(True)
@@ -893,12 +1052,27 @@ class TuningWindow(QMainWindow):
         if state in ("completed", "cancelled", "error", "idle"):
             self._experiment = False
             self._capturing = False
-        self.status.setText(str(status.get("message", state or "Ready")))
+            self._finish_progress(state == "completed")
+        message = str(status.get("message", state or "Ready"))
+        if state == "error" and engine_failure:
+            self._engine_failure_reported = True
+            self._last_engine_error = message
+            if getattr(self.parent(), "feedback", None) is not None:
+                self._operation_failed = True
+                self.status.setText(message)
+                self.console.append(message)
+            else:
+                self._error(message)
+        elif state == "error" and message != self._last_engine_error:
+            self._error(message)
+        else:
+            self.status.setText(message)
+            self.console.append(message)
         self._sync_controls()
 
     def _reset(self):
         self._reset_pending = True
-        self.status.setText("Resetting simulation scene…")
+        self._begin_operation("Resetting simulation scene…")
         self._sync_controls()
         self.engine.reset()
 
@@ -908,15 +1082,28 @@ class TuningWindow(QMainWindow):
             self._reset_pending = False
             self._clear_capture(preserve_result=True)
             self.status.setText("Simulation restored to its applied starting state.")
+            self.console.append("Simulation restored to its applied starting state.")
+            self._finish_progress(True)
             self._sync_controls()
 
     @Slot(str)
     def _engine_failed(self, message):
         if self._hardware_active:
             return
+        if getattr(self, "_engine_failure_reported", False):
+            self._reset_pending = self._experiment = self._capturing = False
+            self._sync_controls()
+            return
         if self._reset_pending or self._experiment or self._capturing:
             self._reset_pending = self._experiment = self._capturing = False
-            self._error(message)
+            self._last_engine_error = str(message)
+            if getattr(self.parent(), "feedback", None) is not None:
+                self._operation_failed = True
+                self._finish_progress(False)
+                self.status.setText("Could not complete: " + (str(message).splitlines() or ["No additional details"])[0][:220])
+                self.console.append(str(message))
+            else:
+                self._error(message)
             self._sync_controls()
 
     def _analyze(self):
@@ -997,20 +1184,20 @@ class TuningWindow(QMainWindow):
         self._launch("Saving candidate report…", work, lambda result: self.status.setText("Candidate report saved: " + path))
 
     def _hardware_prepare(self):
-        parent = QFileDialog.getExistingDirectory(self, "Choose where to create a new logger workspace", self._file_start(""))
+        parent = QFileDialog.getExistingDirectory(self, "Choose where to create a new logger workspace", str(Path(self.workspace).parent) if self.workspace else "")
         if not parent:
             return
         workspace, ports = self.workspace, list(self._target()["ports"])
         destination = Path(parent) / f"{Path(workspace).name or 'pros'}-pid-logger-{uuid.uuid4().hex[:8]}"
         period = max(20, round(self.period.value()))
-        self.hardware_log.appendPlainText(f"Logger copy: {destination}\nMotor ports: {ports}; telemetry interval: {period} ms")
+        self.console.append(f"Logger copy: {destination}\nMotor ports: {ports}; telemetry interval: {period} ms")
         def work(cancel, progress):
             from .tuning_hardware import prepare_capture
             return prepare_capture(workspace, destination, ports, sample_ms=period, cancel=cancel, log=progress)
         def complete(prepared):
             self._prepared_workspace = prepared
             self._hardware_built = False
-            self.hardware_log.appendPlainText("Prepared logger workspace: " + str(prepared.workspace))
+            self.console.append("Prepared logger workspace: " + str(prepared.workspace))
             self.status.setText("Logger copy prepared. Build it before uploading to your selected program slot.")
         self._launch("Preparing a separate telemetry workspace…", work, complete)
 
@@ -1052,15 +1239,23 @@ class TuningWindow(QMainWindow):
     def _hardware_command_complete(self, result, action):
         if result.cancelled:
             message = action + " cancelled."
+            self._operation_failed = True
         elif result.timed_out:
             message = action + " timed out."
+            self._operation_failed = True
+            title, explanation, details = _error_feedback(message, action)
+            self.errors.warning(title, explanation, details + "\n\n" + str(result.output_tail))
         elif result.returncode:
             message = f"{action} failed (exit {result.returncode}). Review the terminal output."
+            self._operation_failed = True
+            title, explanation, details = _error_feedback(message, action)
+            self.errors.error(title, explanation, details + "\n\n" + str(result.output_tail))
         else:
             message = action + " complete."
         self.status.setText(message)
+        self._finish_progress(not self._operation_failed)
         if result.output_tail:
-            self.hardware_log.appendPlainText(str(result.output_tail))
+            self.console.append(str(result.output_tail))
 
     def _choose_cli(self):
         path, _ = QFileDialog.getOpenFileName(self, "Select the PROS CLI executable", self.cli_path.text(), "All files (*)")
@@ -1077,16 +1272,21 @@ class TuningWindow(QMainWindow):
         self._capturing = False
         self._experiment = False
         self.status.setText("Stopping…" if self._jobs else "Capture / experiment stopped.")
+        if not self._jobs and not self._reset_pending:
+            self._finish_progress(False)
         self._sync_controls()
 
     def closeEvent(self, event):
         self._closing = True
+        self.errors.dismiss()
+        self.console.errors.dismiss()
         self.cancel_work()
         if self._jobs:
             self.status.setText("Closing after background work stops…")
             event.ignore()
             return
         self._plot_timer.stop()
+        self.console.hide()
         for signal, callback in self._connections:
             try:
                 signal.disconnect(callback)

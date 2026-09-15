@@ -9,7 +9,7 @@ import textwrap
 
 import pytest
 
-from eersim.tuning_gui import TuningWindow, project_samples
+from eersim.tuning_gui import TuningWindow, project_samples, _error_feedback
 
 
 def sample(time, position, source="simulation", capture_id="a"):
@@ -63,6 +63,56 @@ class SimpleNamespaceHashable(SimpleNamespace):
     __hash__ = object.__hash__
 
 
+def test_hardware_dependency_and_capture_errors_include_recovery_steps():
+    title, message, details = _error_feedback("PROS CLI was not found", "Building telemetry workspace")
+    assert "PROS" in title and "Live capture" in message and "CLI…" in message
+    assert "Building telemetry workspace" in details
+    title, message, _ = _error_feedback("Voltage telemetry is unavailable", "Searching candidate PID gains")
+    assert "Capture" in title and "fresh continuous trial" in message and "Characterize" in message
+
+
+def test_engine_failure_defers_popup_to_parent_workbench():
+    seen = []
+    window = SimpleNamespace(_hardware_active=False, _reset_pending=True, _experiment=False,
+                             _capturing=False, parent=lambda: SimpleNamespace(feedback=object()),
+                             _finish_progress=lambda success: seen.append(("progress", success)),
+                             status=SimpleNamespace(setText=lambda text: seen.append(("status", text))),
+                             console=SimpleNamespace(append=lambda text: seen.append(("log", text))),
+                             _error=lambda text: pytest.fail("Parent already owns the engine-error popup"),
+                             _sync_controls=lambda: None)
+    TuningWindow._engine_failed(window, "Scene reset failed")
+    assert not window._reset_pending and window._operation_failed
+    assert ("progress", False) in seen and ("log", "Scene reset failed") in seen
+
+
+@pytest.mark.parametrize("parent_handles", [True, False])
+def test_marked_engine_status_then_failed_reports_once_even_when_messages_differ(parent_handles):
+    seen = []
+    window = SimpleNamespace(_closing=False, _hardware_active=False, _reset_pending=True,
+                             _experiment=False, _capturing=False, _last_engine_error=None,
+                             parent=lambda: SimpleNamespace(feedback=object()) if parent_handles else None,
+                             _finish_progress=lambda value: seen.append(("progress", value)),
+                             status=SimpleNamespace(setText=lambda text: seen.append(("status", text))),
+                             console=SimpleNamespace(append=lambda text: seen.append(("log", text))),
+                             _error=lambda text: seen.append(("popup", text)), _sync_controls=lambda: None)
+    TuningWindow._engine_status(window, {"state": "error", "message": "Tuning stopped: fixture failure", "engine_failure": True})
+    TuningWindow._engine_failed(window, "fixture failure")
+    popups = [row for row in seen if row[0] == "popup"]
+    assert len(popups) == (0 if parent_handles else 1)
+    assert not window._reset_pending
+
+
+def test_unmarked_tuning_validation_error_still_reports_with_parent_workbench():
+    popups = []
+    window = SimpleNamespace(_closing=False, _hardware_active=False, _reset_pending=False,
+                             _experiment=True, _capturing=False, _last_engine_error=None,
+                             parent=lambda: SimpleNamespace(feedback=object()),
+                             _finish_progress=lambda value: None, _error=popups.append,
+                             _sync_controls=lambda: None)
+    TuningWindow._engine_status(window, {"state": "error", "message": "Requested port is not bound"})
+    assert popups == ["Requested port is not bound"]
+
+
 def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path):
     """Separate process avoids QCoreApplication fixtures elsewhere in the suite."""
     script = tmp_path / "qt_tuning_check.py"
@@ -73,7 +123,7 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
         import types
         from types import SimpleNamespace
         from PySide6.QtCore import QObject, Signal
-        from PySide6.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication, QToolButton
         from eersim import tuning_gui as gui
         from eersim import tuning_discovery as discovery
 
@@ -112,6 +162,7 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
         reopened.role_fields["Lateral"].setText("1")
         reopened._save()
         assert reopened.target is None and "same physical" in reopened.error.text()
+        assert reopened.errors._dialog is not None and not reopened.errors._dialog.isModal()
         editor.close(); reopened.close()
         engine = Engine()
         window = gui.TuningWindow("fixture-workspace", {}, engine)
@@ -126,6 +177,27 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
             assert predicate(), "Qt event deadline exceeded"
         window.show()
         pump(lambda: window.target_combo.count() == 1 and not window._jobs)
+        window.resize(1120, 700)
+        app.processEvents()
+        assert window.height() == 700 and window.minimumSizeHint().height() <= 700
+        for index in range(window.tabs.count()):
+            window.tabs.setCurrentIndex(index)
+            app.processEvents()
+            page = window.tabs.widget(index)
+            assert page.widgetResizable() and page.widget() is not None
+            assert window.height() == 700
+        window.tabs.setCurrentIndex(0)
+        assert window.console.isHidden()
+        assert window.hardware_log is window.console.editor
+        for name in ("target_combo", "axis_combo", "mode_combo", "voltage", "duration", "travel", "period",
+                     "step_target", "large_error", "antiwind", "slot", "hardware_port", "cli_path"):
+            assert getattr(window, name).property("settingHelp"), name
+        assert len([button for button in window.findChildren(QToolButton) if button.objectName() == "SettingHelp"]) >= 13
+        window._toggle_console()
+        assert window.console.isVisible()
+        window.console.setFloating(True)
+        assert window.console.isFloating()
+        window.console.hide()
         assert window.characterize_button.isEnabled()
         assert not window.isModal()
         window._characterize()
@@ -146,6 +218,9 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
         assert window._options()["controller_period_ms"] == 20
         window._reset()
         assert window.busy and not window.record_button.isEnabled()
+        assert not window.cancel_button.isEnabled()
+        engine.tuning_status.emit({"state": "cancelled", "message": "Previous tuning stopped"})
+        assert window.progress.maximum() == 0 and "Resetting" in window.status.text()
         engine.reset_completed.emit({})
         assert not window.busy and len(window.samples) == 0
 
@@ -154,6 +229,25 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
         engine.failed.emit("fixture reset error")
         assert not window.busy and window.reset_button.isEnabled()
         assert "fixture reset error" in window.status.text()
+        assert window.progress.value() == 0
+        assert window.errors._dialog is not None and not window.errors._dialog.isModal()
+        window.errors.dismiss()
+
+        # Missing external PROS is checked only for a requested hardware action.
+        def missing_cli(cancel, progress):
+            raise RuntimeError("PROS CLI was not found. Install the PROS CLI/toolchain or select its pros executable.")
+        window._launch("Building the telemetry workspace…", missing_cli)
+        pump(lambda: not window._jobs)
+        assert window.progress.value() == 0
+        assert window.errors._dialog and "Live capture" in window.errors._dialog.text()
+        assert not window.errors._dialog.isModal() and window.console.isHidden()
+        assert "PROS CLI was not found" in window.console.text()
+        window.errors.dismiss()
+        window._launch("Cancellable background work", lambda cancel, progress: cancel.wait(3))
+        window.cancel_work()
+        pump(lambda: not window._jobs)
+        assert window.progress.value() == 0 and "cancelled" in window.status.text().lower()
+        assert window.errors._dialog is None
 
         # The real fitting backend is called asynchronously and its candidate
         # uses the exact saved units/period when validating in the engine.
@@ -170,6 +264,7 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
         window._tune()
         pump(lambda: not window._jobs, 10)
         assert window.result and all(key in window.result["gains"] for key in ("kp", "ki", "kd"))
+        assert window.progress.value() == 100
         assert window.validate_button.isEnabled()
         saved_options = dict(window.result["options"])
         saved_candidate = window.result
@@ -218,6 +313,17 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
         window._hardware_build()
         pump(lambda: not window._jobs)
         assert window.upload_button.isEnabled()
+        fake.run_build = lambda value, **kwargs: SimpleNamespace(returncode=1, cancelled=False, timed_out=False, output_tail="fixture compiler error")
+        window._hardware_build()
+        pump(lambda: not window._jobs)
+        assert not window.upload_button.isEnabled() and window.progress.value() == 0
+        assert window.errors._dialog and "compiler error" in window.errors._dialog.detailedText()
+        assert "Console" in window.errors._dialog.text()
+        window.errors.dismiss()
+        fake.run_build = build
+        window._hardware_build()
+        pump(lambda: not window._jobs)
+        assert window.upload_button.isEnabled() and window.progress.value() == 100
         window.slot.setValue(6)
         window._hardware_upload()
         pump(lambda: not window._jobs)

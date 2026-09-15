@@ -9,6 +9,13 @@ MUTED = "#899aaf"
 STYLESHEET = """
 QMainWindow, QWidget#Root { background: #081320; color: #edf3f8; }
 QWidget { color: #edf3f8; font-family: 'Segoe UI', sans-serif; font-size: 12px; }
+QMenuBar { background: #0c1928; color: #edf3f8; border-bottom: 1px solid #223348; }
+QMenuBar::item { background: transparent; padding: 5px 10px; }
+QMenuBar::item:selected, QMenuBar::item:pressed { background: #273e55; }
+QMenu { background: #142335; color: #edf3f8; border: 1px solid #30445c; padding: 4px; }
+QMenu::item { padding: 7px 24px 7px 16px; }
+QMenu::item:selected { background: #32465c; }
+QMenu::item:disabled { color: #63758c; }
 QFrame#Header { background: #0c1928; border-bottom: 1px solid #223348; }
 QFrame#Panel, QFrame#ControlBar { background: #101e2d; border: 1px solid #25354a; border-radius: 10px; }
 QFrame#Metric { background: #101e2d; border: 1px solid #223348; border-radius: 8px; }

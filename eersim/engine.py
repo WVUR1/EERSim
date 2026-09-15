@@ -7,6 +7,7 @@ import math
 import queue
 import threading
 import time
+import traceback
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Signal
@@ -69,6 +70,55 @@ class _RenderCadence:
         return (len(self.times) - 1) / (self.times[-1] - self.times[0])
 
 
+class _OperationProgress:
+    """Worker-owned stage events; unknown native durations stay indeterminate."""
+
+    labels = {"configure": "Applying scene settings", "build": "Building PROS workspace",
+              "start": "Starting competition run", "reset": "Resetting simulation",
+              "replay_enter": "Opening previous run", "export": "Exporting telemetry"}
+
+    def __init__(self, emit):
+        self.emit = emit
+        self.serial = 0
+        self.current = None
+        self.waiting_for = None
+
+    def begin(self, action):
+        if self.current is not None:
+            if self.current["action"] == "configure" and self.waiting_for:
+                # Start normally queues Apply then Start before one frame. The
+                # new operation owns that first frame; applying settings passed.
+                self.finish(True, "Scene settings applied; continuing with the next operation")
+            else:
+                self.finish(False, "Preview loading interrupted by the next operation")
+        self.serial += 1
+        self.current = {"id": self.serial, "action": action, "state": "running",
+                        "message": self.labels[action], "fraction": None}
+        self.emit(dict(self.current))
+
+    def stage(self, message):
+        if self.current is not None and self.current["message"] != message:
+            self.current["message"] = message
+            self.emit(dict(self.current))
+
+    def wait_for_frame(self, source, generation, message):
+        self.waiting_for = (source, generation)
+        self.stage(message)
+
+    def awaits_frame(self, source, generation):
+        return self.current is not None and self.waiting_for == (source, generation)
+
+    def finish(self, success, message, *, error=None):
+        current, self.current = self.current, None
+        self.waiting_for = None
+        if current is not None:
+            event = {**current, "state": "completed" if success else "failed",
+                     "message": str(message), "fraction": 1.0 if success else None}
+            if error is not None:
+                event["error"] = str(error)
+            self.emit(event)
+
+
 def _reuse_configuration(previous, incoming, *, reuse_unchanged=False):
     """Only presentation settings may change without replacing a live world.
 
@@ -101,6 +151,7 @@ class SimulationEngine(QObject):
     tuning_status = Signal(dict)
     reset_completed = Signal(dict)
     failed = Signal(str)
+    operation = Signal(dict)
 
     def __init__(self, defer_configuration: bool = False, coalesce_frames: bool = False):
         super().__init__()
@@ -229,9 +280,18 @@ class SimulationEngine(QObject):
         # Keep ownership when native process/world cleanup fails. A following
         # Apply retries it before creating another replacement scene.
         self._retired_sessions = []
+        tuning_engine_failure = False
+
+        def emit_tuning_status(status):
+            if tuning_engine_failure:
+                # The main window reports the following engine.failed signal;
+                # a connected tuning window should not open a second popup.
+                status = {**status, "engine_failure": True}
+            self.tuning_status.emit(status)
+
         tuning = SimulationTuner(
-            lambda sample: self.tuning_sample.emit(sample),
-            lambda status: self.tuning_status.emit(status))
+            lambda sample: self.tuning_sample.emit(sample), emit_tuning_status)
+        progress = _OperationProgress(self.operation.emit)
 
         def retry_retired_sessions():
             for previous in tuple(self._retired_sessions):
@@ -281,8 +341,11 @@ class SimulationEngine(QObject):
 
         try:
             if not self._defer_configuration:
+                progress.begin("configure")
+                progress.stage("Loading robot, field and physics")
                 session = Session(config, self.log.emit)
                 scene_valid = True
+                progress.wait_for_frame("live", replay.generation, "Preparing scene preview")
             replay_status()
             while not self._closing.is_set():
                 try:
@@ -293,6 +356,10 @@ class SimulationEngine(QObject):
                             break
                         if action == "close":
                             return
+                        if action in progress.labels:
+                            progress.begin(action)
+                        elif action == "replay_live" and progress.awaits_frame("replay", replay.generation):
+                            progress.finish(False, "Replay loading stopped; returning to Live")
                         if action.startswith("tuning_"):
                             try:
                                 if action == "tuning_cancel":
@@ -334,16 +401,23 @@ class SimulationEngine(QObject):
                             config = args[0]
                             self.log.emit("Scene configuration applied")
                             self.state.emit(state_payload(real_time_factor=rtf, physics_backlog_s=clock.pending))
+                            progress.finish(True, "Scene settings applied")
                             dirty = True
                             continue
                         if action.startswith("replay_"):
                             try:
                                 if action == "replay_enter":
+                                    progress.stage("Preparing replay scene")
                                     if session is not None:
                                         replay.enter(session, config.get("renderer", "auto"))
                                     else:
                                         replay.changed_view()
                                         replay.reason = "Apply scene settings before opening replay"
+                                    if replay.active:
+                                        progress.wait_for_frame("replay", replay.generation, "Loading replay preview")
+                                    else:
+                                        reason = replay.reason or "Replay is unavailable"
+                                        progress.finish(False, reason, error=reason)
                                 elif action == "replay_live":
                                     replay.leave()
                                 elif action == "replay_seek":
@@ -353,6 +427,7 @@ class SimulationEngine(QObject):
                                 elif action == "replay_pause":
                                     replay.pause()
                             except Exception as exc:
+                                progress.finish(False, str(exc), error=str(exc))
                                 # A presentation error must not disable a paused
                                 # live robot or turn into a simulation step.
                                 replay.pause()
@@ -377,19 +452,23 @@ class SimulationEngine(QObject):
                         if action == "configure":
                             # One old failed cleanup may remain owned after a
                             # replacement. Never accumulate more native scenes.
+                            progress.stage("Checking previous scene cleanup")
                             retry_retired_sessions()
                             if self._retired_sessions:
                                 raise RuntimeError("Previous scene cleanup is still pending. Retry Apply after its native worker stops; another scene was not created.")
                             scene_valid = False
+                            progress.stage("Loading robot, field and physics")
                             replacement = Session(args[0], self.log.emit)
                             previous, session = session, replacement
                             if previous is not None:
+                                progress.stage("Releasing previous scene")
                                 retire_session(previous)
                             config = args[0]
                             clock = FixedStepClock(config.get("physics_hz", 240))
                             last_renderer = None
                             scene_valid = True
                             self.log.emit("Scene configuration applied")
+                            progress.wait_for_frame("live", replay.generation, "Preparing scene preview")
                         elif action == "camera":
                             values = dict(zip(("yaw", "pitch", "distance", "target"), args))
                             if replay.active:
@@ -404,22 +483,28 @@ class SimulationEngine(QObject):
                         elif not scene_valid and action in ("step", "joint", "resume"):
                             raise ValueError("Apply scene settings or retry Reset before using simulation controls")
                         elif action == "build":
+                            progress.stage("Stopping robot program before compilation")
                             session.stop()
                             executable = None
                             session.executable = None
+                            progress.stage("Compiling PROS code for the simulator")
                             executable = build_workspace(Path(args[0]), self.log.emit)
                             self.built.emit(str(executable))
+                            progress.finish(True, "PROS build complete")
                         elif action == "start":
                             if not scene_valid:
                                 raise ValueError("Fix and apply the scene settings before starting")
                             scene_valid = False
+                            progress.stage("Preparing robot and initializing the run")
                             session.start(args[0], executable)
                             if tuning.capturing:
                                 tuning.capture(session, True, tuning.target)
                             scene_valid = True
+                            progress.stage("Preparing run recording")
                             replay.begin(session, camera)
                             last_renderer = None
                             clock.pending = 0
+                            progress.wait_for_frame("live", replay.generation, "Preparing live view")
                         elif action == "pause":
                             session.paused = True
                             replay.pause()
@@ -433,11 +518,13 @@ class SimulationEngine(QObject):
                             clock.pending = 0
                         elif action == "reset":
                             scene_valid = False
+                            progress.stage("Restoring initial robot and field state")
                             session.reset()
                             scene_valid = True
                             last_renderer = None
                             clock.pending = 0
                             pending_reset_generation = replay.generation
+                            progress.wait_for_frame("live", replay.generation, "Preparing reset scene preview")
                         elif action == "step":
                             session.paused = True
                             complete_step()
@@ -449,8 +536,17 @@ class SimulationEngine(QObject):
                             # A manual target is stepped continuously until paused/reset.
                             session.paused = False
                         elif action == "export":
-                            session.export_csv(args[0])
-                            self.log.emit(f"Saved {len(session.samples)} telemetry samples to {args[0]}")
+                            progress.stage("Writing telemetry file")
+                            try:
+                                session.export_csv(args[0])
+                            except Exception as exc:
+                                # A file-writing error does not invalidate the
+                                # live scene, robot program, or recording.
+                                progress.finish(False, str(exc), error=str(exc))
+                                self.log.emit(f"Telemetry export failed: {exc}")
+                            else:
+                                self.log.emit(f"Saved {len(session.samples)} telemetry samples to {args[0]}")
+                                progress.finish(True, "Telemetry export complete")
                         if action not in ("controller", "camera"):
                             last_wall = time.perf_counter()
                             if action in ("configure", "build", "start", "pause", "resume", "stop", "reset"):
@@ -484,8 +580,16 @@ class SimulationEngine(QObject):
                             if pixels is not None:
                                 cadence.record(time.perf_counter())
                                 self._emit_frame("replay", replay.generation, pixels)
-                            dirty = not replay.active
+                            waiting = progress.awaits_frame("replay", replay.generation)
+                            if waiting and pixels is not None:
+                                progress.finish(True, "Replay preview ready")
+                                waiting = False
+                            # A renderer may return None while loading in another
+                            # process. Keep polling its first frame while paused.
+                            dirty = not replay.active or waiting
                             if not replay.active:
+                                reason = replay.reason or "Replay preview could not be loaded"
+                                progress.finish(False, reason, error=reason)
                                 last_render = 0.
                                 if scene_valid:
                                     self.state.emit(state_payload(real_time_factor=0., physics_backlog_s=0.))
@@ -541,9 +645,11 @@ class SimulationEngine(QObject):
                         pixels = session.world.render(960, 720, **camera)
                         if pending_reset_generation is not None and pixels is None:
                             raise RuntimeError("The reset scene renderer did not return a frame")
-                        cadence.record(time.perf_counter())
+                        if pixels is not None:
+                            cadence.record(time.perf_counter())
                         replay_status()
-                        self._emit_frame("live", replay.generation, pixels)
+                        if pixels is not None:
+                            self._emit_frame("live", replay.generation, pixels)
                         renderer = getattr(session.world, "renderer_status", {})
                         if renderer != last_renderer:
                             last_renderer = copy.deepcopy(renderer)
@@ -552,20 +658,27 @@ class SimulationEngine(QObject):
                         if pending_reset_generation == replay.generation:
                             self.reset_completed.emit(state_payload(real_time_factor=0., physics_backlog_s=0.))
                             pending_reset_generation = None
-                        dirty = False
+                        if progress.awaits_frame("live", replay.generation) and pixels is not None:
+                            progress.finish(True, "Live scene ready")
+                        dirty = progress.awaits_frame("live", replay.generation) and pixels is None
                     self._closing.wait(0.001 if active else 0.015)
                 except Exception as exc:
+                    progress.finish(False, str(exc))
                     if pending_reset_generation is not None:
                         scene_valid = False
                     pending_reset_generation = None
                     clock.pending = 0
                     if tuning.active or tuning.capturing:
                         try:
+                            tuning_engine_failure = True
                             tuning.cancel(session, f"Tuning stopped: {exc}", state="error")
                         except Exception as tuning_error:
                             self.log.emit(f"Tuning cleanup: {tuning_error}")
+                        finally:
+                            tuning_engine_failure = False
                     self.failed.emit(str(exc))
                     self.log.emit(f"Error: {exc}")
+                    self.log.emit(traceback.format_exc())
                     if session is not None:
                         try:
                             session.stop()
@@ -586,9 +699,12 @@ class SimulationEngine(QObject):
                         self.log.emit("Scene is unavailable. Apply scene settings to recover, or retry Reset.")
                     replay_status()
         except Exception as exc:
+            progress.finish(False, str(exc))
             self.failed.emit(str(exc))
             self.log.emit(f"Simulator startup failed: {exc}")
+            self.log.emit(traceback.format_exc())
         finally:
+            progress.finish(False, "Operation stopped because the simulator closed")
             try:
                 replay.close()
             finally:

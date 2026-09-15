@@ -16,11 +16,17 @@ is reported separately in the [validation notes](docs/validation.md).
 ## Start here
 
 Download **EERSim-Setup-x64.exe** from the private
-[0.1.8 Windows preview](https://github.com/WVUR1/EERSim/releases/tag/v0.1.8-windows-preview.1).
+[published Windows previews](https://github.com/WVUR1/EERSim/releases).
+The 0.1.9 build is available locally; GitHub publication is pending approval.
 It bundles Python, the PhysX GPU runtime, simulator dependencies, default robots
 and fields, and the native robot compiler. It installs for your Windows account
 without administrator privileges; a desktop shortcut is optional. This private
 build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
+Version 0.1.9 adds a console that starts hidden and can detach into its own
+window (**View → Console**, or **Ctrl+Shift+C**), help icons beside settings,
+actionable warning/error dialogs, and a separate loading indicator.
+See [desktop feedback](docs/desktop-feedback.md) for details and limitations.
+
 Version 0.1.8 adds a separate **PID tuning…** window for motor groups and
 tank/H/X-drivetrains, automatic simulation logging, response fitting, and
 candidate validation. A separate PROS logger-copy workflow supports physical

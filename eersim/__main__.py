@@ -7,6 +7,30 @@ import sys
 from pathlib import Path
 
 
+def _show_startup_error(message):
+    """A windowed Windows executable must explain failures even without Qt.
+
+    Headless entry points never call this. On other platforms, use an existing
+    Qt application only; initializing a broken display plugin can abort Python.
+    """
+    from .runtime_paths import user_data_dir
+    details = ("EERSim could not start.\n\n" + str(message) +
+               "\n\nFor an installed copy, try reinstalling the complete application. "
+               "For a source checkout, run the setup script in the repository to install its dependencies." +
+               "\n\nWindowed executable logs: " + str(user_data_dir() / "logs" / "eersim.log"))
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(None, details, "EERSim startup error", 0x10)
+        else:
+            from PySide6.QtWidgets import QApplication, QMessageBox
+            if QApplication.instance() is not None:
+                QMessageBox.critical(None, "EERSim startup error", details)
+    except Exception:
+        # The caller has already printed the original failure to stderr.
+        pass
+
+
 def main(argv=None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
     if arguments and arguments[0] == "--gpu-probe-output":
@@ -85,6 +109,8 @@ def main(argv=None) -> int:
         return 0
     except (RuntimeError, ValueError, OSError, ImportError) as exc:
         print(f"EERKit simulator: {exc}", file=sys.stderr)
+        if not args.headless:
+            _show_startup_error(exc)
         return 1
 
 

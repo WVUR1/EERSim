@@ -19,7 +19,7 @@ from PySide6.QtCore import QEvent, QPointF, QRectF, QStandardPaths, Qt, QTimer, 
 from PySide6.QtGui import QColor, QFont, QIcon, QImage, QKeyEvent, QPainter, QPen
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QCheckBox, QComboBox, QDoubleSpinBox, QDialog, QDialogButtonBox,
-    QFileDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QHeaderView,
+    QFileDialog, QFrame, QGridLayout, QHBoxLayout, QHeaderView,
     QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QProgressBar,
     QPushButton, QScrollArea, QSizePolicy, QSlider, QSpinBox, QSplitter, QStyle, QStyleOptionSlider,
     QTabWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
@@ -28,6 +28,8 @@ from PySide6.QtWidgets import (
 from .config import ASSETS, default_config
 from .engine import SimulationEngine
 from .gui_styles import GOLD, MUTED, STYLESHEET
+from .gui_feedback import (ErrorReporter, ExceptionFeedback, FeedbackConsole, HelpFormLayout,
+                           OperationProgress, apply_help, help_label)
 from .motor import CARTRIDGES as PHYSICAL_CARTRIDGES
 
 
@@ -57,6 +59,64 @@ CARTRIDGES = {name: (preset.label, preset.rpm, preset.stall_torque)
               for name, preset in PHYSICAL_CARTRIDGES.items()}
 APPLY_STATUS = "Applying experiment settings…"
 RESET_STATUS = "Resetting scene…"
+
+SETTING_HELP = {
+    "workspace": "Choose the PROS project folder containing src/ and include/. Build workspace compiles its source for this desktop simulator. Rebuild explicitly after code changes; the V5 PROS CLI is only needed for physical-robot firmware.",
+    "robot_urdf": "A standard URDF supplies links, mass, inertia, joints, and geometry. Keep referenced meshes beside it. Assign V5 motors in the import preview, then Apply settings to load the robot into the field.",
+    "bindings": "Optional JSON for motor ports, joint assignments, external gearing, sensor mounts, and pneumatic joints. Motor assignments can also be edited below. Apply settings after changes.",
+    "field": "Choose a game-pack JSON or field URDF. A URDF becomes static collision geometry; a game pack can also define movable pieces. Import selects the asset; Apply settings loads it.",
+    "field_preset": "Full dynamics allow game pieces to move, collide, and be grasped. Fixed-piece route planning keeps pieces stationary and is faster, but cannot test scoring interactions. Apply settings after choosing a field.",
+    "camera": "Change the viewpoint without moving the robot or restarting physics. Close view centers on the current robot; you can still orbit, pan, and zoom with the mouse.",
+    "physics_hz": "Fixed simulation steps per simulated second. A higher rate resolves motor/contact changes more finely but costs more CPU/GPU work. Lowering it changes numerical accuracy; viewport FPS does not change this rate.",
+    "render_fps": "Maximum requested viewport updates per wall-clock second. Higher values increase rendering work. Lower values can improve simulation throughput without skipping or changing physics steps.",
+    "gravity": "Downward acceleration in metres per second squared. Earth gravity is about 9.80665. Lower values reduce weight and contact loads; zero is useful for isolated mechanism experiments and does not represent a field robot.",
+    "restitution": "Collision bounce from 0 (inelastic) to 1 (highly elastic). Increasing it makes colliding pieces rebound more strongly. Contact-pair combination rules depend on the physics backend.",
+    "joint": "Choose a movable URDF joint for direct mechanism testing. This control bypasses your PROS motor commands; use the PID tuning lab to test a motor controller through its mapped ports.",
+    "joint_target": "Direct joint position: radians for revolute/continuous joints, metres for prismatic joints. URDF travel limits bound the target. Stop robot code before moving a joint.",
+    "X": "Robot base-link X coordinate in metres from field center. Apply settings to use the new starting position; Reset restores the last applied position.",
+    "Y": "Robot base-link Y coordinate in metres from field center. Apply settings to use the new starting position; Reset restores the last applied position.",
+    "Z": "Height of the URDF base-link origin in metres. Set enough clearance for the wheels and chassis; overlapping the floor or field objects can create large initial collision forces.",
+    "Heading": "Starting yaw in degrees, counterclockwise about the upward +Z axis. This rotates the complete robot around its base-link origin.",
+    "seed": "Seed for repeatable sensor-noise sequences. Keep it fixed when comparing code changes; change it to test another randomized trial. Reset restarts the selected sequence.",
+    "position_std_m": "Gaussian standard deviation in metres added to the external odometry position measurement. Larger values test position-estimator robustness; the physical robot pose is unchanged.",
+    "heading_std_deg": "Gaussian standard deviation in degrees added to heading measurements. Larger values perturb IMU/odometry feedback without rotating the physical robot.",
+    "encoder_std_deg": "Gaussian standard deviation in motor degrees added to encoder positions. Larger values make PID position feedback noisier; motor velocity is not derived from this noisy position here.",
+    "distance_std_mm": "Gaussian standard deviation in millimetres added to detected distance readings. Larger values test obstacle-detection thresholds; geometry and actual distances are unchanged.",
+    "latency_ms": "Delay applied to delivered sensor snapshots, in milliseconds, resolved at physics ticks. Controllers receive older measurements while the physical scene continues moving.",
+    "dropout": "Probability from 0 to 1 of dropping an available sensor update. A dropped update retains the last delivered snapshot; 0 delivers every update and 1 holds the initial reading.",
+}
+
+MOTOR_HELP = (
+    "Physical V5 smart port, 1–21. Each port must be unique; several distinct motors may power the same URDF joint.",
+    "Movable URDF joint driven by this motor. Match it to the real mechanism; several rows may share one joint to model a motor group.",
+    "Reverse the mapping between positive motor commands/encoder readings and positive joint motion. Match the actual motor mounting and code port signs.",
+    "Physical V5 cartridge: red 100 RPM, green 200 RPM, or blue 600 RPM. It selects motor shaft speed and torque; external gears use the Ratio setting.",
+    "External ratio: motor output turns per joint turn. A larger reduction increases joint torque and reduces joint speed. This is separate from the internal VEX cartridge.",
+    "Cartridge output-shaft stall torque in N·m. Use a measured value for calibration; changing cartridge restores its default. External ratio and efficiency determine joint torque.",
+)
+
+
+def _table_help(table, explanations):
+    """Visible header help icons plus keyboard-accessible cell descriptions."""
+    for column, explanation in enumerate(explanations):
+        item = table.horizontalHeaderItem(column)
+        if item is not None:
+            item.setIcon(table.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxQuestion))
+            item.setToolTip(explanation)
+            item.setData(Qt.ItemDataRole.AccessibleDescriptionRole, explanation)
+
+
+def _local_feedback(window, title, message, *, warning=False, details=""):
+    """File/settings failures must not invalidate an otherwise running scene."""
+    message = str(message)
+    reporter = getattr(window, "feedback", None)
+    if reporter is not None:
+        (reporter.warning if warning else reporter.error)(title, message, details=details)
+    else:
+        window._log(("WARNING: " if warning else "ERROR: ") + message + ("\n" + str(details) if details else ""))
+    window.statusBar().showMessage(message)
+    if not warning:
+        window._logo_event("error")
 
 
 def _replay_time(seconds):
@@ -239,6 +299,7 @@ class DiagnosticsExportDialog(QDialog):
 
     def __init__(self, destination: str, mode: str = "skills_auto", parent=None):
         super().__init__(parent)
+        self.feedback = ErrorReporter(self, log=getattr(parent, "_log", None))
         self.setWindowTitle("Export performance diagnostics")
         self.setStyleSheet(STYLESHEET + "QDialog { background: #101e2d; }")
         self.setMinimumWidth(480)
@@ -248,36 +309,46 @@ class DiagnosticsExportDialog(QDialog):
         layout.setSpacing(13)
         layout.addWidget(label("PERFORMANCE DIAGNOSTICS", "Section"))
         layout.addWidget(label("Export the settings currently shown, including edits you have not applied. Run the exported script later on this computer to measure performance.", "Muted", True))
-        form = QFormLayout()
+        form = HelpFormLayout()
         folder_row = QHBoxLayout()
         self.destination = QLineEdit(destination)
         self.destination.setReadOnly(True)
-        self.destination.setToolTip("A new diagnostic folder will be created inside this location.")
+        apply_help(self.destination, "Export location", "A new diagnostic folder will be created inside this location. Choose a writable existing parent folder.")
         folder_row.addWidget(self.destination, 1)
         folder_row.addWidget(button("Browse…", self._browse))
-        form.addRow("Export location", folder_row)
+        form.addRow("Export location", folder_row, "Choose an existing writable parent folder. Export creates a new diagnostic folder there; it does not run benchmarks or upload files.")
         self.mode = QComboBox()
         for value, caption, _, _ in MODES:
             self.mode.addItem(caption, value)
         selected = self.mode.findData(mode)
         self.mode.setCurrentIndex(selected if selected >= 0 else self.mode.findData("skills_auto"))
-        form.addRow("Robot program mode", self.mode)
+        form.addRow("Robot program mode", self.mode, "Competition callback and duration used by the exported benchmark. Driver modes use neutral controller input; choose an autonomous mode to measure autonomous code.")
         self.wall_seconds = QSpinBox()
         self.wall_seconds.setRange(60, 600)
         self.wall_seconds.setSingleStep(30)
         self.wall_seconds.setValue(120)
         self.wall_seconds.setSuffix(" s per case")
         self.wall_seconds.setToolTip("Wall-clock measurement budget for each case. Scene loading, native compilation, and cleanup add time.")
-        form.addRow("Wall-time limit", self.wall_seconds)
+        form.addRow("Wall-time limit", self.wall_seconds, self.wall_seconds.toolTip())
         layout.addLayout(form)
         self.compare_rates = QCheckBox("Compare 120 Hz and 240 Hz")
         self.compare_rates.setChecked(True)
         self.compare_rates.setToolTip("Run two separate cases. Uncheck to use the physics frequency currently shown in Field.")
-        layout.addWidget(self.compare_rates)
+        apply_help(self.compare_rates, "Compare physics rates", self.compare_rates.toolTip())
+        compare_row = QHBoxLayout()
+        compare_row.addWidget(self.compare_rates)
+        compare_row.addWidget(help_label("", self.compare_rates.property("settingHelp"), self))
+        compare_row.addStretch()
+        layout.addLayout(compare_row)
         self.include_rendering = QCheckBox("Measure rendering separately")
         self.include_rendering.setChecked(True)
         self.include_rendering.setToolTip("After physics measurement, time a stationary scene with the selected renderer. No images are saved.")
-        layout.addWidget(self.include_rendering)
+        apply_help(self.include_rendering, "Measure rendering", self.include_rendering.toolTip())
+        rendering_row = QHBoxLayout()
+        rendering_row.addWidget(self.include_rendering)
+        rendering_row.addWidget(help_label("", self.include_rendering.property("settingHelp"), self))
+        rendering_row.addStretch()
+        layout.addLayout(rendering_row)
         layout.addWidget(label("Driver modes use neutral controller input. The scripts keep local robot, field, and workspace paths; use them on this computer. Exporting does not run the tests.", "Muted", True))
         layout.addWidget(label("The report ZIP excludes raw PROS source and asset files. Nothing is uploaded automatically.", "Muted", True))
         self.error = label("", "Muted", True)
@@ -298,6 +369,7 @@ class DiagnosticsExportDialog(QDialog):
     def _accept_destination(self):
         if not self.destination.text().strip() or not Path(self.destination.text()).expanduser().is_dir():
             self.error.setText("Choose an existing folder for the diagnostic export.")
+            self.feedback.warning("Choose an export folder", "Use Browse to select an existing writable folder, then export again.")
             return
         self.accept()
 
@@ -306,12 +378,17 @@ class DiagnosticsExportDialog(QDialog):
                 "wall_seconds": self.wall_seconds.value(), "compare_rates": self.compare_rates.isChecked(),
                 "include_rendering": self.include_rendering.isChecked()}
 
+    def done(self, result):
+        self.feedback.dismiss()
+        super().done(result)
+
 
 class RobotImportDialog(QDialog):
     """Map a standard URDF to V5 hardware without hand-writing a sidecar."""
 
     def __init__(self, inspection: dict, patch: dict, parent=None):
         super().__init__(parent)
+        self.feedback = ErrorReporter(self, log=getattr(parent, "_log", None))
         from .preview import UrdfPreview
 
         self.setWindowTitle("Import robot · connect VEX hardware")
@@ -331,6 +408,8 @@ class RobotImportDialog(QDialog):
         layout.setSpacing(13)
         layout.addWidget(label("CONNECT YOUR ROBOT", "Section"))
         layout.addWidget(label(str(inspection.get("name", "Imported URDF")), "Title"))
+        self.preview_progress = OperationProgress(self)
+        layout.addWidget(self.preview_progress)
         layout.addWidget(label("Assign smart ports to powered joints. Leave a port at 0 for a passive joint. You can add multiple motors per joint in the Robot tab after import.", "Muted", True))
         split = QSplitter(Qt.Orientation.Horizontal)
         split.setHandleWidth(14)
@@ -361,11 +440,16 @@ class RobotImportDialog(QDialog):
         self._lead_fields = {}
         self.table = QTableWidget(0, 6)
         self.table.setHorizontalHeaderLabels(["URDF joint", "Smart port", "V5 cartridge", "Ratio", "Lead mm/rev", "Reverse"])
+        self._column_help = (MOTOR_HELP[1], "Assign a unique smart port 1–21, or leave 0 for a passive joint.",
+                             MOTOR_HELP[3], MOTOR_HELP[4],
+                             "Linear travel in millimetres per motor output revolution, before the external gear ratio. Used only for prismatic joints such as lead screws.",
+                             MOTOR_HELP[2])
+        _table_help(self.table, self._column_help)
         self.table.verticalHeader().hide()
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for col, width in ((1, 78), (2, 164), (3, 77), (4, 92), (5, 55)):
+        for col, width in ((1, 90), (2, 164), (3, 77), (4, 110), (5, 85)):
             self.table.setColumnWidth(col, width)
         motors = copy.deepcopy(patch.get("motors") or [])
         known = {motor.get("joint") for motor in motors}
@@ -376,20 +460,24 @@ class RobotImportDialog(QDialog):
             self.table.insertRow(index)
             item = QTableWidgetItem(str(motor.get("joint", "")))
             item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            item.setToolTip(self._column_help[0])
             self.table.setItem(index, 0, item)
             port = QSpinBox()
             port.setRange(0, 21)
             port.setSpecialValueText("Passive")
             signed_port = int(motor.get("port", 0))
             port.setValue(abs(signed_port))
+            apply_help(port, "Smart port", self._column_help[1])
             self.table.setCellWidget(index, 1, port)
             cartridge = cartridge_select(motor)
+            apply_help(cartridge, "V5 cartridge", MOTOR_HELP[3])
             self.table.setCellWidget(index, 2, cartridge)
             ratio = real_spin(0.001, 10000, float(motor.get("gear_ratio", 1)), 3)
+            apply_help(ratio, "External ratio", MOTOR_HELP[4])
             self.table.setCellWidget(index, 3, ratio)
             if self._joint_types.get(motor.get("joint")) == "prismatic":
                 lead = real_spin(.01, 10000, float(motor.get("lead_m", .01)) * 1000, 2)
-                lead.setToolTip("Linear travel per motor output revolution, before the external gear ratio.")
+                apply_help(lead, "Lead millimetres per revolution", self._column_help[4])
                 self._lead_fields[index] = lead
                 self.table.setCellWidget(index, 4, lead)
             else:
@@ -399,6 +487,7 @@ class RobotImportDialog(QDialog):
             reverse = QTableWidgetItem()
             reverse.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
             reverse.setCheckState(Qt.CheckState.Checked if motor.get("reversed", signed_port < 0) else Qt.CheckState.Unchecked)
+            reverse.setToolTip(MOTOR_HELP[2])
             self.table.setItem(index, 5, reverse)
             self.table.setRowHeight(index, 39)
             self.rows.append((motor, port, cartridge, ratio, reverse))
@@ -423,6 +512,8 @@ class RobotImportDialog(QDialog):
         self.jog_voltage.setSingleStep(500)
         self.jog_voltage.setValue(4000)
         self.jog_voltage.setSuffix(" mV")
+        apply_help(self.jog_voltage, "Preview jog voltage", "Voltage applied while a Jog button is held, in millivolts. Higher voltage moves the selected motor faster and increases available torque. Release Jog or press Stop to disable output.")
+        jog_controls.addWidget(help_label("Voltage", self.jog_voltage.property("settingHelp"), self))
         jog_controls.addWidget(self.jog_voltage)
         hardware.addLayout(jog_controls)
         self.jog_feedback = label("Motor output is zero until a Jog button is held.", "Muted", True)
@@ -496,6 +587,7 @@ class RobotImportDialog(QDialog):
             self.patch["motors"] = self._motor_configuration()
         except ValueError as exc:
             self.error.setText(str(exc))
+            self.feedback.warning("Check motor assignments", "Correct the duplicate or invalid port assignment before importing.", details=str(exc))
             return
         self.accept()
 
@@ -517,6 +609,7 @@ class RobotImportDialog(QDialog):
             self.preview.stop_all()
             return False
         self.error.clear()
+        self.preview_progress.begin("preview", "Loading robot preview and motor bindings…")
         self.preview.configure(self.patch["robot_urdf"], motors)
         return True
 
@@ -563,6 +656,7 @@ class RobotImportDialog(QDialog):
                                            str(graphics.get("device", "")) +
                                            ("\n" + str(graphics["reason"]) if graphics.get("reason") else ""))
         if state.get("ready") and state.get("camera") and state.get("revision", 0) != self._preview_revision:
+            self.preview_progress.finish("preview")
             self._preview_revision = state.get("revision", 0)
             self._preview_camera_fit = state["camera"]
             if not self._preview_camera_initialized:
@@ -591,6 +685,8 @@ class RobotImportDialog(QDialog):
     def _preview_failed(self, message):
         self.error.setText("Preview: " + str(message))
         self._stop_preview()
+        self.preview_progress.finish("preview", failed=True)
+        self.feedback.error("Robot preview could not load", "Check the URDF, its referenced meshes, and the motor assignments. Correct the file or settings, then retry the preview.", details=str(message))
 
     def _preview_app_state(self, state):
         if state != Qt.ApplicationState.ApplicationActive:
@@ -602,6 +698,7 @@ class RobotImportDialog(QDialog):
         return super().eventFilter(watched, event)
 
     def done(self, result):
+        self.feedback.dismiss()
         if not self._preview_closed:
             self._preview_timer.stop()
             self.preview.stop_all()
@@ -844,6 +941,12 @@ class Workbench(QMainWindow):
         self.setWindowTitle("EER SIM · WVU Robotics Autonomy Workbench")
         fit_window(self, 1500, 950)
         self.setStyleSheet(STYLESHEET)
+        self.console = FeedbackConsole(self)
+        self.log_view = self.console.editor
+        self.feedback = ErrorReporter(self, log=self._log)
+        console_action = self.console.toggleViewAction()
+        console_action.setText("Console")
+        self.menuBar().addMenu("View").addAction(console_action)
         root = QWidget()
         root.setObjectName("Root")
         self.setCentralWidget(root)
@@ -851,6 +954,8 @@ class Workbench(QMainWindow):
         layout.setContentsMargins(18, 14, 18, 6)
         layout.setSpacing(12)
         self._make_header(layout, workspace)
+        self.operation_progress = OperationProgress(self)
+        layout.addWidget(self.operation_progress)
         self._refresh_logo()
         split = QSplitter(Qt.Orientation.Horizontal)
         split.setHandleWidth(12)
@@ -869,6 +974,7 @@ class Workbench(QMainWindow):
         self.engine.built.connect(self._on_built)
         self.engine.reset_completed.connect(self._on_reset_completed)
         self.engine.failed.connect(self._on_failed)
+        self.engine.operation.connect(self._on_operation)
         self.scene.camera_changed.connect(self.engine.set_camera)
         self.scene.key_changed.connect(self._key)
         self.scene.focus_lost.connect(self._release_keys)
@@ -897,31 +1003,51 @@ class Workbench(QMainWindow):
         identity.addWidget(label("EER / SIM", "Brand"))
         identity.addWidget(label("WVU ROBOTICS  ·  AUTONOMY LAB", "BrandSub"))
         header.addLayout(identity)
-        header.addSpacing(24)
-        header.addWidget(label("PROS WORKSPACE", "Section"))
+        header.addStretch()
+        workspace_row = QHBoxLayout()
+        workspace_row.addWidget(help_label("PROS WORKSPACE", SETTING_HELP["workspace"], self))
         self.workspace = QLineEdit(str(workspace or self.config.get("workspace") or ""))
         self.workspace.setPlaceholderText("Choose a PROS project folder…")
         self.workspace.setMinimumWidth(240)
+        apply_help(self.workspace, "PROS workspace", SETTING_HELP["workspace"])
         self.workspace.textChanged.connect(self._workspace_changed)
-        header.addWidget(self.workspace, 1)
-        header.addWidget(button("Browse…", self._choose_workspace))
+        workspace_row.addWidget(self.workspace, 1)
+        workspace_row.addWidget(button("Browse…", self._choose_workspace))
         self.build_button = button("Build workspace", self._build, "Primary")
         header.addWidget(self.build_button)
         header.addWidget(button("PID tuning…", self._open_tuning))
+        self.console_button = button("Console", self.console.toggleViewAction().trigger)
+        self.console_button.setToolTip("Show or hide the detachable build and runtime console (Ctrl+Shift+C). Drag its title bar to undock it.")
+        header.addWidget(self.console_button)
         self.status_badge = label("LOADING WORLD", "Badge")
         header.addWidget(self.status_badge)
         parent.addLayout(header)
+        parent.addLayout(workspace_row)
 
     def _open_tuning(self):
-        from .tuning_gui import TuningWindow
-        if self._tuning_window is None:
-            self._tuning_window = TuningWindow(self._workspace_key(), self._collect_config(), self.engine, parent=self)
-            self._tuning_window.shutdown_finished.connect(self._tuning_closed)
-        else:
-            self._tuning_window.set_workspace(self._workspace_key(), self._collect_config())
-        self._tuning_window.show()
-        self._tuning_window.raise_()
-        self._tuning_window.activateWindow()
+        try:
+            from .tuning_gui import TuningWindow
+            if self._tuning_window is None:
+                self._tuning_window = TuningWindow(self._workspace_key(), self._collect_config(), self.engine, parent=self)
+                self._tuning_window.shutdown_finished.connect(self._tuning_closed)
+            else:
+                self._tuning_window.set_workspace(self._workspace_key(), self._collect_config())
+            self._tuning_window.show()
+            self._tuning_window.raise_()
+            self._tuning_window.activateWindow()
+        except (ValueError, TypeError, OSError, ImportError) as exc:
+            _local_feedback(self, "PID tuning could not open", "Check the robot's motor-port assignments and installed simulator dependencies, then open PID tuning again.", details=str(exc))
+
+    def _on_operation(self, event):
+        self.operation_progress.update_event(event)
+        if event.get("state") == "running":
+            self.statusBar().showMessage(str(event.get("message", "Working…")))
+        elif event.get("state") == "completed":
+            self.statusBar().showMessage(str(event.get("message", "Operation complete.")))
+        elif event.get("state") == "failed" and event.get("action") == "replay_enter" and event.get("error"):
+            _local_feedback(self, "Replay could not load", "Return to Live and record a new run, or inspect the console for an asset or renderer error.", details=str(event["error"]))
+        elif event.get("state") == "failed" and event.get("action") == "export" and event.get("error"):
+            _local_feedback(self, "Telemetry export failed", "Choose a writable CSV destination and export again. The current simulation is still available.", details=str(event["error"]))
 
     def _tuning_closed(self):
         if self._tuning_close_pending:
@@ -972,10 +1098,14 @@ class Workbench(QMainWindow):
         self.camera_preset = QComboBox()
         self.camera_preset.addItems(["Orbit camera", "Top down", "Driver station", "Close view"])
         self.camera_preset.currentIndexChanged.connect(self._camera_preset)
+        apply_help(self.camera_preset, "Camera preset", SETTING_HELP["camera"])
+        top.addWidget(help_label("View", SETTING_HELP["camera"], self))
         top.addWidget(self.camera_preset)
         layout.addLayout(top)
         self.scene = SceneView()
-        self.scene.setMinimumHeight(255)
+        # Keep the complete driver station reachable on a 1120 × 700 laptop.
+        # Larger windows still give the expanding viewport all available space.
+        self.scene.setMinimumHeight(170)
         layout.addWidget(self.scene, 1)
         metrics = QHBoxLayout()
         metrics.setSpacing(9)
@@ -1001,6 +1131,8 @@ class Workbench(QMainWindow):
         self.progress.setRange(0, 1000)
         self.progress.setValue(0)
         self.progress.setTextVisible(False)
+        self.progress.setToolTip("Competition period elapsed in simulated time. Scene loading and build progress are shown separately above.")
+        self.progress.setAccessibleName("Competition period progress")
         layout.addWidget(self.progress)
         transport = QHBoxLayout()
         transport.setSpacing(6)
@@ -1140,15 +1272,18 @@ class Workbench(QMainWindow):
         layout.addWidget(label("ROBOT DESCRIPTION", "Section"))
         row, self.urdf_path = self._file_row("robot URDF", "Robot description (*.urdf)", self._urdf_selected)
         self.urdf_path.setReadOnly(True)
+        apply_help(self.urdf_path, "Robot URDF", SETTING_HELP["robot_urdf"])
+        layout.addWidget(help_label("Robot file", SETTING_HELP["robot_urdf"], self))
         row.itemAt(1).widget().setFixedWidth(118)
         row.itemAt(1).widget().setText("Import URDF…")
         layout.addLayout(row)
         layout.addWidget(button("Preview robot & test motors", self._edit_robot_setup))
         self.urdf_path.editingFinished.connect(lambda: self._scan_joints(self.urdf_path.text()))
         layout.addWidget(label("Import a standard URDF, then assign V5 ports and cartridges in the setup dialog. Passive joints need no port.", "Muted", True))
-        layout.addWidget(label("Optional advanced hardware bindings", "Muted"))
+        layout.addWidget(help_label("Optional hardware bindings", SETTING_HELP["bindings"], self))
         row, self.binding_path = self._file_row("hardware bindings", "Hardware bindings (*.json)", self._bindings_selected)
         self.binding_path.setPlaceholderText("Optional · motor assignments below work without a JSON file")
+        apply_help(self.binding_path, "Hardware bindings", SETTING_HELP["bindings"])
         self.binding_path.editingFinished.connect(lambda: self._bindings_selected(self.binding_path.text()))
         layout.addLayout(row)
         presets = QHBoxLayout()
@@ -1159,12 +1294,12 @@ class Workbench(QMainWindow):
         layout.addWidget(label("SMART PORT → URDF JOINT", "Section"))
         self.motor_table = QTableWidget(0, 6)
         self.motor_table.setHorizontalHeaderLabels(["Port", "Joint", "Flip", "V5 cartridge", "Ratio", "Shaft\nN·m"])
-        self.motor_table.horizontalHeaderItem(5).setToolTip("Cartridge output shaft stall torque. Joint stall torque scales by external ratio × efficiency; linear joints also use their configured lead.")
+        _table_help(self.motor_table, MOTOR_HELP)
         self.motor_table.verticalHeader().hide()
         self.motor_table.setAlternatingRowColors(True)
         self.motor_table.setMinimumHeight(177)
         self.motor_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        for col, width in ((0, 40), (2, 37), (3, 156), (4, 43), (5, 55)):
+        for col, width in ((0, 60), (2, 56), (3, 156), (4, 63), (5, 76)):
             self.motor_table.setColumnWidth(col, width)
         layout.addWidget(self.motor_table)
         row = QHBoxLayout()
@@ -1174,12 +1309,12 @@ class Workbench(QMainWindow):
         layout.addLayout(row)
         layout.addWidget(label("Cartridges set physical gearing and shaft stall torque. Ratio is external motor turns per joint turn. Edit shaft N·m for measured calibration; changing cartridge restores its default.", "Muted", True))
         layout.addWidget(label("MANUAL JOINT CONTROL", "Section"))
-        form = QFormLayout()
+        form = HelpFormLayout()
         self.joint_select = QComboBox()
         self.joint_select.currentTextChanged.connect(self._joint_changed)
-        form.addRow("Joint", self.joint_select)
+        form.addRow("Joint", self.joint_select, SETTING_HELP["joint"])
         self.joint_target = real_spin(-10000, 10000, 0, 3, " rad")
-        form.addRow("Target", self.joint_target)
+        form.addRow("Target", self.joint_target, SETTING_HELP["joint_target"])
         layout.addLayout(form)
         self.joint_button = button("Move selected joint", self._move_joint)
         layout.addWidget(self.joint_button)
@@ -1191,6 +1326,8 @@ class Workbench(QMainWindow):
         layout.addWidget(label("GAME PACK", "Section"))
         row, self.game_path = self._file_row("field or game pack", "Field imports (*.json *.urdf);;Game pack (*.json);;Field URDF (*.urdf)", self._import_field)
         self.game_path.setReadOnly(True)
+        apply_help(self.game_path, "Field file", SETTING_HELP["field"])
+        layout.addWidget(help_label("Field file", SETTING_HELP["field"], self))
         row.itemAt(1).widget().setFixedWidth(118)
         row.itemAt(1).widget().setText("Import field…")
         self.game_path.editingFinished.connect(lambda: self._describe_game(self.game_path.text()))
@@ -1201,6 +1338,8 @@ class Workbench(QMainWindow):
         self.field_preset.addItem("2026–27 Override · full game-piece dynamics", "override-2026-27.json")
         self.field_preset.addItem("Override route planning · fixed game pieces", "override-route-planning.json")
         self.field_preset.currentIndexChanged.connect(lambda index: self._game_preset(self.field_preset.itemData(index)) if self.field_preset.itemData(index) else None)
+        apply_help(self.field_preset, "Field preset", SETTING_HELP["field_preset"])
+        layout.addWidget(help_label("Field preset", SETTING_HELP["field_preset"], self))
         layout.addWidget(self.field_preset)
         self.game_title = label("Practice field", "Title", True)
         layout.addWidget(self.game_title)
@@ -1209,7 +1348,7 @@ class Workbench(QMainWindow):
         layout.addWidget(label("Choose the fixed-piece route-planning preset for fast path iteration. Full game-piece dynamics support grasping and stacking, and may run substantially below real time.", "Muted", True))
         layout.addWidget(label("Import a game pack JSON or a standard field URDF. URDF imports become static field geometry automatically. Game packs describe their visual sources and collision approximations; official scoring and referee rules are not simulated.", "Muted", True))
         layout.addWidget(label("PHYSICS & RENDERING", "Section"))
-        form = QFormLayout()
+        form = HelpFormLayout()
         self.physics_select = QComboBox()
         self.physics_select.addItem("Auto · CUDA when available", "auto")
         self.physics_select.addItem("Bullet · CPU", "bullet")
@@ -1247,17 +1386,17 @@ class Workbench(QMainWindow):
         self.plastic_friction = real_spin(0, 5, 0.5, 3)
         self.plastic_friction.setToolTip("Body coefficient for pins, cups, goals, loaders and toggles. Bullet multiplies the two body coefficients: defaults give plastic/plastic μ = 0.25 and plastic/tile μ = 0.45. These are calibration assumptions, not official measured VEX values. Per-object game-pack overrides take precedence.")
         self.restitution = real_spin(0, 1, 0.05, 3)
-        form.addRow("Physics engine", self.physics_select)
-        form.addRow("CUDA physics device", self.physics_device)
-        form.addRow("Solver iterations · advanced", self.physics_iterations)
-        form.addRow("PhysX CPU workers · advanced", self.physics_cpu_threads)
-        form.addRow("Fixed physics rate", self.physics_hz)
-        form.addRow("Viewport frame rate", self.render_fps)
-        form.addRow("Graphics renderer", self.renderer_select)
-        form.addRow("Gravity", self.gravity)
-        form.addRow("Wheel / tile grip", self.friction)
-        form.addRow("Plastic contact friction", self.plastic_friction)
-        form.addRow("Restitution", self.restitution)
+        form.addRow("Physics engine", self.physics_select, self.physics_select.toolTip())
+        form.addRow("CUDA physics device", self.physics_device, self.physics_device.toolTip())
+        form.addRow("Solver iterations · advanced", self.physics_iterations, self.physics_iterations.toolTip())
+        form.addRow("PhysX CPU workers · advanced", self.physics_cpu_threads, self.physics_cpu_threads.toolTip())
+        form.addRow("Fixed physics rate", self.physics_hz, SETTING_HELP["physics_hz"])
+        form.addRow("Viewport frame rate", self.render_fps, SETTING_HELP["render_fps"])
+        form.addRow("Graphics renderer", self.renderer_select, self.renderer_select.toolTip())
+        form.addRow("Gravity", self.gravity, SETTING_HELP["gravity"])
+        form.addRow("Wheel / tile grip", self.friction, self.friction.toolTip())
+        form.addRow("Plastic contact friction", self.plastic_friction, self.plastic_friction.toolTip())
+        form.addRow("Restitution", self.restitution, SETTING_HELP["restitution"])
         layout.addLayout(form)
         self.physics_field_status = label("Physics initialization pending…", "Muted", True)
         layout.addWidget(self.physics_field_status)
@@ -1269,11 +1408,11 @@ class Workbench(QMainWindow):
         layout.addWidget(label("INITIAL CONDITIONS", "Section"))
         layout.addWidget(label("Start each run from the same state.", "Title", True))
         layout.addWidget(label("Coordinates are meters from field center. +Z is up; heading rotates counterclockwise about +Z. Z positions the URDF base link origin.", "Muted", True))
-        form = QFormLayout()
+        form = HelpFormLayout()
         self.pose_fields = [real_spin(-20, 20, 0, 3, " m"), real_spin(-20, 20, 0, 3, " m"),
                             real_spin(0, 10, 0.15, 3, " m"), real_spin(-3600, 3600, 0, 2, " °")]
         for title, field in zip(("X", "Y", "Z", "Heading"), self.pose_fields):
-            form.addRow(title, field)
+            form.addRow(title, field, SETTING_HELP[title])
         layout.addLayout(form)
         row = QHBoxLayout()
         row.addWidget(button("Field center", lambda: self._pose_preset(0, 0, 0)))
@@ -1282,21 +1421,22 @@ class Workbench(QMainWindow):
         layout.addLayout(row)
         layout.addWidget(button("Use current robot pose", self._use_current_pose))
         layout.addWidget(label("REPRODUCIBILITY", "Section"))
-        form = QFormLayout()
+        form = HelpFormLayout()
         self.seed = QSpinBox()
         self.seed.setRange(0, 2147483647)
-        form.addRow("Noise random seed", self.seed)
+        form.addRow("Noise random seed", self.seed, SETTING_HELP["seed"])
         layout.addLayout(form)
         layout.addWidget(label("Reset restores the scene, start pose and seeded sensor noise. Save an experiment profile to share the complete setup with your team.", "Muted", True))
         layout.addWidget(label("RUN DURATION", "Section"))
         layout.addWidget(label("Defaults follow VEX U periods: 60 s skills, 30 s match autonomous, 90 s driver. Adjust below for drills or other formats.", "Muted", True))
-        form = QFormLayout()
+        form = HelpFormLayout()
         self.duration_fields = {}
         for mode, title, _, duration in MODES:
             field = real_spin(0.1, 3600, duration, 1, " s")
             self.duration_fields[mode] = field
             field.valueChanged.connect(self._duration_changed)
-            form.addRow(title, field)
+            callback = next(item[2] for item in MODES if item[0] == mode)
+            form.addRow(title, field, f"Duration of {title} in simulated seconds. This mode runs {callback}(); slow hardware increases wall time, not this game clock. Applied on the next run.")
         layout.addLayout(form)
         layout.addStretch()
 
@@ -1305,7 +1445,7 @@ class Workbench(QMainWindow):
         layout.addWidget(label("ROBUSTNESS LAB", "Section"))
         layout.addWidget(label("Find the edge of your autonomy.", "Title", True))
         layout.addWidget(label("Inject seeded Gaussian measurement noise, sensor latency and dropped updates. Ground-truth pose in the viewport stays unmodified.", "Muted", True))
-        form = QFormLayout()
+        form = HelpFormLayout()
         self.noise_fields = {}
         noise_settings = (("position_std_m", "Position σ", 2, 4, " m"),
                           ("heading_std_deg", "Heading σ", 90, 3, " °"),
@@ -1316,7 +1456,7 @@ class Workbench(QMainWindow):
         for key, title, high, precision, unit in noise_settings:
             field = real_spin(0, high, 0, precision, unit)
             self.noise_fields[key] = field
-            form.addRow(title, field)
+            form.addRow(title, field, SETTING_HELP[key])
         layout.addLayout(form)
         row = QHBoxLayout()
         row.addWidget(button("Ideal", lambda: self._noise_preset("ideal")))
@@ -1350,16 +1490,9 @@ class Workbench(QMainWindow):
         self.diagnostics_status = label("Create a script to measure these settings on your computer.", "Muted", True)
         self.diagnostics_status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(self.diagnostics_status)
-        heading = QHBoxLayout()
-        heading.addWidget(label("BUILD & RUNTIME LOG", "Section"))
-        heading.addStretch()
-        heading.addWidget(button("Clear", lambda: self.log_view.clear()))
-        layout.addLayout(heading)
-        self.log_view = QPlainTextEdit()
-        self.log_view.setReadOnly(True)
-        self.log_view.setMaximumBlockCount(3000)
-        self.log_view.setMinimumHeight(240)
-        layout.addWidget(self.log_view, 1)
+        layout.addWidget(button("Show / hide console", self.console.toggleViewAction().trigger))
+        layout.addWidget(label("Build and runtime details are available in the detachable console. Open it with Console or Ctrl+Shift+C; drag its title bar to use a separate window.", "Muted", True))
+        layout.addStretch()
 
     def _make_controls(self):
         frame = QFrame()
@@ -1491,12 +1624,14 @@ class Workbench(QMainWindow):
             self._scene_apply_ready = False
             self.reset_button.setEnabled(False)
             self._logo_event("begin")
+            if hasattr(self, "operation_progress"):
+                self.operation_progress.begin("configure", APPLY_STATUS)
             self.engine.configure(config, reuse_unchanged=reuse_unchanged)
             self.engine.set_camera(self.scene.yaw, self.scene.pitch, self.scene.distance, self.scene.target)
             self.statusBar().showMessage(APPLY_STATUS)
             return True
         except (ValueError, OSError, TypeError) as exc:
-            self._on_failed(str(exc))
+            _local_feedback(self, "Settings could not be applied", str(exc) + " Check the selected files and motor assignments, then Apply settings again.")
             return False
 
     def _choose_workspace(self):
@@ -1522,11 +1657,11 @@ class Workbench(QMainWindow):
             return
         key = self._workspace_key()
         if not key:
-            self._on_failed("Select a PROS workspace containing a src folder.")
+            _local_feedback(self, "Choose a robot workspace", "Use Browse to select the PROS project containing src/ and include/, then click Build workspace.", warning=True)
             return
         workspace = Path(key)
         if not workspace.is_dir() or not (workspace / "src").is_dir():
-            self._on_failed("Select a PROS workspace containing a src folder.")
+            _local_feedback(self, "Choose a robot workspace", "This folder is not a PROS workspace. Select the project containing src/ and include/, then build again.", warning=True)
             return
         self._building = True
         self._logo_event("begin")
@@ -1537,7 +1672,8 @@ class Workbench(QMainWindow):
         self.workspace.setEnabled(False)
         self.start_button.setEnabled(False)
         self.build_status.setText("Compiling workspace C++ for the host simulator…")
-        self.tabs.setCurrentIndex(5)
+        if hasattr(self, "operation_progress"):
+            self.operation_progress.begin("build", "Compiling workspace C++ for the simulator…")
         self.engine.build(str(workspace))
 
     def _on_built(self, path):
@@ -1560,7 +1696,7 @@ class Workbench(QMainWindow):
         if not self._live_action_allowed():
             return
         if self._built_workspace != self._workspace_key():
-            self._on_failed("Build the selected workspace before starting.")
+            _local_feedback(self, "Build before starting", "Click Build workspace for the selected project, wait for it to finish, then press Start.", warning=True)
             return
         # Start reuses an unchanged prepared scene; Session.start still resets
         # any scene that has advanced. Apply explicitly reloads edited assets.
@@ -1597,6 +1733,8 @@ class Workbench(QMainWindow):
         self._update_live_controls()
         self._refresh_replay_display()
         self.statusBar().showMessage(RESET_STATUS)
+        if hasattr(self, "operation_progress"):
+            self.operation_progress.begin("reset", RESET_STATUS)
         self.engine.reset()
 
     def _on_reset_completed(self, state):
@@ -1637,6 +1775,8 @@ class Workbench(QMainWindow):
                   str(rpm), str(motor.get("gear_ratio", 1)), str(motor.get("stall_torque", 210 / rpm if rpm > 0 else 0.35))]
         for col, value in enumerate(values):
             item = QTableWidgetItem(value or "")
+            item.setToolTip(MOTOR_HELP[col])
+            item.setData(Qt.ItemDataRole.AccessibleDescriptionRole, MOTOR_HELP[col])
             if col == 0:
                 item.setData(Qt.ItemDataRole.UserRole, copy.deepcopy(motor))
             if col == 2:
@@ -1648,8 +1788,10 @@ class Workbench(QMainWindow):
         if joint.findText(str(motor.get("joint", ""))) < 0:
             joint.addItem(str(motor.get("joint", "")))
         joint.setCurrentText(str(motor.get("joint", "")))
+        apply_help(joint, "Motor joint", MOTOR_HELP[1])
         self.motor_table.setCellWidget(row, 1, joint)
         cartridge = cartridge_select(motor)
+        apply_help(cartridge, "V5 cartridge", MOTOR_HELP[3])
         self.motor_table.setCellWidget(row, 3, cartridge)
         self.motor_table.setRowHeight(row, 35)
         cartridge.currentIndexChanged.connect(lambda index, widget=cartridge: self._motor_cartridge_changed(widget))
@@ -1703,7 +1845,7 @@ class Workbench(QMainWindow):
             self._fill_motors(data.get("motors", []))
         except (OSError, ValueError, TypeError, AttributeError) as exc:
             if log_errors:
-                self._on_failed(f"Cannot read hardware bindings: {exc}")
+                _local_feedback(self, "Hardware bindings could not load", "Select a readable bindings JSON with a motors list, or clear the optional path and edit the motor table.", details=str(exc))
 
     def _urdf_selected(self, path, current=False):
         if not self._live_action_allowed():
@@ -1723,7 +1865,7 @@ class Workbench(QMainWindow):
             self._accept_robot_import(imported_patch, inspection)
         except (OSError, ValueError, TypeError, KeyError) as exc:
             self.urdf_path.setText(self._loaded_urdf_path)
-            self._on_failed(f"Could not import robot: {exc}")
+            _local_feedback(self, "Robot import failed", "Select a valid URDF and keep its referenced meshes beside it. Correct the file or port assignments, then import again.", details=str(exc))
 
     def _accept_robot_import(self, patch, inspection):
         if not self._live_action_allowed():
@@ -1738,6 +1880,9 @@ class Workbench(QMainWindow):
         self._log(f"Imported robot: {inspection.get('name', Path(patch['robot_urdf']).stem)} · {len(patch.get('motors', []))} powered smart ports")
         for warning in inspection.get("warnings", []):
             self._log("URDF: " + str(warning))
+        if inspection.get("warnings"):
+            _local_feedback(self, "Robot import notes", "The robot was imported with notes. Review its geometry and motor assignments before applying settings.",
+                            warning=True, details="\n".join(map(str, inspection["warnings"])))
         self.statusBar().showMessage("Robot imported. Adjust start height and click Apply settings to load it into the field.")
         self._logo_event("robot_import")
 
@@ -1815,13 +1960,16 @@ class Workbench(QMainWindow):
             self.game_path.setText(str(imported["path"]))
             self.field_preset.setCurrentIndex(0)
             self._describe_game(self.game_path.text())
-            for warning in imported.get("metadata", {}).get("warnings", []):
+            warnings = imported.get("metadata", {}).get("warnings", [])
+            for warning in warnings:
                 self._log("Field import: " + str(warning))
+            if warnings:
+                _local_feedback(self, "Review imported field", "The field was imported with assumptions. Review the details before using it for contact or scoring tests.", warning=True, details="\n".join(map(str, warnings)))
             self.statusBar().showMessage("Field imported. Click Apply settings to load its geometry.")
             self._logo_event("field_import")
         except (OSError, ValueError, TypeError, KeyError) as exc:
             self.game_path.setText(str(self.config.get("game_pack", "")))
-            self._on_failed(f"Could not import field: {exc}")
+            _local_feedback(self, "Field import failed", "Select a valid game-pack JSON or field URDF with its referenced assets, then import again.", details=str(exc))
 
     def _describe_game(self, path):
         try:
@@ -1889,8 +2037,8 @@ class Workbench(QMainWindow):
             self._profile_path = path
             self.statusBar().showMessage(f"Saved experiment profile: {path}")
             self._logo_event("success")
-        except (OSError, ValueError) as exc:
-            self._on_failed(str(exc))
+        except (OSError, ValueError, TypeError) as exc:
+            _local_feedback(self, "Experiment profile could not save", "Check the motor settings and choose a writable output folder, then save again.", details=str(exc))
 
     def _load_profile(self):
         if not self._live_action_allowed():
@@ -1908,7 +2056,7 @@ class Workbench(QMainWindow):
             self._profile_path = path
             self._apply_config()
         except (OSError, ValueError, TypeError, AttributeError) as exc:
-            self._on_failed(f"Could not load experiment profile: {exc}")
+            _local_feedback(self, "Experiment profile could not load", "Choose a valid experiment JSON and check that its referenced robot and field files are available.", details=str(exc))
 
     def _load_demo(self):
         if not self._live_action_allowed():
@@ -1926,7 +2074,7 @@ class Workbench(QMainWindow):
                 self.build_status.setText("Claw demo loaded · Build workspace before running")
                 self._log("Claw demo loaded. Press Build workspace, then Start.")
         except (OSError, ValueError, TypeError, AttributeError) as exc:
-            self._on_failed(f"Could not load the claw scoring demo: {exc}")
+            _local_feedback(self, "Claw demo could not load", "Check that the bundled demo assets are installed and the user-data folder is writable, then try loading the demo again.", details=str(exc))
 
     def _export_csv(self):
         try:
@@ -1936,8 +2084,8 @@ class Workbench(QMainWindow):
             if path:
                 self._telemetry_path = path
                 self.engine.export_csv(path)
-        except OSError as exc:
-            self._on_failed(str(exc))
+        except (OSError, ValueError, TypeError) as exc:
+            _local_feedback(self, "Telemetry export failed", "Choose a writable CSV destination and export again.", details=str(exc))
 
     def _export_diagnostics(self):
         try:
@@ -1963,9 +2111,8 @@ class Workbench(QMainWindow):
         except (OSError, ValueError) as exc:
             message = f"Could not export performance diagnostics: {exc}"
             self.diagnostics_status.setText(message)
-            self._log("ERROR: " + message)
-            self.statusBar().showMessage(message)
-            self._logo_event("error")
+            _local_feedback(self, "Diagnostic export failed", message,
+                            details="Choose an existing writable export folder and check the selected robot/field settings. Exporting does not run or rebuild the workspace.")
 
     def _key(self, key, down):
         if self._replay_blocked() or getattr(self, "_reset_pending", False):
@@ -2037,6 +2184,7 @@ class Workbench(QMainWindow):
             self._pygame.display.init()
             if not self._pygame.joystick.get_count():
                 self.gamepad_status.setText("No gamepad detected. Connect a USB/Bluetooth controller and try again.")
+                _local_feedback(self, "No gamepad detected", self.gamepad_status.text(), warning=True)
                 return
             self._gamepad = self._pygame.joystick.Joystick(0)
             self._gamepad.init()
@@ -2044,8 +2192,10 @@ class Workbench(QMainWindow):
             self.gamepad_button.setText("Disconnect gamepad")
         except ImportError:
             self.gamepad_status.setText('Gamepad support needs pygame. Install the simulator with its [gamepad] extra.')
+            _local_feedback(self, "Gamepad support unavailable", "Source installs need the [gamepad] extra. For an installed executable, reinstall the current package. Keyboard and on-screen driving are available in the meantime.", warning=True)
         except Exception as exc:
             self.gamepad_status.setText(f"Gamepad connection failed: {exc}")
+            _local_feedback(self, "Gamepad connection failed", "Reconnect the controller and retry Connect USB gamepad. Keyboard and on-screen driving remain available.", warning=True, details=str(exc))
 
     def _poll_gamepad(self):
         if self._replay_blocked() or getattr(self, "_reset_pending", False):
@@ -2079,6 +2229,7 @@ class Workbench(QMainWindow):
             self.gamepad_button.setText("Connect USB gamepad")
             self.gamepad_status.setText(f"Gamepad disconnected: {exc}")
             self._neutral_controller()
+            _local_feedback(self, "Gamepad disconnected", "Controller inputs have been released. Reconnect the controller and select Connect USB gamepad to resume driving.", warning=True, details=str(exc))
 
     def _replay_blocked(self):
         return bool(getattr(self, "_replay_pending", None) or getattr(self, "_replay", {}).get("active"))
@@ -2105,6 +2256,8 @@ class Workbench(QMainWindow):
         self._replay_pending_generation = self._view_generation
         self._update_live_controls()
         self._refresh_replay_display()
+        if hasattr(self, "operation_progress"):
+            self.operation_progress.begin("replay_enter", "Preparing the previous run for playback…")
         self.engine.replay_enter()
 
     def _replay_live(self):
@@ -2399,9 +2552,14 @@ class Workbench(QMainWindow):
         if message == "Scene configuration applied" and self._pending_scene_applies:
             self._pending_scene_applies -= 1
             self._scene_apply_ready = self._pending_scene_applies == 0
-        self.log_view.appendPlainText(f"[{time.strftime('%H:%M:%S')}] {message}")
+        if hasattr(self, "console"):
+            self.console.append(message)
+        else:
+            self.log_view.appendPlainText(f"[{time.strftime('%H:%M:%S')}] {message}")
 
     def _on_failed(self, message):
+        was_building = self._building
+        was_resetting = getattr(self, "_reset_pending", False)
         self._reset_pending = False
         self._pending_scene_applies = 0
         self._scene_apply_ready = False
@@ -2411,20 +2569,36 @@ class Workbench(QMainWindow):
         self.build_button.setText("Build workspace")
         self.workspace.setEnabled(True)
         self.status_badge.setText("ATTENTION")
-        self._log("ERROR: " + str(message))
-        self.tabs.setCurrentIndex(5)
+        if hasattr(self, "operation_progress"):
+            self.operation_progress.clear()
+        if was_building:
+            title = "Workspace build failed"
+            guidance = "Open the console for compiler errors. Check that the selected folder contains src and include, fix the reported source or host-compiler problem, then select Build workspace again."
+        elif was_resetting:
+            title = "Simulation reset failed"
+            guidance = "Open the console for the reset error. Check the selected robot and field assets, then apply settings to reload the scene before retrying."
+        else:
+            title = "Simulation operation failed"
+            guidance = "Open the console for details. Check the selected robot, field and physics backend, then apply settings to reload the scene."
+        _local_feedback(self, title, guidance, details=str(message))
         self.statusBar().showMessage(str(message))
         self._update_live_controls()
         self._refresh_replay_display()
 
     def closeEvent(self, event):
-        if self._tuning_window is not None and self._tuning_window.busy:
+        tuning_window = getattr(self, "_tuning_window", None)
+        if tuning_window is not None and tuning_window.busy:
             self._tuning_close_pending = True
-            self._tuning_window.close()
+            tuning_window.close()
             event.ignore()
             return
-        if self._tuning_window is not None:
-            self._tuning_window.close()
+        if tuning_window is not None:
+            tuning_window.close()
+        if hasattr(self, "feedback"):
+            self.feedback.dismiss()
+        if hasattr(self, "console"):
+            self.console.errors.dismiss()
+            self.console.hide()
         self._controller_timer.stop()
         self._replay_seek_timer.stop()
         self._pending_replay_seek = None
@@ -2442,5 +2616,9 @@ def run(config: dict | None = None, workspace: str | None = None) -> int:
     app.setStyle("Fusion")
     app.setWindowIcon(QIcon(str(ASSETS / "logos" / "happy.png")))
     window = Workbench(config=config, workspace=workspace)
-    window.show()
-    return app.exec()
+    hook = ExceptionFeedback(window.feedback)
+    try:
+        window.show()
+        return app.exec()
+    finally:
+        hook.restore()

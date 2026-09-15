@@ -59,7 +59,7 @@ def test_cpu_worker_field_round_trips_inline_and_preserves_larger_saved_values(m
     assert gui.Workbench._collect_config(obj)["physics_cpu_threads"] == 0
 
 
-def test_start_requests_unchanged_reuse_and_never_compiles():
+def test_start_requests_unchanged_reuse_and_never_compiles(monkeypatch):
     events = []
     obj = SimpleNamespace(_live_action_allowed=lambda: True, _built_workspace="source",
         _workspace_key=lambda: "source", _mode="match_auto",
@@ -69,9 +69,11 @@ def test_start_requests_unchanged_reuse_and_never_compiles():
     gui.Workbench._start(obj)
     assert events == [("apply", {"reuse_unchanged": True}), ("start", "match_auto")]
     obj._built_workspace = None
-    obj._on_failed = lambda message: events.append(("failed", message))
+    monkeypatch.setattr(gui, "_local_feedback", lambda window, title, message, **kwargs:
+                        events.append(("warning", message, kwargs)))
     gui.Workbench._start(obj)
-    assert events[-1][0] == "failed" and "Build" in events[-1][1]
+    assert events[-1][0] == "warning" and "Build" in events[-1][1]
+    assert events[-1][2] == {"warning": True}
     assert len(events) == 3
 
 
