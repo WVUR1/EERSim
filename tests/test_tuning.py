@@ -1,11 +1,12 @@
 import json
 import math
 import threading
+from pathlib import Path
 
 import numpy as np
 import pytest
 
-from eersim.tuning import (PIDController, analyze_response, autotune, export_capture,
+from eersim.tuning import (PIDController, TuningDataError, analyze_response, autotune, export_capture,
                            identify_model, project_sample, read_capture, validate_target)
 
 
@@ -110,3 +111,108 @@ def test_nonfinite_output_limit_and_negative_sample_period_rejected():
         autotune(capture(), TARGET, "shaft", {"output_limit_mv": float("nan")})
     with pytest.raises(ValueError, match="period"):
         autotune(capture(), TARGET, "shaft", {"controller_period_ms": -1})
+
+
+def test_discontinuity_reports_measured_interval_and_motor_without_claiming_tare():
+    samples = capture()
+    samples[30]["motors"]["1"]["position_deg"] += 300
+    samples[30]["sensor_time"] = samples[30]["time"] - .04
+    with pytest.raises(TuningDataError, match="Encoder position jumps") as caught:
+        identify_model(samples, TARGET, "shaft")
+    details = caught.value.diagnostics
+    assert details["interval_s"] == pytest.approx(.02)
+    assert details["residual_deg"] == pytest.approx(150)
+    assert details["allowed_residual_deg"] == 30
+    assert details["motor_mismatches"][0]["port"] == 1
+    assert details["motor_mismatches"][0]["residual_deg"] == pytest.approx(300)
+    assert details["feedback_age_s"] == pytest.approx(.04)
+    assert "port 1: measured" in str(caught.value)
+    assert "expected" in str(caught.value)
+    assert "Feedback age 40.00 ms" in str(caught.value)
+    assert "not proof" in str(caught.value)
+    assert "Try next:" in str(caught.value)
+    json.dumps(details, allow_nan=False)
+
+
+def test_travel_cutoff_final_zero_is_not_mistaken_for_coast_down():
+    samples = capture(count=30)
+    samples[-1]["termination"] = "travel_limit"
+    for motor in samples[-1]["motors"].values():
+        motor["voltage_mv"] = 0.
+    with pytest.raises(TuningDataError, match="0.6 seconds and 35 samples") as caught:
+        identify_model(samples, TARGET, "shaft")
+    details = caught.value.diagnostics
+    assert details["duration_s"] == pytest.approx(.58)
+    assert details["coast_duration_s"] == 0
+    assert details["termination"] == "travel_limit"
+    assert "Shorten the powered interval" in str(caught.value)
+    assert "not a measured coast-down" in str(caught.value)
+
+
+def test_fit_quality_is_saved_with_measured_coast_and_excitation():
+    model = identify_model(capture(), TARGET, "shaft")
+    details = model["fit_diagnostics"]
+    assert details["r_squared"] >= details["minimum_r_squared"]
+    assert details["holdout_rmse_rpm"] <= details["maximum_holdout_rmse_rpm"]
+    assert details["prediction_normalized_rmse"] <= details["maximum_prediction_normalized_rmse"]
+    assert details["coast_duration_s"] == pytest.approx(1.98)
+    assert details["powered_duration_s"] == pytest.approx(2.6)
+    assert details["baseline_duration_s"] == pytest.approx(.4)
+    assert details["peak_voltage_mv"] == pytest.approx(2000)
+    json.dumps(model, allow_nan=False)
+
+
+def test_candidate_warns_about_voltage_extrapolation_and_modeled_saturation():
+    result = autotune(capture(), TARGET, "shaft", {"step_target": 180, "duration_s": 4, "max_travel_deg": 300})
+    warnings = " ".join(result["warnings"])
+    assert "3000 mV controller limit exceeds the 2000 mV" in warnings
+    assert result["metrics"]["saturation_fraction"] > .01
+    assert "proportional term alone saturates" in warnings
+    assert "mechanism validation" in warnings
+
+
+def test_noisy_unmodeled_response_is_rejected_with_fit_evidence():
+    samples = capture()
+    noise = np.random.default_rng(17).normal(0, 35, len(samples))
+    velocity = np.asarray([row["motors"]["1"]["velocity_rpm"] for row in samples]) + noise
+    position = np.concatenate(([0.], np.cumsum((velocity[:-1]+velocity[1:])*3*.02)))
+    for index, sample in enumerate(samples):
+        for port, sign in (("1",1), ("2",-1)):
+            sample["motors"][port]["position_deg"] = float(position[index]*sign)
+            sample["motors"][port]["velocity_rpm"] = float(velocity[index]*sign)
+    with pytest.raises(TuningDataError, match="does not fit") as caught:
+        identify_model(samples, TARGET, "shaft")
+    details = caught.value.diagnostics
+    assert details["r_squared"] < details["minimum_r_squared"]
+    assert "holdout error=" in str(caught.value)
+    assert "Try next:" in str(caught.value)
+
+
+def test_candidate_with_unsettled_prediction_is_explicitly_labeled():
+    result = autotune(capture(), TARGET, "shaft", {"step_target": 720, "duration_s": 4,
+                      "max_travel_deg": 2000, "output_limit_mv": 500})
+    assert result["metrics"]["settling_time_s"] is None
+    assert any("does not settle" in warning for warning in result["warnings"])
+    assert result["status"] == "candidate"
+
+
+def test_recorded_default_xdrive_trial_identifies_without_relaxing_quality_gates():
+    fixture = json.loads((Path(__file__).parent / "fixtures" / "tuning_xdrive_physx_short.json").read_text(encoding="utf-8"))
+    provenance, samples = fixture["provenance"], fixture["samples"]
+    target = provenance["request"]["target"]
+    result = autotune(samples, target, "shaft", {"controller_period_ms": provenance["controller_period_ms"],
+                      "output_limit_mv": 2000, "duration_s": 2, "max_travel_deg": 180, "step_target": 90})
+    model, details = result["model"], result["model"]["fit_diagnostics"]
+    assert model["r_squared"] == pytest.approx(.8618086843, abs=.0001)
+    assert model["prediction_normalized_rmse"] == pytest.approx(.1103969135, abs=.0001)
+    assert details["coast_duration_s"] > .45
+    assert details["peak_voltage_mv"] == 2000
+    assert result["options"]["controller_period_ms"] == pytest.approx(1000 / 60)
+    assert result["metrics"]["settling_time_s"] is not None
+    assert max(map(abs, result["validation"]["voltage_mv"])) <= 2000
+    assert not any("extrapolate" in warning for warning in result["warnings"])
+    assert any("mechanism validation" in warning for warning in result["warnings"])
+    # This is a prediction on a recorded plant fit, not a claim that native
+    # closed-loop validation or transfer to the physical robot has passed.
+    assert result["status"] == "candidate"
+    json.dumps(result, allow_nan=False)

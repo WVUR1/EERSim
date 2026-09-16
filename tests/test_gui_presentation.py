@@ -59,6 +59,54 @@ def test_cpu_worker_field_round_trips_inline_and_preserves_larger_saved_values(m
     assert gui.Workbench._collect_config(obj)["physics_cpu_threads"] == 0
 
 
+def test_open_tuner_uses_confirmed_mapping_with_current_workspace_not_unapplied_controls(monkeypatch):
+    from eersim import tuning_gui
+    seen = []
+    class Tuner:
+        def __init__(self, workspace, config, engine, parent):
+            seen.append((workspace, config))
+            self.shutdown_finished = SimpleNamespace(connect=lambda callback: None)
+        def show(self): pass
+        def raise_(self): pass
+        def activateWindow(self): pass
+    monkeypatch.setattr(tuning_gui, "TuningWindow", Tuner)
+    applied = {"workspace": "prior-workspace", "motors": [{"port": 1, "joint": "wheel"}]}
+    obj = SimpleNamespace(_applied_config=deepcopy(applied), _tuning_window=None,
+        _collect_config=lambda: pytest.fail("Unapplied controls must not reach the tuner"),
+        _workspace_key=lambda: "selected-workspace", engine=object(), _tuning_closed=lambda: None)
+    gui.Workbench._open_tuning(obj)
+    assert seen == [("selected-workspace", applied)]
+    seen[0][1]["motors"][0]["port"] = 9
+    assert obj._applied_config == applied
+
+
+def test_open_tuner_waits_for_first_successful_apply(monkeypatch):
+    seen = []
+    monkeypatch.setattr(gui, "_local_feedback", lambda *args, **kwargs: seen.append((args, kwargs)))
+    obj = SimpleNamespace(_applied_config=None, _tuning_window=None)
+    gui.Workbench._open_tuning(obj)
+    assert len(seen) == 1 and seen[0][1]["warning"]
+    assert "Apply" in seen[0][0][1] and obj._tuning_window is None
+
+
+@pytest.mark.parametrize("visible,busy,capturing,refresh", [(True, False, False, True),
+    (False, False, False, False), (True, True, False, False), (True, False, True, False)])
+def test_confirmed_apply_refreshes_only_idle_visible_tuner_without_changing_source_association(visible, busy, capturing, refresh):
+    updates = []
+    tuner = SimpleNamespace(workspace="tuner-workspace", busy=busy, _capturing=capturing,
+        isVisible=lambda: visible, set_workspace=lambda *args: updates.append(args))
+    obj = SimpleNamespace(_tuning_window=tuner, _applied_config={"robot_urdf": "previous.urdf"},
+                          config={"robot_urdf": "pending.urdf"})
+    applied = {"robot_urdf": "confirmed.urdf", "motors": [{"port": 2}]}
+    gui.Workbench._on_configuration_applied(obj, applied)
+    assert obj._applied_config == applied and obj.config["robot_urdf"] == "pending.urdf"
+    assert bool(updates) == refresh
+    if refresh:
+        assert updates == [("tuner-workspace", applied)]
+    applied["motors"][0]["port"] = 3
+    assert obj._applied_config["motors"][0]["port"] == 2
+
+
 def test_start_requests_unchanged_reuse_and_never_compiles(monkeypatch):
     events = []
     obj = SimpleNamespace(_live_action_allowed=lambda: True, _built_workspace="source",

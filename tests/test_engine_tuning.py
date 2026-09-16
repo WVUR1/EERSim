@@ -193,6 +193,81 @@ def test_passive_capture_refreshes_after_each_start_and_keeps_native_step_order(
     assert run.sessions[0].motor_observer is None  # Worker exit detaches capture.
 
 
+def test_passive_capture_survives_gui_configure_then_start_and_gets_fresh_capture_ids(monkeypatch):
+    tuners = fake_tuners(monkeypatch)
+    restarted = []
+    def control(worker, sessions, timer, closing):
+        if sessions[0].steps >= 4 and not sessions[0].running:
+            if not restarted:
+                restarted.append(True)
+                # Workbench._start queues these two operations on every Start.
+                worker.configure(BASE, reuse_unchanged=True)
+                worker.start("match_auto")
+            else:
+                closing.set()
+    commands = [("configure", (BASE,)), ("tuning_capture", (True, TARGET)),
+                ("configure", (BASE, True)), ("start", ("skills_auto",))]
+    run = run_worker(monkeypatch, ticks=4, commands=commands, wait_hook=control)
+    captures = [event for event in tuners[0].events if event[0] == "capture"]
+    assert [event[2] for event in captures] == ["capture-1", "capture-2", "capture-3"]
+    assert [(event[3], event[4]) for event in captures] == [(False, 0), (True, 0), (True, 0)]
+    assert len(run.sessions) == 1
+    assert [row["capture_id"] for row in run.worker.tuning_sample.values] == ["capture-2"]*4 + ["capture-3"]*4
+    assert [row["tick"] for row in run.worker.tuning_sample.values] == [1, 2, 3, 4]*2
+    assert not any(event[0] == "cancel" and "Capture ended" in event[1] for event in tuners[0].events)
+
+
+@pytest.mark.parametrize("incoming,reuse,expected_sessions,kept", [
+    ({**BASE, "render_fps": 15}, False, 1, True),
+    ({**BASE, "gravity": 1.}, True, 2, False),
+    (BASE, False, 2, False),
+])
+def test_only_genuinely_reused_configuration_preserves_passive_capture(monkeypatch, incoming, reuse, expected_sessions, kept):
+    tuners = fake_tuners(monkeypatch)
+    observed = []
+    def finish(worker, sessions, timer, closing):
+        observed.append((tuners[0].capturing, sessions[0].motor_observer is not None))
+        closing.set()
+    commands = [("configure", (BASE,)), ("tuning_capture", (True, TARGET)), ("configure", (incoming, reuse))]
+    run = run_worker(monkeypatch, commands=commands, wait_hook=finish)
+    assert observed == [(kept, kept)]
+    assert len(run.sessions) == expected_sessions
+    cancellations = [event for event in tuners[0].events if event[0] == "cancel" and "Capture ended" in event[1]]
+    assert len(cancellations) == (0 if kept else 1)
+    if not kept:
+        assert cancellations[0][4] is False  # Detached before old scene cleanup.
+
+
+def test_reused_configuration_still_cancels_active_experiment(monkeypatch):
+    tuners = fake_tuners(monkeypatch)
+    commands = [("configure", (BASE,)), experiment(), ("configure", (BASE, True))]
+    run = run_worker(monkeypatch, commands=commands,
+                     wait_hook=lambda worker, sessions, timer, closing: closing.set())
+    assert len(run.sessions) == 1 and run.sessions[0].steps == 0
+    cancellations = [event for event in tuners[0].events if event[0] == "cancel"]
+    assert len(cancellations) == 1 and "Experiment stopped" in cancellations[0][1]
+    assert not tuners[0].active and not tuners[0].capturing
+
+
+def test_configuration_acknowledges_only_successful_new_and_reused_settings(monkeypatch):
+    changed = {**BASE, "render_fps": 15}
+    invalid = {**changed, "render_fps": 0}
+    commands = [("configure", (BASE,)), ("configure", (changed, True)), ("configure", (invalid, True))]
+    run = run_worker(monkeypatch, commands=commands, expected_failures=1,
+                     wait_hook=lambda worker, sessions, timer, closing: closing.set())
+    assert run.worker.configuration_applied.values == [BASE, changed]
+    assert len(run.sessions) == 1
+    assert "render_fps" in run.worker.failed.values[0]
+
+
+def test_failed_initial_scene_has_no_applied_configuration_acknowledgement(monkeypatch):
+    def fail(config, log):
+        raise ValueError("Robot mesh is missing")
+    run = run_worker(monkeypatch, commands=[("configure", (BASE,))], session_type=fail, expected_failures=1,
+                     wait_hook=lambda worker, sessions, timer, closing: closing.set())
+    assert not run.worker.configuration_applied.values
+
+
 @pytest.mark.parametrize("action,args", [("reset", ()), ("configure", (BASE,)), ("replay_enter", ())])
 def test_passive_capture_detaches_before_scene_or_replay_change(monkeypatch, action, args):
     tuners = fake_tuners(monkeypatch)

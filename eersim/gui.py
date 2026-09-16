@@ -908,6 +908,7 @@ class Workbench(QMainWindow):
     def __init__(self, config: dict | None = None, workspace: str | None = None):
         super().__init__()
         self.config = copy.deepcopy(config if config is not None else default_config())
+        self._applied_config = None
         self._loaded_urdf_path = self.config.get("robot_urdf", "")
         if workspace is not None:
             self.config["workspace"] = str(workspace)
@@ -975,6 +976,7 @@ class Workbench(QMainWindow):
         self.engine.reset_completed.connect(self._on_reset_completed)
         self.engine.failed.connect(self._on_failed)
         self.engine.operation.connect(self._on_operation)
+        self.engine.configuration_applied.connect(self._on_configuration_applied)
         self.scene.camera_changed.connect(self.engine.set_camera)
         self.scene.key_changed.connect(self._key)
         self.scene.focus_lost.connect(self._release_keys)
@@ -1027,16 +1029,30 @@ class Workbench(QMainWindow):
     def _open_tuning(self):
         try:
             from .tuning_gui import TuningWindow
+            if not isinstance(self._applied_config, dict):
+                _local_feedback(self, "Apply a robot before tuning", "Wait for the scene to load successfully, or correct its settings and click Apply settings before opening PID tuning.", warning=True)
+                return
+            applied = copy.deepcopy(self._applied_config)
             if self._tuning_window is None:
-                self._tuning_window = TuningWindow(self._workspace_key(), self._collect_config(), self.engine, parent=self)
+                self._tuning_window = TuningWindow(self._workspace_key(), applied, self.engine, parent=self)
                 self._tuning_window.shutdown_finished.connect(self._tuning_closed)
             else:
-                self._tuning_window.set_workspace(self._workspace_key(), self._collect_config())
+                self._tuning_window.set_workspace(self._workspace_key(), applied)
             self._tuning_window.show()
             self._tuning_window.raise_()
             self._tuning_window.activateWindow()
         except (ValueError, TypeError, OSError, ImportError) as exc:
             _local_feedback(self, "PID tuning could not open", "Check the robot's motor-port assignments and installed simulator dependencies, then open PID tuning again.", details=str(exc))
+
+    def _on_configuration_applied(self, config):
+        """Use worker-confirmed mappings, including edited files at the same path."""
+        self._applied_config = copy.deepcopy(config)
+        window = self._tuning_window
+        if (window is not None and window.isVisible() and not window.busy
+                and not getattr(window, "_capturing", False)):
+            # Keep this tuner's source association; reopening from the main
+            # button explicitly selects the currently chosen workspace.
+            window.set_workspace(window.workspace, copy.deepcopy(self._applied_config))
 
     def _on_operation(self, event):
         self.operation_progress.update_event(event)

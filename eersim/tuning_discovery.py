@@ -10,6 +10,12 @@ Resolved targets are ``verified`` against source syntax only; a runtime mapping
 check is still required before commanding motors. Unresolved targets produce
 warnings rather than guessed ports. Namespace and local scopes remain distinct.
 
+An explicitly mapped, four-wheel omni X-drive can also be derived from the
+selected robot's bindings and URDF wheel frames. This separately labelled target
+is not code-verified. Only fixed ancestors and a conventional X layout about the
+base origin are supported; articulated/steered or ambiguous layouts require a
+manual target. Motor overrides, reversals and external ratios are respected.
+
 Axes contain coefficients in logical signed-port order. X-drive order is EERKit
 front-left, front-right, back-left, back-right. Manually entered H-drive order is
 left, right, strafe; larger groups must supply explicit coefficient arrays.
@@ -23,6 +29,7 @@ import math
 import os
 from pathlib import Path
 import re
+import xml.etree.ElementTree as ET
 from typing import Any
 
 
@@ -438,6 +445,160 @@ class _Resolver:
         return symbol.value
 
 
+def _effective_bindings(bindings, overrides, warnings):
+    """Match PhysicsWorld's port/reversal/override precedence without mutation."""
+    result = []
+    for raw in bindings if isinstance(bindings, list) else []:
+        try:
+            if not isinstance(raw, dict):
+                raise ValueError("expected a motor object")
+            signed = raw.get("port")
+            # Do not turn booleans, floats, or arbitrary strings into port IDs.
+            make_target("binding", "motor", [signed])
+            port = abs(signed)
+            override = overrides.get(str(port), {}) if isinstance(overrides, dict) else {}
+            if not isinstance(override, dict):
+                raise ValueError(f"motor {port} override must be an object")
+            motor = {**raw, **override}
+            motor["port"] = -port if motor.get("reversed", signed < 0) else port
+            result.append(motor)
+        except (ValueError, TypeError) as exc:
+            warnings.append(f"Invalid simulation motor binding: {exc}")
+    return result
+
+
+def _wheel_frames(path, names):
+    """Read wheel origins/axes in the base-link frame, through fixed ancestors."""
+    if path.stat().st_size > 8_000_000:
+        raise ValueError("URDF exceeds the 8 MB discovery limit")
+    root = ET.fromstring(path.read_text(encoding="utf-8-sig"))
+    if root.tag != "robot":
+        raise ValueError("selected file is not a standard URDF robot")
+    joints, parents = {}, {}
+    links = {link.get("name") for link in root.findall("link")}
+    for joint in root.findall("joint"):
+        name, parent, child = joint.get("name"), joint.find("parent"), joint.find("child")
+        if name in joints or parent is None or child is None:
+            raise ValueError("URDF joint names and parent/child links must be unique and complete")
+        if child.get("link") in parents or child.get("link") not in links or parent.get("link") not in links:
+            raise ValueError("URDF joints must form a tree of existing links")
+        joints[name] = joint
+        parents[child.get("link")] = joint
+    if len(links - parents.keys()) != 1:
+        raise ValueError("URDF must have exactly one base link")
+    identity = ((1., 0., 0.), (0., 1., 0.), (0., 0., 1.))
+
+    def vector(text):
+        values = [float(value) for value in text.split()]
+        if len(values) != 3 or not all(math.isfinite(value) for value in values):
+            raise ValueError("URDF wheel frame needs finite three-component vectors")
+        return values
+
+    def rotate(matrix, value):
+        return [sum(row[i] * value[i] for i in range(3)) for row in matrix]
+
+    def frame(joint, trail):
+        origin = joint.find("origin")
+        xyz = vector(origin.get("xyz", "0 0 0") if origin is not None else "0 0 0")
+        roll, pitch, yaw = vector(origin.get("rpy", "0 0 0") if origin is not None else "0 0 0")
+        cr, cp, cy, sr, sp, sy = math.cos(roll), math.cos(pitch), math.cos(yaw), math.sin(roll), math.sin(pitch), math.sin(yaw)
+        local = ((cy*cp, cy*sp*sr-sy*cr, cy*sp*cr+sy*sr),
+                 (sy*cp, sy*sp*sr+cy*cr, sy*sp*cr-cy*sr), (-sp, cp*sr, cp*cr))
+        parent = joint.find("parent").get("link")
+        if parent in trail:
+            raise ValueError("cyclic URDF wheel ancestry")
+        if parent in parents:
+            ancestor = parents[parent]
+            if ancestor.get("type") != "fixed":
+                raise ValueError("steered or articulated wheels need a manual drivetrain target")
+            position, rotation = frame(ancestor, trail | {parent})
+        else:
+            position, rotation = [0., 0., 0.], identity
+        offset = rotate(rotation, xyz)
+        return ([position[i] + offset[i] for i in range(3)],
+                [[sum(rotation[i][k] * local[k][j] for k in range(3)) for j in range(3)] for i in range(3)])
+
+    result = {}
+    for name in names:
+        joint = joints.get(name)
+        if joint is None or joint.get("type") not in {"continuous", "revolute"}:
+            raise ValueError(f"wheel {name!r} needs a revolute or continuous URDF joint")
+        position, rotation = frame(joint, set())
+        axis = joint.find("axis")
+        axis = rotate(rotation, vector(axis.get("xyz", "1 0 0") if axis is not None else "1 0 0"))
+        length = math.sqrt(sum(value * value for value in axis))
+        if length < 1e-8 or abs(axis[2]) / length > 1e-4:
+            raise ValueError(f"wheel {name!r} must have a horizontal rotation axis")
+        result[name] = position, [value / length for value in axis]
+    return result
+
+
+def _mapped_xdrive(settings, bindings, urdf_path):
+    """A conservative physical mapping fallback, never a guessed C++ object."""
+    drive = settings.get("drive", {})
+    if not isinstance(drive, dict) or drive.get("type") != "omni":
+        return None
+    wheels = drive.get("wheels")
+    if not isinstance(wheels, list) or len(wheels) != 4 or not all(isinstance(wheel, dict) for wheel in wheels):
+        raise ValueError("automatic X-drive mapping needs four explicitly mapped omni wheels")
+    names = [wheel.get("joint") for wheel in wheels]
+    if any(not isinstance(name, str) or not name for name in names) or len(set(names)) != 4:
+        raise ValueError("automatic X-drive mapping needs four distinct wheel joints")
+    if urdf_path is None:
+        raise ValueError("select a robot URDF to derive wheel directions")
+    frames = _wheel_frames(urdf_path, names)
+    # Canonical role order keeps the manual role editor useful. Direction comes
+    # from the physical spin axis, not the sign of the symmetric tire-friction axis.
+    ordered = {}
+    for wheel in wheels:
+        position, axis = frames[wheel["joint"]]
+        x, y = position[:2]
+        if abs(x) < 1e-6 or abs(y) < 1e-6:
+            raise ValueError("X-drive wheels must occupy four quadrants around the URDF base origin")
+        role = (x > 0, y > 0)
+        if role in ordered:
+            raise ValueError("X-drive wheels must occupy four distinct quadrants")
+        rolling = [axis[1], -axis[0]]  # Positive spin rolls along axis × upward Z.
+        sign = 1 if rolling[0] > 0 else -1
+        if min(map(abs, rolling)) < .1 or (rolling[1] * sign < 0) != (role[0] == role[1]):
+            raise ValueError("mapped wheel directions do not form a conventional X-drive")
+        direction = wheel.get("direction", [])
+        if not isinstance(direction, (list, tuple)) or len(direction) != 3:
+            raise ValueError("omni wheels need a three-component traction direction")
+        direction = [float(value) for value in direction]
+        norm = math.sqrt(sum(value * value for value in direction))
+        if not all(math.isfinite(value) for value in direction) or norm < 1e-8 or abs(sum(direction[i] * rolling[i] for i in range(2))) / norm < .999:
+            raise ValueError("wheel traction direction does not match its URDF rotation axis")
+        radius = float(wheel.get("radius", 0))
+        if not math.isfinite(radius) or radius <= 0:
+            raise ValueError("wheel radius must be positive and finite")
+        motors = [motor for motor in bindings if motor.get("joint") == wheel["joint"]]
+        if not motors:
+            raise ValueError(f"wheel {wheel['joint']!r} has no active motor binding")
+        ordered[role] = (x, y, rolling, sign, radius, motors)
+    ports, axes = [], {"forward": [], "turn": [], "strafe": []}
+    for role in ((True, True), (True, False), (False, True), (False, False)):
+        x, y, rolling, sign, radius, motors = ordered[role]
+        for motor in motors:
+            ratio = float(motor.get("gear_ratio", 1))
+            if not math.isfinite(ratio) or ratio <= 0:
+                raise ValueError("drive motor external ratios must be positive and finite")
+            ports.append(motor["port"] * sign)
+            factor = ratio / radius * sign
+            axes["forward"].append(rolling[0] * factor)
+            axes["turn"].append((y * rolling[0] - x * rolling[1]) * factor)
+            axes["strafe"].append(-rolling[1] * factor)
+    axes = {axis: [value / max(map(abs, values)) for value in values] for axis, values in axes.items()}
+    target = make_target("X-drive from robot mapping", "x_drive", ports, axes,
+                         source="simulation drivetrain mapping", verified=False)
+    target["notes"] = [
+        "Derived from the selected robot bindings and URDF wheel geometry, not a named C++ drivetrain. Verify directions before hardware use.",
+        "Forward is robot +X, strafe is right (-Y), and turn is clockwise about the URDF base origin.",
+        "Axes are normalized motor-encoder mixtures, not metres or heading degrees; they do not establish real-world gains.",
+    ]
+    return target
+
+
 def discover_targets(workspace: Path | str, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Return deterministic code targets plus clearly labelled simulation fallbacks."""
     warnings: list[str] = []
@@ -483,19 +644,24 @@ def discover_targets(workspace: Path | str, config: dict[str, Any] | None = None
         except (ValueError, TypeError, OverflowError, RecursionError) as exc:
             warnings.append(f"{symbol.source}: {symbol.label}: {exc}")
     config = config or {}
-    bindings = config.get("motors")
-    if bindings is None and config.get("robot_config"):
+    settings, settings_path = {}, None
+    # The GUI supplies edited motors separately; the sidecar still owns the
+    # drivetrain's wheel membership and traction geometry in PhysicsWorld.
+    if config.get("robot_config"):
         try:
             from .config import _resolve_path
-            path = _resolve_path(config["robot_config"], root or Path.cwd())
-            bindings = json.loads(path.read_text(encoding="utf-8"))["motors"]
+            settings_path = _resolve_path(config["robot_config"], root or Path.cwd())
+            settings = json.loads(settings_path.read_text(encoding="utf-8-sig"))
+            if not isinstance(settings, dict):
+                raise ValueError("robot bindings must be a JSON object")
         except (OSError, ValueError, KeyError, TypeError) as exc:
+            settings = {}
             warnings.append(f"Could not read robot motor bindings: {exc}")
+    bindings = config.get("motors")
+    bindings = _effective_bindings(settings.get("motors", []) if bindings is None else bindings,
+                                   config.get("motor_overrides", {}), warnings)
     mapped = {abs(port) for target in targets for port in target["ports"]}
-    for binding in bindings if isinstance(bindings, list) else []:
-        if not isinstance(binding, dict):
-            warnings.append("Skipped malformed simulation motor binding")
-            continue
+    for binding in bindings:
         port = binding.get("port")
         if isinstance(port, int) and abs(port) in mapped:
             continue
@@ -507,4 +673,14 @@ def discover_targets(workspace: Path | str, config: dict[str, Any] | None = None
             mapped.add(abs(port))
         except (ValueError, TypeError) as exc:
             warnings.append(f"Invalid simulation motor binding: {exc}")
+    if isinstance(settings.get("drive"), dict) and settings["drive"].get("type") == "omni":
+        try:
+            from .config import _resolve_path
+            urdf_path = (_resolve_path(config["robot_urdf"], root or Path.cwd()) if config.get("robot_urdf")
+                         else _resolve_path(settings["urdf"], settings_path.parent) if settings.get("urdf") else None)
+            drive_target = _mapped_xdrive(settings, bindings, urdf_path)
+            if drive_target is not None:
+                targets.append(drive_target)
+        except (OSError, ValueError, TypeError, KeyError, OverflowError, RecursionError, ET.ParseError) as exc:
+            warnings.append(f"Automatic robot drivetrain unavailable: {exc}. Define a manual target if needed.")
     return {"targets": targets, "warnings": list(dict.fromkeys(warnings))}

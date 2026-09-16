@@ -59,6 +59,65 @@ def test_travel_guard_checks_each_motor_not_only_cancelled_group_average():
     tuner.step(session)
     assert not tuner.active and "Travel limit" in states[-1]["message"]
     assert not session.world.commands
+    assert samples[-1]["termination"] == states[-1]["termination"] == "travel_limit"
+    assert samples[-1]["motors"]["1"]["voltage_mv"] == 0
+    assert samples[-1]["motors"]["1"]["position_deg"] == pytest.approx(57.295779513)
+    assert "truncated" in states[-1]["message"]
+
+
+def test_terminal_travel_sample_records_between_nominal_samples_without_extra_step():
+    tuner, session, samples, states = fixture()
+    tuner.experiment(session, {"target":TARGET,"axis":"shaft","max_travel_deg":30,
+                               "controller_period_ms":100})
+    tuner.step(session)
+    session.world.position = 1
+    before_steps = len(session.world.commands)
+    tuner.step(session)
+    assert len(session.world.commands) == before_steps
+    assert [row["time"] for row in samples] == [0,.01]
+    assert samples[-1]["termination"] == "travel_limit"
+    assert all(row["voltage_mv"] == 0 for row in samples[-1]["motors"].values())
+    assert not tuner.active and session.world.disabled == 2
+
+
+def test_duration_terminal_sample_is_exact_even_between_nominal_samples():
+    tuner, session, samples, states = fixture()
+    tuner.experiment(session, {"target":TARGET,"axis":"shaft","duration_s":.23,
+                               "controller_period_ms":100})
+    while tuner.active:
+        tuner.step(session)
+    assert samples[-1]["time"] == session.world.time
+    assert samples[-1]["termination"] == states[-1]["termination"] == "duration"
+    assert samples[-1]["motors"]["1"]["voltage_mv"] == 0
+    assert all(b["time"] > a["time"] for a,b in zip(samples,samples[1:]))
+
+
+def test_terminal_marker_cannot_create_a_duplicate_timestamp():
+    tuner, session, samples, states = fixture()
+    tuner.capture(session,True,TARGET)
+    tuner.observe(session.world.snapshot(), {"motors":{}})
+    tuner.observe(session.world.snapshot(), {"motors":{}}, termination="duration")
+    assert len(samples) == 1 and "termination" not in samples[0]
+
+
+@pytest.mark.parametrize("termination", ["travel_limit", "duration"])
+def test_failed_terminal_capture_consumer_cannot_prevent_disabling_motors(termination):
+    tuner, session, samples, states = fixture()
+    tuner.experiment(session, {"target":TARGET,"axis":"shaft","duration_s":.23,"max_travel_deg":30})
+    def fail(sample):
+        assert sample["termination"] == termination
+        raise RuntimeError("capture consumer failed")
+    tuner.emit_sample = fail
+    if termination == "travel_limit":
+        session.world.position = 1
+    else:
+        session.world.time = 1.04
+    with pytest.raises(RuntimeError, match="capture consumer failed"):
+        tuner.step(session)
+    assert not tuner.active and not tuner.capturing and session.paused
+    assert session.world.disabled == 2
+    assert not session.world.commands
+    assert states[-1]["termination"] == termination
 
 
 def test_invalid_port_does_not_stop_existing_robot():

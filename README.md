@@ -17,11 +17,19 @@ is reported separately in the [validation notes](docs/validation.md).
 
 Download **EERSim-Setup-x64.exe** from the private
 [published Windows previews](https://github.com/WVUR1/EERSim/releases).
-The 0.1.9 build is available locally; GitHub publication is pending approval.
 It bundles Python, the PhysX GPU runtime, simulator dependencies, default robots
 and fields, and the native robot compiler. It installs for your Windows account
 without administrator privileges; a desktop shortcut is optional. This private
 build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
+Version 0.1.10 improves drivetrain tuning diagnostics and discovers the demo
+claw bot's X-drive from its robot mapping. The PID tuner's **How to use** tab
+provides offline simulation/hardware walkthroughs, detailed parameter guidance,
+and troubleshooting. Candidate results explain their gain units and output
+saturation. PhysX continuous motor encoders retain accumulated turns, and
+passive capture survives Start with unchanged settings. See the
+[tuning guide](docs/pid-tuning.md) and [0.1.10 verification](docs/pid-tuning-0.1.10.md),
+including the limits of the default drivetrain candidate validation.
+
 Version 0.1.9 adds a console that starts hidden and can detach into its own
 window (**View → Console**, or **Ctrl+Shift+C**), help icons beside settings,
 actionable warning/error dialogs, and a separate loading indicator.

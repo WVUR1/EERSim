@@ -46,7 +46,7 @@ def run_worker(monkeypatch, *, fps=30, tick_cost=.02, render_cost=.003, ticks=40
     sessions, replays, clocks, boundaries = [], [], [], []
     base = {"physics_hz": physics_hz, "render_fps": fps, "renderer": "cpu"}
     worker = SimpleNamespace(_defer_configuration=True, _latest_frame=None, _queue=queue.Queue())
-    for name in ("frame", "state", "replay_frame", "replay_state", "log", "built", "failed", "reset_completed", "tuning_sample", "tuning_status", "operation"):
+    for name in ("frame", "state", "replay_frame", "replay_state", "log", "built", "failed", "reset_completed", "tuning_sample", "tuning_status", "operation", "configuration_applied"):
         setattr(worker, name, Signal())
     for name in ("_send", "_emit_frame", "pause", "start", "configure", "build"):
         setattr(worker, name, MethodType(getattr(engine.SimulationEngine, name), worker))

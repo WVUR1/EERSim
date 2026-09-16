@@ -152,6 +152,7 @@ class SimulationEngine(QObject):
     reset_completed = Signal(dict)
     failed = Signal(str)
     operation = Signal(dict)
+    configuration_applied = Signal(dict)
 
     def __init__(self, defer_configuration: bool = False, coalesce_frames: bool = False):
         super().__init__()
@@ -345,6 +346,7 @@ class SimulationEngine(QObject):
                 progress.stage("Loading robot, field and physics")
                 session = Session(config, self.log.emit)
                 scene_valid = True
+                self.configuration_applied.emit(copy.deepcopy(config))
                 progress.wait_for_frame("live", replay.generation, "Preparing scene preview")
             replay_status()
             while not self._closing.is_set():
@@ -383,7 +385,7 @@ class SimulationEngine(QObject):
                             continue
                         if tuning.active and action in ("configure", "build", "start", "reset", "stop", "pause", "joint", "replay_enter"):
                             tuning.cancel(session, "Experiment stopped by simulation controls")
-                        elif tuning.capturing and action in ("configure", "build", "reset", "replay_enter"):
+                        elif tuning.capturing and action in ("build", "reset", "replay_enter"):
                             tuning.cancel(session, "Capture ended; start a new capture after changing the scene")
                         reuse_configuration = False
                         if action == "configure" and scene_valid:
@@ -395,10 +397,16 @@ class SimulationEngine(QObject):
                                 # a Start command already queued behind Apply.
                                 scene_valid = False
                                 raise
+                        if action == "configure" and tuning.capturing and not reuse_configuration:
+                            tuning.cancel(session, "Capture ended; start a new capture after changing the scene")
                         if reuse_configuration:
                             # Engine-only presentation state: no reset, stop, lost
                             # backlog, or recorder invalidation on an FPS change.
+                            # The GUI also sends this unchanged configuration
+                            # before Start. Preserve passive capture so Start
+                            # can attach its observer with a fresh capture ID.
                             config = args[0]
+                            self.configuration_applied.emit(copy.deepcopy(config))
                             self.log.emit("Scene configuration applied")
                             self.state.emit(state_payload(real_time_factor=rtf, physics_backlog_s=clock.pending))
                             progress.finish(True, "Scene settings applied")
@@ -467,6 +475,7 @@ class SimulationEngine(QObject):
                             clock = FixedStepClock(config.get("physics_hz", 240))
                             last_renderer = None
                             scene_valid = True
+                            self.configuration_applied.emit(copy.deepcopy(config))
                             self.log.emit("Scene configuration applied")
                             progress.wait_for_frame("live", replay.generation, "Preparing scene preview")
                         elif action == "camera":

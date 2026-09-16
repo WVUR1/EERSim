@@ -1,0 +1,1695 @@
+{
+  "provenance": {
+    "description": "Recorded full shipped xdrive_claw robot on full Override field with preload; no user program or renderer. Original continuous-angle wrap fix not needed because travel stayed below wrap.",
+    "backend": "physx_cpu",
+    "physics_hz": 120,
+    "controller_period_ms": 16.666666666666668,
+    "request": {
+      "target": {
+        "id": "repro-drive",
+        "name": "Reproduction drive",
+        "kind": "motor_group",
+        "ports": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "axes": {
+          "shaft": [
+            1,
+            1,
+            1,
+            1
+          ]
+        }
+      },
+      "axis": "shaft",
+      "kind": "characterize",
+      "voltage_mv": 2000.0,
+      "duration_s": 0.2,
+      "max_travel_deg": 180.0,
+      "controller_period_ms": 20
+    },
+    "runtime_sources": {
+      "tuning.py": "16a60a4105453d5993cf666088967181355e9d07b12a8bb56e5f719fb1389b96",
+      "tuning_simulation.py": "d86550841acf7c51c41f309243a4a7ab082ada512817f152cfbbe681ca038722"
+    },
+    "source_assets": {
+      "robot_urdf": "0a4c4edec3f3c06f7660f5365bd4ece5601b7b9b57d5ac2db2eb9bb3baa88303",
+      "robot_config": "f87b99b433d4a13869ca69f40597a60fac29589cf5e633ac1a9b96a9dadfed27",
+      "game_pack": "0af90d082ff28ca49905a6d7a79c2f4b9d522b3cca15617059249506acbac7ca"
+    },
+    "original_capture_sha256": "0427e8d12ef4ab09ec14899c14f3726821268008ed91a74b9a81452047492d19",
+    "sample_count": 61
+  },
+  "samples": [
+    {
+      "time": 0.008333333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -4.222478340007015e-06,
+          "velocity_rpm": -1.7369113946554566e-06,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": -4.470375962545521e-06,
+          "velocity_rpm": -1.8454309026094938e-06,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": -4.470375962545521e-06,
+          "velocity_rpm": -1.8454309026094938e-06,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": -4.222478340007015e-06,
+          "velocity_rpm": -1.7369113946554566e-06,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.025,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -1.7163058785405646e-05,
+          "velocity_rpm": -5.158828617194217e-06,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": -1.8171029793724582e-05,
+          "velocity_rpm": -5.475694507000826e-06,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": -1.8171029793724582e-05,
+          "velocity_rpm": -5.475763444463362e-06,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": -1.716306041384964e-05,
+          "velocity_rpm": -5.158897554656752e-06,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.041666666666666664,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -4.957035636799873e-05,
+          "velocity_rpm": -0.05318735897102591,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 5.528130946515972e-06,
+          "velocity_rpm": -0.08252081587431119,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 2.706470665975297e-05,
+          "velocity_rpm": -0.07596171762393428,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": -0.037714990585807975,
+          "velocity_rpm": -17.64041039329711,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.058333333333333334,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.4134415157033475,
+          "velocity_rpm": 1.1624750736999176,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.20509713384055445,
+          "velocity_rpm": -1.8136919895953787,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.0263151430593722,
+          "velocity_rpm": -0.8012005418451441,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.603029984661874,
+          "velocity_rpm": -0.051800261387082484,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.075,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.4096848049381347,
+          "velocity_rpm": 0.20894470035128918,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.19070364408287652,
+          "velocity_rpm": -0.6168308977014627,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.05869384325032942,
+          "velocity_rpm": -0.544482901543945,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.47458459542093473,
+          "velocity_rpm": 0.22829085543633104,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.09166666666666666,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.410022819260771,
+          "velocity_rpm": 0.12391470598497294,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.15661367634745363,
+          "velocity_rpm": -0.390532678807679,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.0727976836284099,
+          "velocity_rpm": -0.3681738411162307,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.3591204342648543,
+          "velocity_rpm": 0.09140066655166053,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.10833333333333334,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.4217255479907945,
+          "velocity_rpm": 0.05886207667928065,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.13628268446798508,
+          "velocity_rpm": -0.17845937829055375,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.08197222183921714,
+          "velocity_rpm": -0.16676383548871956,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.29062321516272027,
+          "velocity_rpm": -0.01116020004520801,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.125,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.4318920711269469,
+          "velocity_rpm": -0.10364671548581737,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.11791441147954318,
+          "velocity_rpm": -0.15714049026109278,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.07777246258255927,
+          "velocity_rpm": -0.05119575851837217,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.2596752811878487,
+          "velocity_rpm": -0.06776233343612295,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.14166666666666666,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.4450876764382942,
+          "velocity_rpm": -0.06741353577446499,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.10497740620151756,
+          "velocity_rpm": -0.1318673229085911,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.06791424511419623,
+          "velocity_rpm": -0.07449113698564332,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.2317153682118726,
+          "velocity_rpm": 0.033381313375345355,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.15833333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.459136094900541,
+          "velocity_rpm": -0.12661616141689425,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.08958707568088138,
+          "velocity_rpm": -0.09637051852039298,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.05518810191647492,
+          "velocity_rpm": -0.10421813907247318,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.20891678373175185,
+          "velocity_rpm": -0.165414890914593,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.175,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.4721427494318023,
+          "velocity_rpm": -0.11937713028550824,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.0795334440991259,
+          "velocity_rpm": -0.10382132998342679,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.04348615692397827,
+          "velocity_rpm": -0.105173129363183,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.19558360080143905,
+          "velocity_rpm": -0.1510544181846412,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.19166666666666665,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.4841243953398856,
+          "velocity_rpm": -0.05600875626003234,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.06995387700455823,
+          "velocity_rpm": -0.08486432670504152,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.03029258933020074,
+          "velocity_rpm": -0.09964363766280811,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.18648449482629947,
+          "velocity_rpm": -0.06291472228788766,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.20833333333333334,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.497523572305011,
+          "velocity_rpm": -0.0976507254225208,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.06106752742000058,
+          "velocity_rpm": -0.0884995970625505,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.01949926460309408,
+          "velocity_rpm": -0.09781606402520271,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.17798943370588288,
+          "velocity_rpm": -0.005420901808900051,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.225,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.5091084802718517,
+          "velocity_rpm": -0.11312121061430547,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.05226600158121934,
+          "velocity_rpm": -0.0843077552224403,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 0.007371424132066738,
+          "velocity_rpm": -0.11003783377129428,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.16735318832194665,
+          "velocity_rpm": -0.04225609921840781,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.24166666666666667,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.5202646337857155,
+          "velocity_rpm": -0.10168605098762704,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.0432800839802209,
+          "velocity_rpm": -0.07710387110615832,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": -0.005603734155775746,
+          "velocity_rpm": -0.10790322178615566,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.15802747214479337,
+          "velocity_rpm": -0.10673216450861582,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.2583333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.5350754187532122,
+          "velocity_rpm": -0.10647082083810801,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.0357936530361981,
+          "velocity_rpm": -0.07922566759312769,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": -0.016369959073483858,
+          "velocity_rpm": -0.10875620391308938,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.15135411052142647,
+          "velocity_rpm": -0.05917895121069674,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.275,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.5462065460270702,
+          "velocity_rpm": -0.11117049791517924,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.028965878444778655,
+          "velocity_rpm": -0.06401991448600938,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": -0.026888503756156385,
+          "velocity_rpm": -0.10530972425310776,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.1454634458882607,
+          "velocity_rpm": -0.05841433020941232,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.2916666666666667,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.5560592006265194,
+          "velocity_rpm": -0.0714183478251932,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 0.021987602902834226,
+          "velocity_rpm": -0.06353875967549372,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": -0.03895021428894892,
+          "velocity_rpm": -0.10659323952811481,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 0.14112742302363976,
+          "velocity_rpm": -0.004412609028732359,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.30833333333333335,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": -0.5665657924781444,
+          "velocity_rpm": -0.0855104288053179,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 0.015099854047818911,
+          "velocity_rpm": -0.04610297203805497,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": -0.049385619427764385,
+          "velocity_rpm": -0.07702947718375316,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 0.13518198347498167,
+          "velocity_rpm": -0.019869287099831545,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.325,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 4.811499440058802,
+          "velocity_rpm": -0.0525594129009456,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 5.371382426042619,
+          "velocity_rpm": -0.3311776590161316,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 5.300398404432792,
+          "velocity_rpm": -0.30922863267488404,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 10.590426020384564,
+          "velocity_rpm": 100.86940845528555,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.3416666666666667,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 10.366241282578175,
+          "velocity_rpm": 3.7098047256789473,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 10.849103213499518,
+          "velocity_rpm": 3.116095939308682,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 10.837099156033222,
+          "velocity_rpm": 3.2883473337608797,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 16.69362949193502,
+          "velocity_rpm": 107.45928424954057,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.35833333333333334,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 16.10515234587777,
+          "velocity_rpm": 7.3643486675130445,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 16.577745087382002,
+          "velocity_rpm": 7.126442364255315,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 16.560848906922683,
+          "velocity_rpm": 7.007617563264603,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 22.143287166526456,
+          "velocity_rpm": 107.40874995660137,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.375,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 22.031237913192395,
+          "velocity_rpm": 10.828192589355524,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 22.952384545416997,
+          "velocity_rpm": 12.680848389140495,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 22.179948206896498,
+          "velocity_rpm": 10.78985929100369,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 27.77568484481429,
+          "velocity_rpm": 107.46414734422962,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.39166666666666666,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 28.101723924844848,
+          "velocity_rpm": 14.027041108509573,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 29.69330143543039,
+          "velocity_rpm": 16.457982842927706,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 28.139884191737707,
+          "velocity_rpm": 14.003434836373147,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 33.561883015285176,
+          "velocity_rpm": 107.44725400968245,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.4083333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 34.32211039066427,
+          "velocity_rpm": 16.895417754861725,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 35.39648207163435,
+          "velocity_rpm": 13.976673016840175,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 34.35814988381985,
+          "velocity_rpm": 17.046461696532248,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 39.50105351750225,
+          "velocity_rpm": 107.43365737977469,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.425,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 40.699075528111656,
+          "velocity_rpm": 20.10242379661449,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 41.7518638113045,
+          "velocity_rpm": 19.55791883925135,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 40.75357019240461,
+          "velocity_rpm": 20.537260959934184,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 45.60467789946031,
+          "velocity_rpm": 107.47009416226697,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.44166666666666665,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 47.219816147587814,
+          "velocity_rpm": 22.858880963226813,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 48.19177597214272,
+          "velocity_rpm": 20.876933097548086,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 47.272719377804144,
+          "velocity_rpm": 22.951218290616218,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 51.794133853623336,
+          "velocity_rpm": 107.4162358439317,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.4583333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 49.848137827005836,
+          "velocity_rpm": -54.706126949650326,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 53.73660550262911,
+          "velocity_rpm": 3.6207160070135322,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 57.724367053311454,
+          "velocity_rpm": 100.40651287485545,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 58.1257089689414,
+          "velocity_rpm": 107.43288329166874,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.475,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 56.63884508852133,
+          "velocity_rpm": 28.13404779509193,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 63.48897158072135,
+          "velocity_rpm": 85.36977856172123,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 64.99940644396713,
+          "velocity_rpm": 107.43474110312299,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 68.7984327924091,
+          "velocity_rpm": 107.21926229518743,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.49166666666666664,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 63.601847286944974,
+          "velocity_rpm": 31.76492171635735,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 72.62675382220124,
+          "velocity_rpm": 107.44594261336181,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 70.92476630368245,
+          "velocity_rpm": 107.4452595944448,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 78.92513763324763,
+          "velocity_rpm": 94.798071515899,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.5083333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 70.38698452919232,
+          "velocity_rpm": 28.1009828493199,
+          "voltage_mv": 2000.0
+        },
+        "2": {
+          "position_deg": 78.9745950330277,
+          "velocity_rpm": 107.4756858104675,
+          "voltage_mv": 2000.0
+        },
+        "3": {
+          "position_deg": 79.00692231836936,
+          "velocity_rpm": 82.1883948362749,
+          "voltage_mv": 2000.0
+        },
+        "4": {
+          "position_deg": 86.99209647703127,
+          "velocity_rpm": 107.44748168265478,
+          "voltage_mv": 2000.0
+        }
+      }
+    },
+    {
+      "time": 0.5166666666666666,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 75.75870291516475,
+          "velocity_rpm": 107.42208248586124,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 80.35680675498483,
+          "velocity_rpm": 27.309541509433842,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 83.18974382646351,
+          "velocity_rpm": 81.68219585650692,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 92.32250587890346,
+          "velocity_rpm": 106.62344212658998,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.5333333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 79.2250239189462,
+          "velocity_rpm": 37.257029016640416,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 82.86325395394773,
+          "velocity_rpm": 20.204544231625075,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 86.02755082282042,
+          "velocity_rpm": 25.54162217485691,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 98.47603503803221,
+          "velocity_rpm": 21.941720884747777,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.55,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 82.64431224010298,
+          "velocity_rpm": 33.9880412848995,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 85.3471342078929,
+          "velocity_rpm": 22.933994830259167,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 87.63610135349343,
+          "velocity_rpm": 11.773195933986118,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 100.65459900588864,
+          "velocity_rpm": 21.671730337046345,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.5666666666666667,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 85.89167786966135,
+          "velocity_rpm": 31.980878637534815,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 87.7973689499866,
+          "velocity_rpm": 22.742194011446315,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 89.76335011011557,
+          "velocity_rpm": 29.79203068151806,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 102.80673014165714,
+          "velocity_rpm": 21.41920230632291,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.5833333333333334,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 88.96534495843713,
+          "velocity_rpm": 30.56280386897566,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 90.18538749893065,
+          "velocity_rpm": 22.115719953853855,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 91.66522311469478,
+          "velocity_rpm": 5.105651781949157,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 104.92768829405368,
+          "velocity_rpm": 21.150632437968838,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.6,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 91.91636234028698,
+          "velocity_rpm": 28.869497520891947,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 92.54928181972622,
+          "velocity_rpm": 21.73281499552349,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 92.29995259426407,
+          "velocity_rpm": 7.193600768451896,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 107.02186527471461,
+          "velocity_rpm": 20.872085939967103,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.6166666666666667,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 94.64417597025,
+          "velocity_rpm": 26.745331456315217,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 94.85783111767716,
+          "velocity_rpm": 21.477463819943118,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 93.9748720731021,
+          "velocity_rpm": 0.3672713312243389,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 109.1090139907196,
+          "velocity_rpm": 20.61632039957708,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.6333333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 97.21983347607264,
+          "velocity_rpm": 25.124101817812928,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 97.12673799768537,
+          "velocity_rpm": 21.10382515158674,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 94.34579915635798,
+          "velocity_rpm": -1.9309644878015972,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 111.15098100536495,
+          "velocity_rpm": 20.368867199406967,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.65,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 99.54645545456744,
+          "velocity_rpm": 22.66672497457712,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 99.4034039725907,
+          "velocity_rpm": 21.197070894135756,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 95.79141552438035,
+          "velocity_rpm": 23.87413394183585,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 113.16415194246953,
+          "velocity_rpm": 20.059694133166893,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.6666666666666666,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 101.63037349109501,
+          "velocity_rpm": 20.904408671849325,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 101.76288599118243,
+          "velocity_rpm": 20.76699437266756,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 95.46990485976951,
+          "velocity_rpm": -8.873399279087046,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 115.33980624973954,
+          "velocity_rpm": 27.46706843899157,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.6833333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 103.60784302940793,
+          "velocity_rpm": 19.06261059611495,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 103.94215346852337,
+          "velocity_rpm": 20.09144768261828,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 96.56989316522173,
+          "velocity_rpm": 14.903436341292249,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 118.05271640693358,
+          "velocity_rpm": 27.03512955260969,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.7,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 105.34528605990826,
+          "velocity_rpm": 17.288341462339634,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 106.31422352575544,
+          "velocity_rpm": 21.58175170165032,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 96.71256215660496,
+          "velocity_rpm": -0.28887986273792743,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 120.62971946002271,
+          "velocity_rpm": 27.88109173918051,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.7166666666666667,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 107.05326365432916,
+          "velocity_rpm": 16.693905545413976,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 108.58043931123065,
+          "velocity_rpm": 20.92345806944449,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 96.93954983329199,
+          "velocity_rpm": 0.19283529009394196,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 123.38993550740827,
+          "velocity_rpm": 27.529284632141216,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.7333333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 108.57996119798875,
+          "velocity_rpm": 14.735777964465669,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 110.90223917617143,
+          "velocity_rpm": 20.776274323019887,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 98.53888643877467,
+          "velocity_rpm": 20.120633080941747,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 126.1156727598636,
+          "velocity_rpm": 27.17258483292647,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.75,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 109.99115341259426,
+          "velocity_rpm": 14.074719244010847,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 113.15643382870742,
+          "velocity_rpm": 20.430484612639376,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 99.66333365164469,
+          "velocity_rpm": 7.076070857491333,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 128.80656238717353,
+          "velocity_rpm": 26.831002519074687,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.7666666666666666,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 111.37053743623501,
+          "velocity_rpm": 13.587682359959333,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 115.28224141541467,
+          "velocity_rpm": 19.639774102994508,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 100.6717632712729,
+          "velocity_rpm": 25.213679748777643,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 131.46308250257994,
+          "velocity_rpm": 26.48280858210633,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.7833333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 112.61197212920902,
+          "velocity_rpm": 12.639645272972393,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 117.38606262318366,
+          "velocity_rpm": 19.211744361547595,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 101.50516246323033,
+          "velocity_rpm": 6.795813966284938,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 134.0872002005638,
+          "velocity_rpm": 26.15356842008476,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.8,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 113.8425946327269,
+          "velocity_rpm": 12.355536724256543,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 119.38695288016056,
+          "velocity_rpm": 18.13362632181776,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 102.44130819087228,
+          "velocity_rpm": 8.7898256535852,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 136.67765872631787,
+          "velocity_rpm": 25.82937121440038,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.8166666666666667,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 115.05393551221783,
+          "velocity_rpm": 12.076442672756343,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 121.27910652555084,
+          "velocity_rpm": 17.158195622799624,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 103.25867009865854,
+          "velocity_rpm": 6.232770167967091,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 139.23519574027247,
+          "velocity_rpm": 25.50015154294632,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.8333333333333334,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 116.27806933602419,
+          "velocity_rpm": 12.560631367923962,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 123.12768356403646,
+          "velocity_rpm": 21.27737798166704,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 104.58968955278644,
+          "velocity_rpm": 13.418941398149306,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 141.76101335572153,
+          "velocity_rpm": 25.162885908649983,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.85,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 117.45600376028459,
+          "velocity_rpm": 11.863195059949652,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 124.83927432852829,
+          "velocity_rpm": 15.15188902581091,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 107.0326638037924,
+          "velocity_rpm": 25.432330041217813,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 143.92133388830487,
+          "velocity_rpm": 21.53900837782438,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.8666666666666667,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 118.6466013552662,
+          "velocity_rpm": 12.726217920702304,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 126.62322411708725,
+          "velocity_rpm": 13.823446829729834,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 105.98606025689301,
+          "velocity_rpm": -2.2687624499663714,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 145.9685874693678,
+          "velocity_rpm": 19.549545027328918,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.8833333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 119.85065442291273,
+          "velocity_rpm": 11.474684793040433,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 128.15197071749785,
+          "velocity_rpm": 13.433687776567364,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 108.47627209619878,
+          "velocity_rpm": 6.561601657003323,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 147.90516466511986,
+          "velocity_rpm": 19.306677160821604,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.9,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 121.07827164319579,
+          "velocity_rpm": 12.04053978338417,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 129.55532870512533,
+          "velocity_rpm": 12.1650245344671,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 109.56060560807333,
+          "velocity_rpm": 5.891092231466927,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 149.81692095342808,
+          "velocity_rpm": 19.06872930724642,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.9166666666666666,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 122.28664139039778,
+          "velocity_rpm": 11.990022565917895,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 130.8555371759073,
+          "velocity_rpm": 11.119705063131669,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 110.76040346786694,
+          "velocity_rpm": 6.233604020228264,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 151.7045803343445,
+          "velocity_rpm": 18.82063634602405,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.9333333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 123.48166494796155,
+          "velocity_rpm": 11.774774846049251,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 132.06898858385176,
+          "velocity_rpm": 9.939467726756114,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 112.56067740854222,
+          "velocity_rpm": 11.498230731839191,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 153.56845699657094,
+          "velocity_rpm": 18.586590807194668,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.95,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 124.70126352615902,
+          "velocity_rpm": 12.273221561109272,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 133.17434541799162,
+          "velocity_rpm": 8.971774493702739,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 113.67316496017555,
+          "velocity_rpm": 6.429526289022787,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 155.40829139291895,
+          "velocity_rpm": 18.34553521754713,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.9666666666666667,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 125.91989221749435,
+          "velocity_rpm": 12.017746303758978,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 134.19030873627435,
+          "velocity_rpm": 7.831915528153007,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 115.01544056605563,
+          "velocity_rpm": 12.25095514441503,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 157.22550420273586,
+          "velocity_rpm": 18.107550936296377,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 0.9833333333333333,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 127.14884815485475,
+          "velocity_rpm": 12.504538439365232,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 135.30954451480764,
+          "velocity_rpm": 6.886453422483162,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 116.37156096538332,
+          "velocity_rpm": 12.118705606610659,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 158.78415337133276,
+          "velocity_rpm": 13.179416909240715,
+          "voltage_mv": 0.0
+        }
+      }
+    },
+    {
+      "time": 1.0,
+      "source": "simulation",
+      "capture_id": "recorded-default-xdrive-physx-short",
+      "motors": {
+        "1": {
+          "position_deg": 127.32273111074494,
+          "velocity_rpm": 9.931941996655622,
+          "voltage_mv": 0.0
+        },
+        "2": {
+          "position_deg": 136.33348549404093,
+          "velocity_rpm": 11.420794600489033,
+          "voltage_mv": 0.0
+        },
+        "3": {
+          "position_deg": 117.76912695259466,
+          "velocity_rpm": 18.075084770441585,
+          "voltage_mv": 0.0
+        },
+        "4": {
+          "position_deg": 160.0895664462623,
+          "velocity_rpm": 13.022777904275088,
+          "voltage_mv": 0.0
+        }
+      }
+    }
+  ]
+}

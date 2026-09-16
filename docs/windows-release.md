@@ -3,8 +3,12 @@
 The Windows installer contains Python, PySide6, PyBullet, VTK, PhysX/OVStage, SciPy, default robots and
 fields, and the desktop LLVM-MinGW compiler for selected PROS workspaces.
 Published builds are available in the [private releases](https://github.com/WVUR1/EERSim/releases).
-The local 0.1.9 build includes [desktop feedback improvements](desktop-feedback.md);
-GitHub publication is pending approval.
+Version 0.1.10 includes the PID tuner's offline **How to use** walkthrough,
+robot-mapping drivetrain discovery, detailed capture errors, and gain-unit
+explanations. It fixes PhysX continuous motor-encoder wrapping and passive
+capture during unchanged-scene Start. See the [tuning guide](pid-tuning.md)
+and [0.1.10 verification and limitations](pid-tuning-0.1.10.md). It retains the 0.1.9
+[desktop feedback improvements](desktop-feedback.md).
 
 Recipients do not need Python, Conda, a separate desktop compiler, or WSL installed.
 Version 0.1.8 adds the separate [PID tuning lab](pid-tuning.md), with motor and

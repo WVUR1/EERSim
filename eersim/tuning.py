@@ -20,6 +20,52 @@ SCHEMA = "eersim.tuning/1"
 MAX_SAMPLES = 60_000
 
 
+class TuningDataError(ValueError):
+    """A rejected capture with measured evidence suitable for a debug report."""
+    def __init__(self, message, diagnostics):
+        super().__init__(message)
+        self.diagnostics = dict(diagnostics)
+
+
+def _capture_diagnostics(trace, samples=()):
+    voltage = np.asarray([value for value in trace["voltage_mv"] if value is not None], dtype=float)
+    velocity = np.asarray(trace["velocity_rpm"], dtype=float)
+    result = {"samples": trace["samples"], "duration_s": trace["duration_s"],
+              "sample_period_s": trace["sample_period_s"],
+              "peak_velocity_rpm": float(np.max(np.abs(velocity))),
+              "velocity_span_rpm": float(np.ptp(velocity))}
+    if samples and samples[-1].get("termination"):
+        result["termination"] = str(samples[-1]["termination"])
+    if len(voltage) == len(velocity):
+        threshold = max(20., float(np.max(np.abs(voltage))) * .01)
+        powered = np.flatnonzero(np.abs(voltage) > threshold)
+        intervals = np.diff(np.asarray(trace["time"], dtype=float))
+        result.update({"peak_voltage_mv": float(np.max(np.abs(voltage))),
+                       "voltage_span_mv": float(np.ptp(voltage)),
+                       "final_voltage_mv": float(voltage[-1]),
+                       "powered_duration_s": float(np.sum(intervals[np.abs(voltage[:-1]) > threshold])),
+                       "baseline_duration_s": float(trace["time"][powered[0]]) if len(powered) else float(trace["time"][-1]),
+                       "coast_duration_s": float(trace["time"][-1] - trace["time"][powered[-1] + 1])
+                       if len(powered) and powered[-1] + 1 < len(voltage) else 0.})
+    return result
+
+
+def _retry_advice(target, diagnostics):
+    steps = []
+    if diagnostics.get("termination") == "travel_limit":
+        steps.append("The trial reached its travel limit. The final zero-voltage stop sample is not a measured coast-down; any earlier coast data may be incomplete. Shorten the powered interval or reduce voltage; increase the travel bound only within the mechanism's usable range.")
+    elif abs(diagnostics.get("final_voltage_mv", 0)) > 20:
+        steps.append("The capture ends while voltage is still applied. Shorten the powered interval so the trial includes the stop/coast response; increase the travel bound only within the mechanism's usable range.")
+    if target.get("kind") in {"tank", "h_drive", "x_drive"}:
+        steps.append("Reset the robot, select the complete drivetrain and one axis, and repeat in clear field space without contacting a wall or goal.")
+    elif len(target.get("ports", [])) == 1:
+        steps.append("If this is a drive wheel, select the complete drivetrain target and forward/turn/strafe axis instead of powering one wheel against the other wheels.")
+    else:
+        steps.append("Reset to the same starting pose and use one mechanism/axis with a consistent payload and direction.")
+    steps.append("Export the capture if the same failure repeats; keep the voltage and encoder traces with these measured diagnostics.")
+    return "Try next: " + " ".join(steps)
+
+
 def _finite(value, name):
     value = float(value)
     if not math.isfinite(value):
@@ -94,8 +140,42 @@ def analyze_response(samples, target, axis, mode="position"):
     velocity = np.array([r["velocity_rpm"] for r in rows])
     # Detect taring/discontinuities without imposing a particular mechanism speed.
     predicted = (velocity[:-1] + velocity[1:]) * 3 * differences
-    if np.any(np.abs(np.diff(positions) - predicted) > np.maximum(30, np.abs(predicted) * 3)):
-        raise ValueError("Encoder position jumps were detected (tare/reset or missing samples). Record a continuous run")
+    residuals = np.abs(np.diff(positions) - predicted)
+    thresholds = np.maximum(30, np.abs(predicted) * 3)
+    bad = np.flatnonzero(residuals > thresholds)
+    if len(bad):
+        index = int(bad[0])
+        measured = float(positions[index+1] - positions[index])
+        details = {"interval_index": index, "time_s": float(times[index+1]-times[0]),
+                   "interval_s": float(differences[index]), "measured_delta_deg": measured,
+                   "velocity_predicted_delta_deg": float(predicted[index]),
+                   "residual_deg": float(residuals[index]), "allowed_residual_deg": float(thresholds[index])}
+        mismatches = []
+        for port in target["ports"]:
+            before = samples[index].get("motors", {}).get(str(abs(port)), {})
+            after = samples[index+1].get("motors", {}).get(str(abs(port)), {})
+            if all(before.get(key) is not None and after.get(key) is not None for key in ("position_deg", "velocity_rpm")):
+                change = float(after["position_deg"])-float(before["position_deg"])
+                expected = (float(before["velocity_rpm"])+float(after["velocity_rpm"]))*3*float(differences[index])
+                mismatches.append({"port": abs(port), "measured_delta_deg": change,
+                                   "velocity_predicted_delta_deg": expected, "residual_deg": abs(change-expected)})
+        details["motor_mismatches"] = sorted(mismatches, key=lambda item: item["residual_deg"], reverse=True)[:3]
+        sensor_time = samples[index+1].get("sensor_time")
+        if sensor_time is not None:
+            details["feedback_age_s"] = float(times[index+1])-float(sensor_time)
+        motor_details = "; ".join(f"port {item['port']}: measured {item['measured_delta_deg']:.2f}°, "
+                                  f"expected {item['velocity_predicted_delta_deg']:.2f}°"
+                                  for item in details["motor_mismatches"])
+        feedback_details = (f"Feedback age {details['feedback_age_s']*1000:.2f} ms. "
+                            if "feedback_age_s" in details else "")
+        raise TuningDataError(
+            f"Encoder position jumps were detected: position and velocity disagree at {details['time_s']:.3f} s. "
+            f"Over {differences[index]*1000:.2f} ms, this axis changed {measured:.2f}°, while its endpoint velocities predict {predicted[index]:.2f}°. "
+            f"Mismatch {residuals[index]:.2f}° exceeds the {thresholds[index]:.2f}° tolerance. "
+            + (f"Largest motor mismatches: {motor_details}. " if motor_details else "")
+            + feedback_details
+            + "This can indicate an encoder reset, wrapped angle, stale feedback or unresolved motion between samples; it is not proof that your code called tare. "
+            "Try next: record a fresh continuous trial. For simulation, repeat with encoder noise, latency and dropout at zero; export the capture if it recurs.", details)
     return {"time": (times - times[0]).tolist(),
             "position_deg": (positions - positions[0]).tolist(),
             "velocity_rpm": velocity.tolist(),
@@ -108,23 +188,36 @@ def analyze_response(samples, target, axis, mode="position"):
 
 def identify_model(samples, target, axis):
     trace = analyze_response(samples, target, axis)
+    diagnostics = _capture_diagnostics(trace, samples)
     if len(samples) < 35 or trace["duration_s"] < .6:
-        raise ValueError("Record at least 0.6 seconds and 35 samples including voltage changes and coast-down")
+        raise TuningDataError(f"Record at least 0.6 seconds and 35 samples including voltage changes and coast-down. "
+                              f"This capture contains {len(samples)} samples over {trace['duration_s']:.3f} s. "
+                              + _retry_advice(target, diagnostics), diagnostics)
     if any(value is None for value in trace["voltage_mv"]):
-        raise ValueError("Voltage telemetry is unavailable for this capture. Use voltage-driven robot code or Characterize in simulation")
+        raise TuningDataError("Voltage telemetry is unavailable for this capture. "
+                              "Try next: use Characterize in simulation or record voltage-driven robot code. "
+                              "A position/velocity command is not measured electrical voltage.", diagnostics)
     t = np.array(trace["time"])
     dt = trace["sample_period_s"]
     if np.max(np.diff(t)) > dt * 5:
-        raise ValueError("Capture has large timing gaps; reconnect and record again")
+        diagnostics["largest_gap_s"] = float(np.max(np.diff(t)))
+        raise TuningDataError(f"Capture has large timing gaps: {diagnostics['largest_gap_s']*1000:.2f} ms "
+                              f"compared with the usual {dt*1000:.2f} ms. "
+                              "Try next: reconnect the logger and record a fresh continuous trial; use a shorter capture if the host is overloaded.", diagnostics)
     uniform = np.arange(0, t[-1] + dt * .01, dt)
     velocity = np.interp(uniform, t, trace["velocity_rpm"])
     # Inputs are held commands, not linearly interpolated between transitions.
     indices = np.clip(np.searchsorted(t, uniform, side="right") - 1, 0, len(t) - 1)
     voltage = np.asarray(trace["voltage_mv"])[indices]
     if np.ptp(voltage) < 250 or np.std(voltage) < 80:
-        raise ValueError("Not enough voltage excitation. Include a stopped baseline, a powered move, and a coast-down")
+        diagnostics["voltage_std_mv"] = float(np.std(voltage))
+        raise TuningDataError(f"Not enough voltage excitation: span {np.ptp(voltage):.0f} mV (minimum 250 mV), "
+                              f"standard deviation {np.std(voltage):.0f} mV (minimum 80 mV). "
+                              "Try next: include a stopped baseline, a powered move, and a coast-down. Use Characterize for a bounded simulation trial.", diagnostics)
     if np.ptp(velocity) < 3:
-        raise ValueError("Motor response is too small to identify. Check group direction, load, limits, and capture ports")
+        raise TuningDataError(f"Motor response is too small to identify: velocity span {np.ptp(velocity):.2f} RPM (minimum 3 RPM). "
+                              "Try next: check the selected ports and signs, joint limits and mechanism load. "
+                              "For a drivetrain, choose its complete forward/turn/strafe axis. Increase voltage only if the mechanism has room to move.", diagnostics)
     if np.max(np.abs(voltage)) > 12500:
         raise ValueError("Voltage must be recorded in millivolts, within the V5 voltage range")
     best = None
@@ -145,11 +238,23 @@ def identify_model(samples, target, axis):
         if best is None or score < best[0]:
             best = score, a, b, c, delay, mse, float(np.mean(residual[split:] ** 2)), float(np.var(y))
     if best is None:
-        raise ValueError("Could not fit a stable positive motor response. Check port reversal and record a longer unloaded/loaded trial")
+        raise TuningDataError("Could not fit a stable positive motor response. "
+                              f"Measured voltage span {diagnostics['voltage_span_mv']:.0f} mV, velocity span {diagnostics['velocity_span_rpm']:.2f} RPM, "
+                              f"sample period {dt*1000:.2f} ms and coast duration {diagnostics['coast_duration_s']:.3f} s. "
+                              "Check motor reversal and axis mapping. " + _retry_advice(target, diagnostics), diagnostics)
     _, a, b, c, delay, mse, holdout, variance = best
     r2 = 1 - mse / max(variance, 1e-12)
+    diagnostics.update({"r_squared": r2, "minimum_r_squared": .65,
+                        "one_step_rmse_rpm": math.sqrt(mse), "holdout_rmse_rpm": math.sqrt(holdout),
+                        "maximum_holdout_rmse_rpm": math.sqrt(max(variance*.5, 4.)),
+                        "pole": a, "delay_s": delay*dt})
     if r2 < .65 or holdout > max(variance * .5, 4.0):
-        raise ValueError("Response does not fit the tuning model reliably. Record another run with consistent load and direction")
+        raise TuningDataError("Response does not fit the tuning model reliably. "
+                              f"R²={r2:.3f} (minimum 0.650); holdout error={math.sqrt(holdout):.2f} RPM "
+                              f"(maximum {math.sqrt(max(variance*.5, 4.)):.2f} RPM). "
+                              f"Recorded {len(samples)} samples over {trace['duration_s']:.3f} s, "
+                              f"with {diagnostics['coast_duration_s']:.3f} s after powered motion. "
+                              + _retry_advice(target, diagnostics), diagnostics)
     gain = b / (1 - a)
     tau = -dt / math.log(a)
     # Evaluate a free-running prediction, so a good one-step fit cannot conceal drift.
@@ -158,14 +263,19 @@ def identify_model(samples, target, axis):
     for index in range(len(velocity)-1):
         predicted[index+1] = a * predicted[index] + b * voltage[max(0, index-delay)] + c
     normalized_rmse = float(np.sqrt(np.mean((velocity-predicted)**2)) / max(np.ptp(velocity), 1))
+    diagnostics["prediction_normalized_rmse"] = normalized_rmse
+    diagnostics["maximum_prediction_normalized_rmse"] = .3
     if normalized_rmse > .3:
-        raise ValueError("Model prediction drifts too far from the measured response; record a new characterization")
+        raise TuningDataError("Model prediction drifts too far from the measured response. "
+                              f"Free-running prediction error is {normalized_rmse*100:.1f}% of the measured velocity span "
+                              "(maximum 30.0%). A good one-step fit alone does not validate this model. "
+                              + _retry_advice(target, diagnostics), diagnostics)
     return {"type": "delayed_first_order_velocity", "gain_rpm_per_mv": gain,
             "time_constant_s": tau, "delay_s": delay * dt,
             "bias_mv": -c / b, "sample_period_s": dt, "r_squared": r2,
             "prediction_normalized_rmse": normalized_rmse,
             "source": trace["source"], "samples": len(samples),
-            "duration_s": trace["duration_s"]}
+            "duration_s": trace["duration_s"], "fit_diagnostics": diagnostics}
 
 
 def controller_options(options=None):
@@ -320,16 +430,32 @@ def autotune(samples, target, axis, options=None, cancel=None, progress: Callabl
         raise ValueError("No candidate stayed inside the travel limit. Reduce target/duration or adjust the allowed travel")
     gains = dict(zip(("kp", "ki", "kd"), candidates[index]))
     _, trace = _evaluate_candidates([candidates[index]], model, options, robust=False, cancel=cancel)
+    metrics = response_metrics(trace)
     warnings = ["Candidate gains from a fitted response model; validate on the simulated mechanism and then the physical robot.",
                 "Drivetrain axes use projected motor encoders. These gains are not inch/metre or IMU-heading path-controller gains.",
                 "Controller uses derivative of error, integral separation/clamp, and millivolt output. Preserve these units and settings."]
     if abs(model["bias_mv"]) > options["output_limit_mv"] * .15:
         warnings.append("Significant holding/friction bias was identified; test both directions and payloads.")
+    diagnostics = model["fit_diagnostics"]
+    if diagnostics.get("termination") == "travel_limit":
+        warnings.append("Characterization stopped at its travel limit. The fitted response does not validate the complete stop/coast behavior; repeat with a shorter powered interval before relying on these gains.")
+    elif diagnostics.get("coast_duration_s", 0) < 2 * model["sample_period_s"]:
+        warnings.append("The capture contains fewer than two measured coast intervals after the last powered move. A final zero-voltage sample alone is not coast-down evidence.")
+    if options["output_limit_mv"] > diagnostics["peak_voltage_mv"] * 1.05:
+        warnings.append(f"The {options['output_limit_mv']:.0f} mV controller limit exceeds the {diagnostics['peak_voltage_mv']:.0f} mV observed excitation. Predictions at the higher voltage extrapolate beyond the capture; characterize at the intended limit to check them.")
+    if metrics["saturation_fraction"] > .01:
+        units = "motor degrees" if options["mode"] == "position" else "motor RPM"
+        gain_units = "motor degree" if options["mode"] == "position" else "motor RPM"
+        warnings.append(f"Predicted output reaches the {options['output_limit_mv']:.0f} mV limit for {metrics['saturation_fraction']*100:.1f}% of this step. "
+                        f"Kp is in mV per {gain_units}; the proportional term alone saturates above {options['output_limit_mv']/gains['kp']:.2f} {units} of error. "
+                        "Saturation is modeled, but this fitted-model prediction still requires a mechanism validation run.")
+    if metrics["settling_time_s"] is None:
+        warnings.append(f"The nominal prediction does not settle within 2% of the target during its {trace['time'][-1]:.2f} s horizon. This is a candidate, not a successful tuning result; inspect the trace and validate before exporting gains to robot code.")
     if progress:
         progress({"fraction": 1., "message": "Candidate ready for validation"})
     return {"schema": SCHEMA, "status": "candidate", "source": model["source"],
             "target": target, "axis": axis, "gains": gains, "options": options,
-            "model": model, "metrics": response_metrics(trace), "validation": trace,
+            "model": model, "metrics": metrics, "validation": trace,
             "candidate_count": len(candidates), "uncertainty_trials": len(candidates)*3,
             "warnings": warnings, "controller": "eerkit_error_pid_millivolts",
             "error_units": "motor_degrees" if options["mode"] == "position" else "motor_rpm"}

@@ -20,6 +20,7 @@ def reverse(contact):
 def adapter(contacts):
     value = PhysXAdapter.__new__(PhysXAdapter)
     value._state = {'contacts': contacts}
+    value._continuous_raw, value._continuous_offsets = {}, {}
     value._invalidate_contact_index()
     return value
 

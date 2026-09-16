@@ -47,6 +47,26 @@ def _finite(value):
         return False
 
 
+def gain_explanation(result):
+    """Describe controller units and clipping alongside the actual candidate."""
+    options, gains = result.get("options", {}), result.get("gains", {})
+    unit = "degree" if options.get("mode", "position") == "position" else "RPM"
+    parts = [f"Kp: mV/{unit} · Ki: mV/({unit}·s) · Kd: mV·s/{unit}. Time is in seconds."]
+    kp, limit = gains.get("kp", 0), options.get("output_limit_mv", 0)
+    if _finite(kp) and _finite(limit) and float(kp) > 0 and float(limit) > 0:
+        parts.append(f"With the {float(limit):g} mV limit, the P term alone saturates above "
+                     f"{float(limit) / float(kp):.3g} {unit} of error.")
+    if gains.get("ki") == 0 and gains.get("kd") == 0:
+        parts.append("The search selected proportional-only control; adding I/D did not improve its tested model trials.")
+    validation = result.get("simulation_validation", {})
+    if validation.get("status") == "travel_limit":
+        parts.append("SIMULATION VALIDATION TRUNCATED: a motor reached its travel bound. This candidate has not been validated.")
+    elif validation:
+        parts.append("Last simulation trial: " + str(validation.get("message", validation.get("status", "unassessed"))))
+    parts.append("Check the warnings and validate the recorded response in the full scene before using these gains.")
+    return "\n".join(parts)
+
+
 def _error_feedback(message, operation):
     """Keep user recovery steps beside the failure; raw output stays available."""
     text = str(message).strip() or "The operation did not complete."
@@ -66,6 +86,9 @@ def _error_feedback(message, operation):
     elif "record" in stage or "connected logger" in stage:
         title = "Recording did not complete"
         recovery = "Check the serial port and USB connection. The Brain must be running a program built from the prepared logger workspace. Reconnect and record a fresh trial. Stopping recording does not stop the robot program."
+    elif "try next:" in lower:
+        title = "Capture needs a different tuning trial"
+        recovery = "The How to use tab explains the settings and includes a troubleshooting walkthrough. Export this capture from Live capture if the error repeats."
     elif any(word in stage for word in ("analyz", "candidate", "capture", "reading")) and any(word in lower for word in ("voltage", "capture", "encoder", "sample", "timestamp", "excitation")):
         title = "Capture cannot be used for tuning"
         recovery = "Select the matching target and axis, then record a fresh continuous trial with a baseline, a voltage pulse and its coast response. Characterize in simulation provides this pulse; position/velocity commands may not expose the voltage needed to identify a model."
@@ -559,6 +582,7 @@ class TuningWindow(QMainWindow):
         self._setup_tab()
         self._capture_tab()
         self._results_tab()
+        self._guide_tab()
         self.progress = QProgressBar()
         self.progress.setTextVisible(False)
         self.progress.setRange(0, 100)
@@ -591,19 +615,21 @@ class TuningWindow(QMainWindow):
         self.mode_combo.currentIndexChanged.connect(self._mode_changed)
         self.voltage = self._spin(3000, 100, 12000, " mV", 0)
         self.duration = self._spin(2, .2, 30, " s", 2)
+        self.validation_duration = self._spin(2, .2, 30, " s", 2)
         self.travel = self._spin(180, 1, 100000, " motor deg", 1)
         self.period = self._spin(20, 1, 1000, " ms", 3)
         self.period.setToolTip("Simulation aligns this interval with physics steps. The exact actual interval is retained in candidate exports.")
         self.step_target = self._spin(90, -10000, 10000, "", 2)
         self.large_error = self._spin(100000, .01, 1000000, "", 2)
         self.antiwind = self._spin(1000, 0, 1000000, " error·s", 2)
-        for widget in (self.voltage, self.duration, self.travel, self.step_target, self.large_error, self.antiwind):
+        for widget in (self.voltage, self.duration, self.validation_duration, self.travel, self.step_target, self.large_error, self.antiwind):
             widget.valueChanged.connect(self._selection_changed)
         self.period.valueChanged.connect(self._period_changed)
         for label, widget, explanation in (
                 ("Controller", self.mode_combo, "Position controls relative motor-shaft degrees; velocity controls motor RPM. Use the same feedback units and PID formula in your robot code. Changing the controller invalidates the current candidate."),
                 ("Characterization / output limit", self.voltage, "Voltage in millivolts for the characterization pulse and the candidate PID output limit. 3000 mV is 3 V; the maximum is 12000 mV. A pulse too weak to move the mechanism cannot identify its response."),
-                ("Powered interval", self.duration, "Duration of the powered pulse or validation interval in simulation seconds. A short baseline and coast interval are captured too. Wall-clock rendering speed does not change this duration."),
+                ("Characterization pulse interval", self.duration, "Duration of the powered characterization pulse in simulation seconds. Baseline and coast intervals are captured too. Shorten this pulse when a drivetrain reaches its travel bound before collecting enough data; validation has a separate duration."),
+                ("Validation interval", self.validation_duration, "Time allowed for the candidate PID step during model search and full-scene validation. Keep enough time for settling, even when characterization uses a short pulse. The travel bound still applies. Wall-clock rendering speed does not change this duration."),
                 ("Maximum travel from start", self.travel, "Stop the experiment if any active motor exceeds this displacement from its initial encoder position. Units are motor-shaft degrees, before any external gearing. Choose a bound within the mechanism's usable travel."),
                 ("Controller period", self.period, "Requested milliseconds between PID updates. Simulation aligns the interval with physics steps; the exact actual interval is retained in candidate exports. Match this interval in your robot code."),
                 ("Validation step (deg or RPM)", self.step_target, "A nonzero signed target. Position mode uses motor degrees relative to the initial position and must stay inside the travel bound. Velocity mode uses motor RPM."),
@@ -614,10 +640,13 @@ class TuningWindow(QMainWindow):
         actions = QHBoxLayout()
         self.characterize_button = self._button("Characterize in simulation", self._characterize, actions, True)
         self.reset_button = self._button("Reset simulation", self._reset, actions)
+        self.short_pulse_button = self._button("Short drivetrain pulse", self._short_drivetrain_pulse, actions)
+        apply_help(self.short_pulse_button, "Use a short drivetrain characterization", "Set a 2000 mV pulse for 0.2 seconds. This was tested on the default claw-bot X-drive in CPU PhysX at 120 Hz with a 180-degree travel bound. Check your own load and free space. The selected travel bound and validation interval are preserved; this button does not start motion.")
         apply_help(self.characterize_button, "Characterize mechanism", "Stop simulated user code and apply a bounded voltage pulse through the selected motor bindings. This begins a fresh capture without rebuilding the PROS workspace.")
         apply_help(self.reset_button, "Reset simulation", "Restore the applied robot and field starting state before repeating a trial. The current candidate gains are preserved so you can reset and then validate them.")
         layout.addLayout(actions)
         explanation = QLabel("Characterization captures a short voltage pulse and its return to coast. It stops at the travel bound. "
+                             "For the claw-bot X-drive, Short drivetrain pulse provides a starting trial without shortening PID validation. "
                              "Simulation reset rebuilds the applied starting scene. Return a physical robot to its start by hand before a repeat test.")
         explanation.setWordWrap(True)
         explanation.setObjectName("Muted")
@@ -724,8 +753,13 @@ class TuningWindow(QMainWindow):
         layout.addLayout(row)
         self.gain_label = QLabel("No candidate yet")
         self.gain_label.setObjectName("Title")
+        self.gain_label.setWordWrap(True)
         self.gain_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(self.gain_label)
+        self.gain_details = QLabel()
+        self.gain_details.setWordWrap(True)
+        self.gain_details.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self.gain_details)
         self.result_plot = ResponsePlot()
         layout.addWidget(self.result_plot, 1)
         self.report = QPlainTextEdit()
@@ -739,13 +773,43 @@ class TuningWindow(QMainWindow):
         layout.addWidget(note)
         self._add_scrollable_tab(page, "Tune / results")
 
+    def _guide_tab(self):
+        from .tuning_guide import GUIDES
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        heading = QLabel("PID tuning walkthrough")
+        heading.setObjectName("Title")
+        layout.addWidget(heading)
+        self.guide_topic = QComboBox()
+        self.guide_topic.setAccessibleName("Tuning walkthrough topic")
+        self.guide_topic.addItems(list(GUIDES))
+        layout.addWidget(self.guide_topic)
+        actions = QHBoxLayout()
+        for index, title in enumerate(("Open Setup", "Open Live capture", "Open Tune / results")):
+            self._button(title, lambda checked=False, tab=index: self.tabs.setCurrentIndex(tab), actions)
+        layout.addLayout(actions)
+        self.guide_text = QLabel()
+        self.guide_text.setTextFormat(Qt.TextFormat.RichText)
+        self.guide_text.setWordWrap(True)
+        self.guide_text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.guide_text.setAccessibleName("Step by step tuning instructions")
+        layout.addWidget(self.guide_text)
+        layout.addStretch()
+        self._add_scrollable_tab(page, "How to use")
+        self.guide_scroll = self.tabs.widget(self.tabs.count() - 1)
+        def show_topic(title):
+            self.guide_text.setText(GUIDES[title])
+            self.guide_scroll.verticalScrollBar().setValue(0)
+        self.guide_topic.currentTextChanged.connect(show_topic)
+        show_topic(self.guide_topic.currentText())
+
     def _target(self):
         return self.target_combo.currentData()
 
     def _options(self):
         return {"mode": self.mode_combo.currentData(), "controller_period_ms": self._actual_period_ms if self._actual_period_ms is not None else self.period.value(),
                 "step_target": self.step_target.value(), "voltage_mv": self.voltage.value(),
-                "output_limit_mv": self.voltage.value(), "duration_s": self.duration.value(),
+                "output_limit_mv": self.voltage.value(), "duration_s": self.validation_duration.value(),
                 "max_travel_deg": self.travel.value(), "large_error": self.large_error.value(),
                 "antiwind": self.antiwind.value()}
 
@@ -755,10 +819,11 @@ class TuningWindow(QMainWindow):
         busy = bool(self._jobs or self._experiment or self._reset_pending or self._capturing or self._closing)
         target = bool(self._target())
         for widget in (self.target_combo, self.axis_combo, self.refresh_button, self.add_button, self.edit_button,
-                       self.mode_combo, self.voltage, self.duration, self.travel, self.period, self.step_target,
+                       self.mode_combo, self.voltage, self.duration, self.validation_duration, self.travel, self.period, self.step_target,
                        self.large_error, self.antiwind, self.import_button, self.clear_button):
             widget.setEnabled(not busy)
         self.characterize_button.setEnabled(not busy and target and self.engine is not None)
+        self.short_pulse_button.setEnabled(not busy and (self._target() or {}).get("kind") in {"tank", "x_drive", "h_drive"})
         self.validate_button.setEnabled(not busy and target and self.engine is not None and self.result is not None)
         self.reset_button.setEnabled(not busy and self.engine is not None)
         self.record_button.setEnabled(not busy and target and self.engine is not None)
@@ -868,6 +933,9 @@ class TuningWindow(QMainWindow):
             self.console.raise_()
 
     def refresh_targets(self):
+        applied = getattr(self.parent(), "_applied_config", None)
+        if isinstance(applied, dict):
+            self.config = copy.deepcopy(applied)
         def work(cancel, progress):
             from .tuning_discovery import discover_targets
             return discover_targets(self.workspace, self.config)
@@ -920,6 +988,8 @@ class TuningWindow(QMainWindow):
             self.gain_label.setText("No candidate for this selection")
             self.report.clear()
             self.result_plot.set_series([])
+        if hasattr(self, "gain_details"):
+            self.gain_details.clear()
         self._sync_controls()
 
     def _mode_changed(self, *args):
@@ -1015,6 +1085,8 @@ class TuningWindow(QMainWindow):
 
     def _experiment_request(self, kind):
         request = copy.deepcopy(self.result["options"]) if kind == "validate" else self._options()
+        if kind == "characterize":
+            request["duration_s"] = self.duration.value()
         request.setdefault("voltage_mv", request.get("output_limit_mv", self.voltage.value()))
         request.update({"target": copy.deepcopy(self._target()), "axis": self.axis_combo.currentText(), "kind": kind})
         if kind == "validate":
@@ -1022,6 +1094,7 @@ class TuningWindow(QMainWindow):
         self._clear_capture(preserve_result=kind == "validate")
         self._capture_source = "simulation"
         self._experiment = True
+        self._experiment_kind = kind
         self._begin_operation("Starting " + kind + " experiment…")
         self.tabs.setCurrentIndex(1)
         self._sync_controls()
@@ -1029,6 +1102,11 @@ class TuningWindow(QMainWindow):
 
     def _characterize(self):
         self._experiment_request("characterize")
+
+    def _short_drivetrain_pulse(self):
+        self.voltage.setValue(2000)
+        self.duration.setValue(.2)
+        self.status.setText("Short trial: 2000 mV for 0.2 s. Check the travel bound and clear space, then Reset and Characterize.")
 
     def _validate(self):
         self._experiment_request("validate")
@@ -1038,6 +1116,8 @@ class TuningWindow(QMainWindow):
         if self._closing or self._hardware_active:
             return
         state = status.get("state")
+        was_experiment = self._experiment
+        limited = status.get("termination") == "travel_limit"
         engine_failure = bool(status.get("engine_failure"))
         # Reset also stops an old observer; that acknowledgement is not reset
         # completion and must not replace the active scene-rebuild feedback.
@@ -1052,8 +1132,16 @@ class TuningWindow(QMainWindow):
         if state in ("completed", "cancelled", "error", "idle"):
             self._experiment = False
             self._capturing = False
-            self._finish_progress(state == "completed")
+            self._finish_progress(state == "completed" and not limited)
         message = str(status.get("message", state or "Ready"))
+        if was_experiment and state in ("completed", "cancelled", "error") and getattr(self, "_experiment_kind", None) == "validate" and self.result:
+            self.result["simulation_validation"] = {
+                "status": "travel_limit" if limited else "completed_unassessed" if state == "completed" else state,
+                "message": message, "source": "simulation", "capture_id": self._capture_id,
+                "samples": len(self.samples), "physics_backend": self.config.get("physics_backend"),
+            }
+            self.gain_details.setText(gain_explanation(self.result))
+            self.report.setPlainText(json.dumps({key: value for key, value in self.result.items() if key != "validation"}, indent=2, default=str))
         if state == "error" and engine_failure:
             self._engine_failure_reported = True
             self._last_engine_error = message
@@ -1068,6 +1156,17 @@ class TuningWindow(QMainWindow):
         else:
             self.status.setText(message)
             self.console.append(message)
+        if was_experiment and limited:
+            validating = getattr(self, "_experiment_kind", None) == "validate"
+            recovery = ("The candidate validation stopped before completing its trial. Inspect individual wheel travel; an average encoder target can hide one wheel moving much farther. "
+                        "For position control, try a smaller Validation step (for example 90 to 30 motor degrees); for velocity, reduce the target RPM or Validation interval. "
+                        "Changing a setting requires finding a new candidate. Reset before retrying."
+                        if validating else
+                        "This capture ended at a motor's travel bound. The final zero-voltage sample is the stop command, not measured coast-down. "
+                        "For the demo X-drive, try Short drivetrain pulse, then Reset and Characterize. For other mechanisms, shorten the pulse or reduce voltage.")
+            self.errors.warning("Validation truncated" if validating else "Characterization stopped early",
+                                message + "\n\n" + recovery + "\n\nIncrease a travel bound only when the mechanism and field space permit it. See How to use for details.",
+                                "Termination: travel_limit\n" + message)
         self._sync_controls()
 
     def _reset(self):
@@ -1131,6 +1230,7 @@ class TuningWindow(QMainWindow):
         self.result = result
         gains = result.get("gains", {})
         self.gain_label.setText("Candidate · " + "   ".join(f"{key.upper()} {float(gains[key]):.5g}" for key in ("kp", "ki", "kd") if key in gains))
+        self.gain_details.setText(gain_explanation(result))
         self.report.setPlainText(json.dumps({key: value for key, value in result.items() if key != "validation"}, indent=2, default=str))
         validation = result.get("validation", {})
         times = validation.get("time", [])

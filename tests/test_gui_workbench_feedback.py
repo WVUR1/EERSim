@@ -20,6 +20,7 @@ class Engine(QObject):
     state = Signal(dict)
     reset_completed = Signal(dict)
     operation = Signal(dict)
+    configuration_applied = Signal(dict)
     log = Signal(str)
     built = Signal(str)
     failed = Signal(str)
@@ -61,6 +62,11 @@ window.show()
 app.processEvents()
 try:
     assert window.engine.calls and not window.console.isVisible()
+    assert window._applied_config is None
+    accepted_config = {'robot_urdf': 'accepted.urdf', 'motors': [{'port': 1, 'joint': 'wheel'}]}
+    window.engine.configuration_applied.emit(accepted_config)
+    accepted_config['motors'][0]['port'] = 2
+    assert window._applied_config['motors'][0]['port'] == 1
     assert not window.log_view.isVisible()
     assert window.log_view.parentWidget() is window.console.widget()
     window._log('Build detail retained while the console is hidden')

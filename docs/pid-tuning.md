@@ -6,6 +6,11 @@ Discovery, recording, response fitting, and candidate search do not rebuild the
 workspace. Simulation recording uses the existing PROS bridge; your source needs
 no logging calls.
 
+The **How to use** tab contains an offline walkthrough with four topics:
+simulation, physical hardware, settings explained, and troubleshooting/gain
+units. It includes concrete parameter-adjustment examples and links back to
+Setup, Live capture, and Tune / results. It is included in the installer.
+
 ![PID tuning lab showing candidate response curves](pid-tuning.png)
 
 The screenshot uses illustrative response data, not a physical-robot capture.
@@ -50,15 +55,23 @@ reliably. Unresolved definitions appear in the Setup notes. A source-resolved
 target confirms the declaration's syntax, not the connected robot. Simulation
 binding fallbacks and manual mappings are labelled separately.
 
+The supplied claw demo declares individual motors and a `drive()` mixer rather
+than a C++ XDrivetrain object. The tuner also offers **X-drive from robot mapping**
+from its imported wheel geometry and port bindings, with forward, turn, and
+strafe axes. This target is labelled as a robot mapping for verification; it
+does not imply that the source contains a drivetrain class. Use the complete
+drivetrain for a test on the floor: driving only one wheel can scrub against the
+other grounded wheels and produce a poor single-motor fit.
+
 ## Capture, tune, and validate in simulation
 
 1. Import the robot and map the selected motor ports to its joints in the main
    window, then **Apply settings**. Use **Reset simulation** in the tuning window
    when you need to return to the applied starting scene.
 2. In **Setup**, choose position or velocity control, controller period, voltage
-   limit, powered interval, travel limit, and validation step. Set the integral
+   limit, characterization pulse interval, travel limit, validation interval, and validation step. Set the integral
    activation error and integral limit to match the controller you intend to use.
-3. Click **Characterize in simulation**. This stops the robot program and manual
+3. For the demo X-drive, **Short drivetrain pulse** sets 2000 mV for 0.2 s while preserving the travel bound and the separate validation interval (2 s by default). This starting trial was verified in CPU PhysX at 120 Hz with a 180-degree bound. Check the mechanism and free space for your scene. Click **Characterize in simulation**. This stops the robot program and manual
    joint commands, then drives the selected axis through mapped motor ports with
    a bounded voltage pulse. The capture includes a stopped baseline and coast
    interval. The test ends if a selected motor reaches its travel limit.
@@ -72,10 +85,11 @@ binding fallbacks and manual mappings are labelled separately.
 6. Use **Export gains / report…** to save the candidate, controller settings,
    model, metrics, and prediction as JSON.
 
-To inspect existing robot code instead of running a generated pulse, choose
-**Live capture → Record live simulation**, then run the normal competition
-callbacks in the main window. Build changed source explicitly with **Build
-workspace** before the run. **Stop / cancel** ends capture; during a tuning
+To inspect existing robot code instead of running a generated pulse, first
+build changed source explicitly with **Build workspace** and wait for it to
+finish. Then choose **Live capture → Record live simulation** and start the
+normal competition callbacks in the main window. Building after arming
+capture stops that recording. **Stop / cancel** ends capture; during a tuning
 experiment it also disables the simulated motors. A new trial needs a new
 capture after Reset.
 
@@ -131,6 +145,14 @@ Drivetrain axes combine motor encoders; they are not odometry distance or IMU
 heading. Do not copy the numbers directly into an inches/metres path controller,
 a `move(-127…127)` controller, or VEX's onboard velocity/position controller.
 
+The result now displays gain units and the error at which its proportional
+term alone reaches the output cap. For example, `Kp = 202 mV/degree` requests
+2020 mV at 10 degrees of error; at a 3000 mV cap it saturates above about
+14.9 degrees. In volts that same gain is `0.202 V/degree`. A P-only candidate
+can be appropriate for a damped motor-position response, so zero Ki/Kd is not
+itself an error. Check model quality, saturation, settling and the actual
+validation trace before deciding whether a candidate is useful.
+
 The controller follows EERKit's derivative-of-error behavior. It accumulates
 `error × dt` only while the nonzero absolute error is below the activation
 threshold, otherwise resetting the integral. The configured integral limit
@@ -151,3 +173,38 @@ hardware validation. Spec-sheet motor curves do not identify a particular
 mechanism's friction, backlash, compliance, battery behavior, or load. Compare
 physical recordings and repeat representative loads and directions before
 relying on a candidate for the actual robot.
+
+## Recover from a failed trial
+
+Error dialogs include the failed measurements and concrete next steps. The
+**How to use → Troubleshooting and gain units** topic explains them in detail.
+
+- **Too short / travel limit:** fast drivetrain motors can consume a 180-degree
+  bound before enough data is collected. Shorten the powered interval (for
+  example 2 s to 0.5 s), reduce voltage (3000 to 1500 mV), or increase the bound
+  only after checking the mechanism's usable travel and clear field space.
+  These are adjustment examples, not calibrated presets. Keep room for coast.
+- **Poor fit:** check the full drivetrain's signed mapping, choose a clear start
+  pose, and keep the load consistent. A collision, hard stop or one-wheel scrub
+  can invalidate a simple motor model. Do not try to fix capture quality by
+  entering a larger PID gain.
+- **Encoder discontinuity:** inspect the reported timestamp, position change,
+  velocity-predicted change and per-port differences. Tare/reset during capture,
+  latency or sharp contact impulses can create inconsistent data. Export the
+  failed capture, reset before a new trial, and report a repeatable simulator
+  failure with its backend, physics rate and motor mapping.
+- **Missing voltage:** the claw demo uses velocity commands. Use Characterize
+  for fitting in simulation; passive recording of those commands still lets
+  you inspect movement but does not provide electrical voltage telemetry.
+
+Changing tuning settings invalidates the candidate. Reset alone preserves it,
+so reset before **Validate in simulation** to compare the full-scene response
+against the candidate's fitted-model prediction. A travel-limit stop now
+opens a warning and marks the exported candidate validation as truncated.
+Completing a trial is distinct from assessing its controller quality.
+
+The [0.1.10 verification](pid-tuning-0.1.10.md) records successful encoder
+correction and characterization, but both the tested 90-degree and 30-degree
+full-scene candidates hit an individual-wheel travel guard. A group-average
+response can hide unequal wheel motion; those gains are not validated
+settings for the demo drivetrain.

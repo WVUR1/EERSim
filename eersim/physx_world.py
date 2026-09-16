@@ -55,6 +55,13 @@ class PhysXAdapter:
         self.controls['wrenches'] = np.zeros((len(self.rows), 9), np.float32)
         self._applied_effort = {key: 0.0 for key in self.dofs}
         self._state = process.initial['state']
+        # The pinned PhysX runtime maps unlimited revolute joints to
+        # eREVOLUTE, whose q wraps by 4*pi at +/-2*pi. Keep an encoder winding
+        # count at completed ticks; physics itself retains its native q.
+        self._continuous_raw = {column: float(self._state['q'][0, column])
+                                for key, column in self.dofs.items()
+                                if self.joint_records[key]['type'] == 'continuous'}
+        self._continuous_offsets = {column: 0.0 for column in self._continuous_raw}
         self._invalidate_com_cache()
         self._invalidate_contact_index()
         self._shadow_dirty = True
@@ -143,7 +150,8 @@ class PhysXAdapter:
         key = (bodyUniqueId, jointIndex)
         if key in self.dofs:
             column = self.dofs[key]
-            return (float(self._state['q'][0, column]), float(self._state['qd'][0, column]),
+            position = float(self._state['q'][0, column]) + self._continuous_offsets.get(column, 0.0)
+            return (position, float(self._state['qd'][0, column]),
                     (0.0,) * 6, self._applied_effort[key])
         joint = self.joint_records[key]
         if joint['type'] == 'fixed':
@@ -372,6 +380,14 @@ class PhysXAdapter:
             self.applyExternalTorque(key[0], child, torque, bullet.WORLD_FRAME)
             self.applyExternalTorque(key[0], joint['parent_link_index'], -torque, bullet.WORLD_FRAME)
         self._state = self.process.call('step', self.controls)
+        for column, previous in self._continuous_raw.items():
+            current = float(self._state['q'][0, column])
+            # Native motor motion is continuous between adjacent physics
+            # ticks. Correct representation jumps, never individual reads or
+            # noisy/delayed sensor samples, and leave gear ratios to World.
+            period = 4 * math.pi
+            self._continuous_offsets[column] += period * round((previous - current) / period)
+            self._continuous_raw[column] = current
         self._invalidate_com_cache()
         self._invalidate_contact_index()
         for key, column in self.dofs.items():

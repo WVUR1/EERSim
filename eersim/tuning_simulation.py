@@ -33,6 +33,7 @@ class SimulationTuner:
         self.target = None
         self._session = None
         self.last_command = None
+        self.last_sample_time = -math.inf
 
     def _status(self, state, message, **extra):
         self.emit_status({"state": state, "message": message, **extra})
@@ -46,18 +47,24 @@ class SimulationTuner:
         self.capture_id = uuid.uuid4().hex
         self.next_sample = -math.inf
         self.last_command = None
+        self.last_sample_time = -math.inf
         session.motor_observer = self.observe if enabled else None
         self._status("capturing" if enabled else "idle", "Recording PROS motor commands and feedback" if enabled else "Motor capture stopped", capture_id=self.capture_id)
 
-    def observe(self, snapshot, commands):
+    def observe(self, snapshot, commands, *, termination=None):
         now = float(snapshot["time"])
         selected = {str(abs(p)) for p in self.target["ports"]} if self.target else set(snapshot.get("motors", {}))
         signature = tuple((port, commands.get("motors", {}).get(port, {}).get("mode", "voltage"),
                            commands.get("motors", {}).get(port, {}).get("value", 0)) for port in sorted(selected))
         # Record command edges even between nominal samples. Otherwise the
         # identification model would apply a pulse at the wrong timestamp.
-        if self.capturing and (now + 1e-10 >= self.next_sample or signature != self.last_command):
+        terminal_due = termination is not None and now > self.last_sample_time
+        if self.capturing and (now + 1e-10 >= self.next_sample or signature != self.last_command or terminal_due):
+            if termination is not None and now <= self.last_sample_time:
+                return  # A terminal callback must not duplicate a capture timestamp.
             sample = motor_sample(snapshot, commands, self.capture_id)
+            if termination is not None:
+                sample["termination"] = termination
             if self.target:
                 sample["motors"] = {p: row for p, row in sample["motors"].items() if p in selected}
             if self.active and self.request.get("kind") == "validate":
@@ -68,6 +75,7 @@ class SimulationTuner:
             self.emit_sample(sample)
             self.next_sample = now + self.sample_period
             self.last_command = signature
+            self.last_sample_time = now
 
     def experiment(self, session, request):
         target, axis = request["target"], request["axis"]
@@ -108,6 +116,7 @@ class SimulationTuner:
         self.capture_id = uuid.uuid4().hex
         self.next_sample = -math.inf
         self.last_command = None
+        self.last_sample_time = -math.inf
         self.sample_period = ticks * session.dt
         self.active = self.capturing = True
         self._session = session
@@ -123,11 +132,22 @@ class SimulationTuner:
         for port, initial in self.initial_positions.items():
             current = sample["motors"][str(abs(port))]["position_deg"]
             if abs(current-initial) >= self.options["max_travel_deg"]:
-                self.cancel(session, "Travel limit reached; motors disabled", state="completed")
+                # Record the measured stopping boundary and immediate zero
+                # command. This endpoint is not a measured coast-down phase.
+                message = "Travel limit reached; motors disabled"
+                if self.request["kind"] == "characterize":
+                    message += ". Characterization was truncated; a complete coast-down was not recorded. Use a lower voltage or a safe larger travel allowance, then retry."
+                try:
+                    self.observe(snapshot, {"motors": {}}, termination="travel_limit")
+                finally:
+                    # A failed log/capture consumer cannot bypass the stop.
+                    self.cancel(session, message, state="completed", termination="travel_limit")
                 return session.state(snapshot)
         if elapsed >= duration + .8 - 1e-10:
-            self.observe(snapshot, {"motors": {}})
-            self.cancel(session, "Experiment complete; motors disabled", state="completed")
+            try:
+                self.observe(snapshot, {"motors": {}}, termination="duration")
+            finally:
+                self.cancel(session, "Experiment complete; motors disabled", state="completed", termination="duration")
             return session.state(snapshot)
         value = 0.
         if .3 <= elapsed < .3 + duration:
@@ -151,7 +171,7 @@ class SimulationTuner:
         observed = session.world.step(commands)
         return session.state(observed if observed is not None else session.world.snapshot())
 
-    def cancel(self, session=None, message="Tuning stopped", *, state="cancelled"):
+    def cancel(self, session=None, message="Tuning stopped", *, state="cancelled", termination=None):
         was_active = self.active
         self.active = self.capturing = False
         owned = session or self._session
@@ -161,4 +181,4 @@ class SimulationTuner:
                 owned.world.disable()
                 owned.paused = True
         self._session = None
-        self._status(state, message)
+        self._status(state, message, **({"termination": termination} if termination is not None else {}))

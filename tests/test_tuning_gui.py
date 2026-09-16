@@ -9,7 +9,7 @@ import textwrap
 
 import pytest
 
-from eersim.tuning_gui import TuningWindow, project_samples, _error_feedback
+from eersim.tuning_gui import TuningWindow, project_samples, _error_feedback, gain_explanation
 
 
 def sample(time, position, source="simulation", capture_id="a"):
@@ -69,6 +69,26 @@ def test_hardware_dependency_and_capture_errors_include_recovery_steps():
     assert "Building telemetry workspace" in details
     title, message, _ = _error_feedback("Voltage telemetry is unavailable", "Searching candidate PID gains")
     assert "Capture" in title and "fresh continuous trial" in message and "Characterize" in message
+
+
+def test_gain_units_and_clipping_are_explained_in_selected_controller_units():
+    result = {"gains": {"kp": 202, "ki": 0, "kd": 0},
+              "options": {"mode": "position", "output_limit_mv": 3000}}
+    text = gain_explanation(result)
+    assert "mV/degree" in text and "14.9 degree" in text and "proportional-only" in text
+    result["options"]["mode"] = "velocity"
+    result["gains"]["ki"] = 2
+    text = gain_explanation(result)
+    assert "mV/RPM" in text and "14.9 RPM" in text and "proportional-only" not in text
+    result["simulation_validation"] = {"status": "travel_limit"}
+    assert "VALIDATION TRUNCATED" in gain_explanation(result)
+
+
+def test_detailed_fit_error_preserves_specific_recovery_and_points_to_guide():
+    raw = "Response fit is unreliable: R²=0.2.\n\nTry next: select the full X-drive and reduce the pulse duration."
+    title, message, details = _error_feedback(raw, "Searching candidate PID gains")
+    assert raw in message and "How to use" in message and "X-drive" in details
+    assert "different tuning trial" in title
 
 
 def test_engine_failure_defers_popup_to_parent_workbench():
@@ -187,9 +207,22 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
             assert page.widgetResizable() and page.widget() is not None
             assert window.height() == 700
         window.tabs.setCurrentIndex(0)
+        assert window.tabs.tabText(3) == "How to use"
+        assert window.guide_topic.count() == 4
+        window.tabs.setCurrentIndex(3)
+        for topic in range(window.guide_topic.count()):
+            window.guide_topic.setCurrentIndex(topic)
+            app.processEvents()
+            assert window.guide_text.text() and window.guide_text.hasHeightForWidth()
+            assert window.height() == 700
+        window.guide_topic.setCurrentIndex(1)
+        assert "Stopping recording does not stop the physical robot" in window.guide_text.text()
+        window.guide_topic.setCurrentIndex(2)
+        assert "integral" in window.guide_text.text() and "20 ms" in window.guide_text.text()
+        window.tabs.setCurrentIndex(0)
         assert window.console.isHidden()
         assert window.hardware_log is window.console.editor
-        for name in ("target_combo", "axis_combo", "mode_combo", "voltage", "duration", "travel", "period",
+        for name in ("target_combo", "axis_combo", "mode_combo", "voltage", "duration", "validation_duration", "travel", "period",
                      "step_target", "large_error", "antiwind", "slot", "hardware_port", "cli_path"):
             assert getattr(window, name).property("settingHelp"), name
         assert len([button for button in window.findChildren(QToolButton) if button.objectName() == "SettingHelp"]) >= 13
@@ -199,6 +232,7 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
         assert window.console.isFloating()
         window.console.hide()
         assert window.characterize_button.isEnabled()
+        assert not window.short_pulse_button.isEnabled()
         assert not window.isModal()
         window._characterize()
         assert window.busy and not window.characterize_button.isEnabled()
@@ -211,6 +245,22 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
         engine.tuning_status.emit({"state": "completed", "kind": "characterize", "message": "Finished"})
         assert len(window.samples) == 4 and not window.busy
         assert window.tune_button.isEnabled()
+        # Pulse duration is separate from the PID search/validation horizon.
+        drive = discovery.make_target("X-drive", "x_drive", [1, 2, 3, 4])
+        window.targets.append(drive)
+        window._populate_targets(drive["id"])
+        assert window.short_pulse_button.isEnabled()
+        window.short_pulse_button.click()
+        assert window.voltage.value() == 2000 and window.duration.value() == .2
+        assert window.validation_duration.value() == 2 and window.travel.value() == 180
+        assert window._options()["duration_s"] == 2
+        window._characterize()
+        assert engine.calls[-1][1]["duration_s"] == .2
+        assert not window.short_pulse_button.isEnabled()
+        engine.tuning_status.emit({"state": "completed", "message": "Short trial"})
+        window._populate_targets(target["id"])
+        window.voltage.setValue(3000)
+        window.duration.setValue(2)
         exact_period = 1000 / 48
         engine.tuning_status.emit({"state": "completed", "controller_period_ms": exact_period})
         assert window._options()["controller_period_ms"] == exact_period
@@ -264,6 +314,7 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
         window._tune()
         pump(lambda: not window._jobs, 10)
         assert window.result and all(key in window.result["gains"] for key in ("kp", "ki", "kd"))
+        assert "mV/degree" in window.gain_details.text() and "saturates" in window.gain_details.text()
         assert window.progress.value() == 100
         assert window.validate_button.isEnabled()
         saved_options = dict(window.result["options"])
@@ -282,9 +333,15 @@ def test_qt_window_discovery_experiment_reset_worker_cancel_and_reopen(tmp_path)
         window._update_plot()
         assert [series[0] for series in window.capture_plot._series] == ["Recorded response", "Controller target"]
         assert window.capture_plot._series[1][1][-1][1] == 90
-        engine.tuning_status.emit({"state": "completed", "kind": "validate", "message": "Validated"})
+        engine.tuning_status.emit({"state": "completed", "kind": "validate", "termination": "travel_limit", "message": "Motor 1 travel limit reached"})
+        assert window.result["simulation_validation"]["status"] == "travel_limit"
+        assert "VALIDATION TRUNCATED" in window.gain_details.text()
+        assert window.progress.value() == 0
+        assert window.errors._dialog and "Validation step" in window.errors._dialog.text()
+        window.errors.dismiss()
         window.period.setValue(30)
         assert window.result is None and not window.validate_button.isEnabled()
+        assert not window.gain_details.text()
 
         # Exercise GUI hardware sequencing with test doubles, without building,
         # uploading or opening a serial port. Stop logging never commands motors.
