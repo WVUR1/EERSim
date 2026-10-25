@@ -1,7 +1,8 @@
 # EER SIM · WVU Autonomy Lab
 
 A standalone desktop hub for running EERKit/PROS robot source against an articulated robot
-in a 3D physics field. Choose Bullet CPU or PhysX CUDA/CPU physics in the PySide6
+in a 3D physics field. MuJoCo CPU is the default physics engine; Bullet CPU and
+PhysX CUDA/CPU remain selectable for comparisons in the PySide6
 desktop; VTK/OpenGL independently renders the field and robot preview. The same
 VEX motor and sensor model connects each physics backend to a native C++ process
 running the workspace's existing PROS competition callbacks.
@@ -15,12 +16,18 @@ is reported separately in the [validation notes](docs/validation.md).
 
 ## Start here
 
-Download **EERSim-Setup-x64.exe** from the private
+Download **EERSim-Setup-x64.exe** from the
 [published Windows previews](https://github.com/WVUR1/EERSim/releases).
-It bundles Python, the PhysX GPU runtime, simulator dependencies, default robots
+It bundles Python, MuJoCo, the optional PhysX GPU runtime, simulator dependencies, default robots
 and fields, and the native robot compiler. It installs for your Windows account
-without administrator privileges; a desktop shortcut is optional. This private
+without administrator privileges; a desktop shortcut is optional. This preview
 build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
+Version 0.1.11 switches the default **Auto** selection to MuJoCo CPU and keeps
+Bullet and PhysX available explicitly. Saved profiles with an explicit engine
+choice retain it. Use the default 240 Hz for frictional grasps; 120 Hz can
+allow enough grip drift to miss a placement. See [MuJoCo setup and model limits](docs/mujoco.md)
+and [measured performance and validation](docs/performance-0.1.11.md).
+
 Version 0.1.10 improves drivetrain tuning diagnostics and discovers the demo
 claw bot's X-drive from its robot mapping. The PID tuner's **How to use** tab
 provides offline simulation/hardware walkthroughs, detailed parameter guidance,
@@ -101,16 +108,35 @@ same environment:
 
 In an activated Conda or virtual environment, use `python -m pip install -e
 ".[gpu]"`. This pins `ovphysx==0.5.11`, `ovstage==0.1.1.355824`, and
-`scipy==1.16.3`. Source installs without these packages use Bullet under the
-default **Auto** physics selection. CUDA requires an NVIDIA GPU with compute
+`scipy==1.16.3`. The default **Auto** physics selection uses MuJoCo CPU, independently of
+GPU graphics. These optional packages are only needed for explicit PhysX selections. CUDA requires an NVIDIA GPU with compute
 capability 7.0 or newer and a driver exposing CUDA 12.8 or newer; the application
 checks both. See [physics backends](docs/gpu-physics.md) for device selection and
 the current validation limits.
 
-### Try the measured CPU settings
+### MuJoCo physics
+
+The source default **Field → Physics engine → Auto · MuJoCo CPU** uses MuJoCo
+for motion and collisions. Select **MuJoCo · CPU** explicitly to report a model
+or dependency error instead of falling back to Bullet. Existing profiles with
+an explicit Bullet/PhysX selection retain that choice; select MuJoCo and click
+**Apply settings** to switch. GPU graphics remain independent.
+
+Run a headless claw trial from an activated simulator environment:
+
+```sh
+python -m eersim --headless --demo claw --physics-backend mujoco --seconds 30
+```
+
+See [MuJoCo integration and model limits](docs/mujoco.md). The physics engine
+uses a fixed timestep independent of rendering FPS. Robot setup previews also
+use MuJoCo; the VEX cartridge model, PROS callbacks, tuning and replay workflows
+remain shared.
+
+### Historical PhysX CPU measurements
 
 The measured server CPU configuration can be selected directly in **Field**:
-choose **Physics engine → PhysX · CPU**, **PhysX CPU workers · advanced → 0 · inline**,
+choose **Physics engine → PhysX · CPU**, **Physics CPU workers · advanced → 0 · inline**,
 **Fixed physics rate → 120 Hz**, and **Solver iterations · advanced → 100**.
 Click **Apply settings**. The default worker count remains two; a higher worker
 count is not necessarily faster. Graphics can remain on GPU independently.
@@ -356,7 +382,8 @@ exposes direct coordinates to Python experiments and other odometry adapters.
 
 | Selection | Behavior |
 | --- | --- |
-| Auto · CUDA when available | Tries PhysX CUDA; uses Bullet if dependencies, the device, or scene initialization are unavailable. The reason is shown in Field, Telemetry, and the log. |
+| Auto · MuJoCo CPU | Uses MuJoCo CPU; reports a Bullet fallback if the dependency or scene initialization fails. |
+| MuJoCo · CPU | Requires the pinned MuJoCo runtime; initialization errors stop the load. |
 | Bullet · CPU | Uses the existing Bullet solver. |
 | PhysX · NVIDIA CUDA | Requires the selected CUDA device and runtime; initialization errors stop the load instead of changing engines. |
 | PhysX · CPU | Uses PhysX CPU dynamics and requires the same PhysX runtime packages. |
@@ -399,14 +426,15 @@ passive benchmark with geometry and joint audits. Its A100 timings exclude PROS,
 motors, tire forces, sensors, and rendering. They are historical prototype
 measurements, not performance results for this integrated backend.
 
-Both engines use a **240 Hz** fixed timestep by default, independent of display FPS.
+All engines use a **240 Hz** fixed timestep by default, independent of display FPS.
 Rendering never increases the timestep or discards pending physics steps. When
 a machine cannot keep up, the simulation runs slower than wall time; slow
 individual ticks or frames can also reduce viewport smoothness. The GUI
 reports real-time factor and backlog.
 PROS delays, timestamps, and competition timers use the same simulation clock.
 **Solver iterations · advanced** defaults to 100. It controls Bullet's iteration
-limit or PhysX TGS position iterations; PhysX velocity iterations remain 1.
+limit, MuJoCo's Newton iteration limit, or PhysX TGS position iterations;
+PhysX velocity iterations remain 1.
 Reducing the count changes solver convergence, and equal counts across engines
 do not imply equivalent numerical behavior.
 
@@ -525,7 +553,7 @@ from eersim.physics_backend import create_world
 
 def main():
     config = default_config()
-    config["physics_backend"] = "physx_gpu"  # or "bullet" / "physx_cpu" / "auto"
+    config["physics_backend"] = "physx_gpu"  # or "mujoco" / "bullet" / "physx_cpu" / "auto"
     with create_world(config) as world:
         for _ in range(240):
             observation = world.step({

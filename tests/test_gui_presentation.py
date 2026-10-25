@@ -197,3 +197,14 @@ def test_busy_gui_receives_only_newest_frame_for_each_generation():
     assert obj.scene.frames == [99]
     gui.Workbench._on_live_frame(obj, token)
     assert obj.scene.frames == [99]
+
+
+def test_mujoco_exposes_cpu_workers_and_disables_cuda_without_losing_saved_values():
+    obj = widgets()
+    for backend in ("auto", "mujoco"):
+        gui.Workbench._fill_widgets(obj, {"physics_backend": backend,
+                                         "physics_device": 2, "physics_cpu_threads": 8})
+        assert not obj.physics_device.enabled
+        assert obj.physics_cpu_threads.enabled
+        assert obj.physics_device.value() == 2
+        assert obj.physics_cpu_threads.value() == 8

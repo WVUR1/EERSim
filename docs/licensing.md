@@ -30,7 +30,15 @@ permission to relicense those materials or remove their notices.
 
 The Windows bundle retains dependency metadata and license files under
 `_internal`, including the PhysX notices in `eersim/_native/physx` and the
-compiler's own distribution notices. The included [Qt/PySide notices](notices/qt-pyside6.md)
+compiler's own distribution notices. MuJoCo 3.17.0 retains its Apache-2.0
+license and third-party notices under `mujoco-3.17.0.dist-info/licenses`;
+metadata and license files for its runtime dependencies are also included.
+The [PyOpenGL 3.1.10 notice](notices/PyOpenGL-3.1.10-license.txt) is supplied
+separately because its wheel omits the main license text. Its pinned source
+and checksum are recorded in [notice provenance](notices/license-sources.json).
+The `etils[epath]` dependency notices for `fsspec`, `typing_extensions`, and
+`zipp` are retained in their `_internal/*.dist-info/licenses` directories.
+The included [Qt/PySide notices](notices/qt-pyside6.md)
 provide the LGPL/GPL texts, matching source links, and library replacement instructions. Source distributions retain the original
 notices alongside included code. See [asset provenance](../assets/README.md)
 for the source of field models. Check the relevant owner's terms before

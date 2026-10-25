@@ -49,3 +49,7 @@ __pycache__/
 Thumbs.db
 Desktop.ini
 /Microsoft/Windows/PowerShell/ModuleAnalysisCache
+
+# Local benchmark captures (curated summaries live in docs/)
+/results/
+/MUJOCO_LOG.TXT

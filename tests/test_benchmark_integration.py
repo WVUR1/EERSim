@@ -11,6 +11,13 @@ _spec = importlib.util.spec_from_file_location(
     "integration_benchmark", Path(__file__).resolve().parents[1] / "tools" / "benchmark_integration.py")
 benchmark = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(benchmark)
+_real_hardware_metadata = benchmark.hardware_metadata
+
+
+@pytest.fixture(autouse=True)
+def no_hardware_queries(monkeypatch):
+    monkeypatch.setattr(benchmark, "hardware_metadata", lambda backend, device: {
+        "cpu": {"model": "test CPU"}, "selected_backend": backend, "selected_device": device})
 
 
 class FakeWorld:
@@ -103,6 +110,35 @@ def workspace(tmp_path):
     (folder / "src/main.cpp").write_text("void autonomous() {}\n")
     (folder / "include/main.h").write_text("void autonomous();\n")
     return folder
+
+
+@pytest.mark.parametrize('value', ['-1', '1025', '2.5', 'auto'])
+def test_cpu_worker_argument_rejects_invalid_values_before_running(tmp_path, value):
+    with pytest.raises(SystemExit) as exc:
+        arguments(tmp_path, '--cpu-threads', value)
+    assert exc.value.code == 2
+
+
+@pytest.mark.parametrize('requested, expected', [(None, 8), (0, 0), (4, 4), (1024, 1024)])
+def test_cpu_worker_override_preserves_omitted_profile_and_passes_explicit_values(tmp_path, requested, expected):
+    extra = [] if requested is None else ['--cpu-threads', str(requested)]
+    worlds = []
+    def create(config):
+        worlds.append(FakeWorld(config))
+        return worlds[-1]
+    report = benchmark.execute(arguments(tmp_path, '--no-pros', *extra),
+                               config={'physics_cpu_threads': 8}, world_factory=create)
+    assert report['status'] == 'passed'
+    assert worlds[0].config['physics_cpu_threads'] == expected
+    assert report['config']['physics_cpu_threads'] == expected
+    assert report['request']['cpu_threads'] == requested
+
+
+def test_invalid_programmatic_worker_count_is_rejected_before_world_creation(tmp_path):
+    args = arguments(tmp_path, '--no-pros')
+    args.cpu_threads = True
+    with pytest.raises(ValueError, match='physics_cpu_threads'):
+        benchmark.execute(args, config={}, world_factory=lambda _: pytest.fail('World must not be created'))
 
 
 @pytest.mark.parametrize("hz", [120, 240])
@@ -439,3 +475,106 @@ def test_invalid_native_diagnostic_interval_rejected_before_start(tmp_path, valu
 def test_bullet_cannot_silently_ignore_requested_native_activity(tmp_path):
     with pytest.raises(ValueError, match='require PhysX'):
         benchmark.execute(arguments(tmp_path, '--diagnostics-seconds', '1'), config={})
+
+
+@pytest.mark.parametrize('hz', [120, 240])
+def test_mujoco_fixed_step_native_smoke_records_hardware_and_backend(tmp_path, hz):
+    folder = workspace(tmp_path)
+    args = arguments(tmp_path, '--backend', 'mujoco', '--physics-hz', str(hz))
+    report = benchmark.execute(args, config={'workspace': str(folder)}, session_factory=FakeSession,
+                               builder=lambda *_: folder / 'native')
+    assert report['status'] == 'passed', report.get('error')
+    assert report['physics']['backend'] == 'mujoco'
+    assert not report['physics']['hardware_accelerated']
+    assert report['hardware']['selected_backend'] == 'mujoco'
+    assert report['steps']['competition'] == 6
+    assert report['simulation_seconds']['competition'] == 6 / hz
+    assert report['checks']['source_unchanged']
+    assert len(report['benchmark_source_sha256']) == 64
+    assert report['timing_seconds']['hardware_inventory'] >= 0
+
+
+def test_mujoco_does_not_accept_fallback_gpu_or_wrong_solver_budget():
+    benchmark.validate_backend({'backend': 'mujoco', 'hardware_accelerated': False,
+                                'solver_iterations': 100}, 'mujoco', 100)
+    for status in ({'backend': 'bullet', 'hardware_accelerated': False, 'solver_iterations': 100},
+                   {'backend': 'mujoco', 'hardware_accelerated': True, 'solver_iterations': 100},
+                   {'backend': 'mujoco', 'hardware_accelerated': False, 'solver_iterations': 32}):
+        with pytest.raises(benchmark.ValidationError):
+            benchmark.validate_backend(status, 'mujoco', 100)
+
+
+def test_missing_inventory_retains_valid_physics_result(tmp_path, monkeypatch):
+    def unavailable(*args):
+        raise OSError('Inventory unsupported')
+    monkeypatch.setattr(benchmark, 'hardware_metadata', unavailable)
+    report = benchmark.execute(arguments(tmp_path, '--no-pros', '--backend', 'mujoco'),
+                               config={}, world_factory=FakeWorld)
+    assert report['status'] == 'passed'
+    assert report['hardware']['status'] == 'unavailable'
+    assert 'Inventory unsupported' in report['hardware']['error']
+
+
+def test_inventory_identifies_mujoco_without_importing_native_engine(monkeypatch):
+    from eersim import diagnostic_hardware
+    calls = []
+    def inventory(**kwargs):
+        calls.append(kwargs)
+        return {'runtime_versions': {}, 'cpu': {}}
+    monkeypatch.setattr(diagnostic_hardware, 'system_info', inventory)
+    def distribution(name):
+        if name == 'mujoco':
+            return '3.17.0'
+        raise benchmark.metadata.PackageNotFoundError(name)
+    monkeypatch.setattr(benchmark.metadata, 'version', distribution)
+    monkeypatch.setattr(benchmark.os, 'sched_getaffinity', lambda _: {0, 1}, raising=False)
+    result = _real_hardware_metadata('mujoco', 0)
+    assert calls == [{'logical_device': None}]
+    assert result['runtime_versions'] == {'mujoco': '3.17.0', 'mujoco-warp': None, 'warp-lang': None}
+    assert result['cpu']['process_affinity_logical_cores'] == 2
+
+
+def test_passive_tool_uses_requested_engine_and_authoritative_contact_api(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from eersim import physics_backend
+    spec = importlib.util.spec_from_file_location('passive_benchmark',
+        Path(__file__).resolve().parents[1] / 'tools' / 'benchmark_physics.py')
+    passive = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(passive)
+    monkeypatch.setattr(passive, 'hardware_metadata', lambda *args: {'test': True})
+    worlds = []
+    class PassiveWorld(FakeWorld):
+        def __init__(self, config):
+            super().__init__(config)
+            self.config = SimpleNamespace(robot_urdf='robot.urdf', physics_hz=config['physics_hz'],
+                                          physics_solver_iterations=config['physics_solver_iterations'],
+                                          physics_cpu_threads=config.get('physics_cpu_threads'))
+            self.dt = 1 / self.config.physics_hz
+            self.game = {'name': 'test scene'}
+            self._dynamic_field_bodies = {42}
+            self.contact_queries = 0
+        def step(self, commands=None):
+            return super().step(commands)
+        def getContactPoints(self, **kwargs):
+            self.contact_queries += 1
+            assert kwargs == {'physicsClientId': self.client}
+            assert self.tick == 5  # one prepared + one warmup + three measured
+            return [object(), object()]
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            self.close()
+    def create(config):
+        worlds.append(PassiveWorld(config))
+        return worlds[-1]
+    monkeypatch.setattr(physics_backend, 'create_world', create)
+    output = tmp_path / 'passive.json'
+    assert passive.main(['--backend', 'mujoco', '--physics-hz', '120', '--iterations', '100',
+                         '--cpu-threads', '4', '--ticks', '3', '--warmup', '1', '--json', str(output)]) == 0
+    report = json.loads(output.read_text())
+    assert report['physics']['backend'] == 'mujoco'
+    assert report['contact_points'] == 2
+    assert report['simulated_seconds'] == 3 / 120
+    assert report['prepared_world_time'] == 1 / 120
+    assert worlds[0].contact_queries == 1 and worlds[0].closed
+    assert worlds[0].config.physics_cpu_threads == 4

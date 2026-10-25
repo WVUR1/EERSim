@@ -1,8 +1,13 @@
 # Windows installer and EXE builds
 
-The Windows installer contains Python, PySide6, PyBullet, VTK, PhysX/OVStage, SciPy, default robots and
+The Windows installer contains Python, PySide6, MuJoCo, PyBullet, VTK, PhysX/OVStage, SciPy, default robots and
 fields, and the desktop LLVM-MinGW compiler for selected PROS workspaces.
-Published builds are available in the [private releases](https://github.com/WVUR1/EERSim/releases).
+Published builds are available in the [releases](https://github.com/WVUR1/EERSim/releases).
+Version 0.1.11 uses MuJoCo CPU for **Auto** and the motor setup preview.
+Explicit Bullet and PhysX profiles remain available. See the
+[MuJoCo integration and model limits](mujoco.md) and
+[0.1.11 measurements and validation](performance-0.1.11.md).
+
 Version 0.1.10 includes the PID tuner's offline **How to use** walkthrough,
 robot-mapping drivetrain discovery, detailed capture errors, and gain-unit
 explanations. It fixes PhysX continuous motor-encoder wrapping and passive
@@ -37,8 +42,8 @@ See the [capture analysis](diagnostics-4070ti-followup.md) and [validation](vali
 CUDA physics requires an NVIDIA GPU with compute capability 7.0 or newer and a
 driver exposing CUDA 12.8 or newer. The x64 PhysX wheel also requires an
 AVX-capable CPU. A separate CUDA toolkit or Isaac Sim installation is unnecessary.
-**Field → Physics engine** defaults to **Auto**, which reports its reason when
-falling back to Bullet. Explicit **PhysX · NVIDIA CUDA** selection fails visibly
+**Field → Physics engine** defaults to **Auto · MuJoCo CPU**, which reports its
+reason if MuJoCo fails to load and it falls back to Bullet. Explicit **PhysX · NVIDIA CUDA** selection fails visibly
 if unavailable. **Graphics renderer** is an independent setting; OpenGL support
 alone does not imply CUDA physics. See [backend details](gpu-physics.md).
 
@@ -51,7 +56,7 @@ Uninstall removes installed program files and shortcuts, while preserving
 `%LOCALAPPDATA%\EERSim` user data and external robot projects, designs, and maps.
 Keep custom files in your own folders, outside the installation directory.
 
-Current private previews are **unsigned** because the organization has no
+Current previews are **unsigned** because the organization has no
 code-signing certificate. Windows may show an unknown-publisher warning. These
 artifacts must not be described as signed or verified-publisher releases.
 
@@ -113,11 +118,11 @@ It keeps the camera and does not build code or apply pending edits.
 actions are disabled during that work. Complex scenes and PhysX initialization
 can still take several seconds.
 
-**Field → PhysX CPU workers · advanced** selects host task workers, including
-CPU work used by CUDA physics. The default is two; zero runs tasks inline.
+**Field → Physics CPU workers · advanced** selects native MuJoCo workers or
+PhysX host task workers, including CPU work used by CUDA physics. The default is two; zero runs tasks inline.
 The control offers the detected CPU count and preserves a larger saved count.
 More workers do not necessarily improve performance. `EERSIM_PHYSX_THREADS`,
-when set, overrides this profile/GUI value. Fixed physics steps and PROS callbacks
+when set, overrides this profile/GUI value for PhysX only. Fixed physics steps and PROS callbacks
 remain ordered regardless of worker count.
 
 **Telemetry** reports completed live rendering FPS in wall time, independently
@@ -151,9 +156,11 @@ The wrapper runs `build.ps1 -Layout Directory -SkipArchive`, then packages the
 complete directory payload with Inno Setup. Output is
 `dist/windows-installer/EERSim-Setup-x64.exe`, its `.sha256` checksum, and
 `build-manifest.json`. Generated files remain ignored by Git; publish them as
-private release assets, which support files larger than Git's normal limit.
+release assets, which support files larger than Git's normal limit.
 
-`packaging/requirements-build.txt` installs the GPU runtime by default:
+The project dependency pins `mujoco==3.17.0`; the bundle collects its native
+library, Python extensions, resources, metadata and license notices.
+`packaging/requirements-build.txt` also installs the GPU runtime by default:
 `ovphysx==0.5.11`, `ovstage==0.1.1.355824`, and `scipy==1.16.3`. It also pins
 `packaging==23.2` and `wheel==0.45.1` to keep the runtime and build-tool dependency
 requirements compatible. The spec preserves the complete NVIDIA package trees,

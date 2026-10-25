@@ -11,7 +11,7 @@ import sys
 
 from PyInstaller.building.datastruct import Tree
 from PyInstaller.compat import is_pure_conda
-from PyInstaller.utils.hooks import collect_submodules, copy_metadata
+from PyInstaller.utils.hooks import collect_submodules, copy_metadata, collect_all
 
 
 if sys.platform != "win32":
@@ -50,12 +50,17 @@ for name in ("README.md", "environment.yml", "LICENSE", "LICENSE.txt", "LICENSE.
         datas.append((str(checkout / name), "."))
 
 # Include package metadata and its license files, also useful for diagnostics.
-for distribution in ("eerkit-simulator", "numpy", "pybullet", "PySide6",
+for distribution in ("eerkit-simulator", "numpy", "mujoco", "pybullet", "PySide6",
                      "PySide6_Essentials", "PySide6_Addons", "shiboken6", "vtk",
-                     "ovphysx", "ovstage", "scipy", "packaging"):
-    datas += copy_metadata(distribution)
+                     "ovphysx", "ovstage", "scipy", "packaging",
+                     "fsspec", "typing_extensions", "zipp"):
+    datas += copy_metadata(distribution, recursive=(distribution == "mujoco"))
 
-binaries = []
+# MuJoCo loads its native library and resource files at runtime.
+# Collect them explicitly so directory and one-file distributions work offline.
+mujoco_datas, mujoco_binaries, mujoco_hiddenimports = collect_all("mujoco")
+datas += mujoco_datas
+binaries = mujoco_binaries
 if is_pure_conda:
     from PyInstaller.utils.hooks import conda_support
     # PyBullet's runtime dependencies live outside its .pyd directory. NumPy's
@@ -78,7 +83,7 @@ if is_pure_conda:
 # OpenGL backend registration and app modules also used by helper invocations
 # must survive import analysis even though they are loaded lazily.
 gpu_payload, gpu_hiddenimports = runpy.run_path(str(packaging / "gpu_payload.py"))["collect_gpu_payload"]()
-hiddenimports = collect_submodules("eersim") + gpu_hiddenimports + [
+hiddenimports = collect_submodules("eersim") + gpu_hiddenimports + mujoco_hiddenimports + [
     "PySide6.QtCore", "PySide6.QtGui", "PySide6.QtWidgets",
     "vtk", "vtkmodules.util.numpy_support", "vtkmodules.vtkRenderingOpenGL2",
     "vtkmodules.vtkInteractionStyle", "pygame",

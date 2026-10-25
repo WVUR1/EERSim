@@ -1,8 +1,9 @@
 # Physics backends
 
-The source application connects both Bullet and PhysX to the same native PROS
+The source application defaults to MuJoCo CPU and also connects Bullet and PhysX to the same native PROS
 callbacks, VEX cartridge/gearing model, contact-dependent omni-wheel forces,
-pneumatics, and sensor noise/latency model. PhysX supplies the live rigid-body
+pneumatics, and sensor noise/latency model. See [MuJoCo integration](mujoco.md)
+for the default engine. The historical PhysX integration described below supplies the live rigid-body
 poses, joint state, contact forces, and distance queries. Its robot is a
 reduced-coordinate articulation; field mechanisms use regular PhysX joints.
 The native robot code does not need a different control API for each backend.
@@ -27,7 +28,7 @@ validate grasp forces, lift clearance, or trajectory accuracy. See the
 [earlier neutral baseline](diagnostics-4070ti.md).
 See the [measurement record](validation.md#integrated-physx-acceptance).
 
-The [current A100 matched comparison](diagnostics-a100-iterations.md) runs the
+The [historical A100 matched comparison](diagnostics-a100-iterations.md) runs the
 0.1.3 claw at 120 Hz: two 100-iteration runs pass placement at about 0.29x
 realtime, while both faster 32-iteration runs physically miss the goal. Solver
 iterations remain 100 by default. The report includes repeated trajectory and
@@ -35,7 +36,8 @@ performance evidence plus a headless reproduction command.
 
 ## Install and select
 
-Normal source setup installs the Bullet/OpenGL application. Add GPU physics to
+Normal source setup installs MuJoCo CPU and the OpenGL application;
+Bullet remains available for comparisons and CPU rendering. Add GPU physics to
 the same environment with `python -m pip install -e ".[gpu]"`; for the private
 Windows setup environment, use:
 
@@ -49,11 +51,11 @@ CUDA toolkit installation is not required. The Windows installer build is
 configured to bundle these packages and their licenses by default. An NVIDIA
 driver remains a machine prerequisite.
 
-In **Field → Physics engine**, choose **Auto · CUDA when available**,
+In **Field → Physics engine**, choose **Auto · MuJoCo CPU**, **MuJoCo · CPU**,
 **Bullet · CPU**, **PhysX · NVIDIA CUDA**, or **PhysX · CPU**, then click
-**Apply settings**. **Auto** attempts CUDA and falls back to
-Bullet when runtime dependencies, device checks, or scene initialization fail.
-The reason appears in Field, Telemetry, and the log. Explicit PhysX selections
+**Apply settings**. **Auto** selects MuJoCo CPU and falls back to
+Bullet with a visible reason if MuJoCo is unavailable or scene initialization fails.
+The reason appears in Field, Telemetry, and the log. Explicit engine selections
 raise an error on failure. A running scene does not silently change solvers
 after a runtime error.
 
@@ -79,10 +81,10 @@ The JSON keys are `physics_backend`, `physics_device`,
 retain these settings. Pin an explicit
 backend for comparisons across machines; **Auto** can select different engines.
 
-**PhysX CPU workers · advanced** controls host physics tasks for both PhysX
-backends. It defaults to two; zero runs tasks inline. More workers are not
+**Physics CPU workers · advanced** controls native MuJoCo tasks and host tasks
+for both PhysX backends. It defaults to two; zero runs tasks inline. More workers are not
 necessarily faster. `EERSIM_PHYSX_THREADS`, when set, overrides the saved or GUI
-value. This setting does not parallelize CPU graphics, fixed physics steps, or
+value for PhysX only; it does not affect MuJoCo workers. This setting does not parallelize CPU graphics, fixed physics steps, or
 PROS callbacks.
 
 ## Physics, graphics, and timing
@@ -104,16 +106,16 @@ Python objects on every tick. A pristine prepared scene is reused for the first
 native start; reset or configuration changes still rebuild it. Rendered
 geometry follows the authoritative PhysX poses; the retained Bullet geometry
 is not stepped as a second physical simulation. The fixed-base URDF motor setup
-preview remains an independent Bullet scene.
+preview uses an independent MuJoCo scene with the same VEX motor model.
 
-Both engines advance one fixed tick per control update, normally **1/240 s**.
+All engines advance one fixed tick per control update, normally **1/240 s**.
 Rendering does not enlarge or skip physics steps. RTF is completed simulated
 time divided by wall time, and backlog is retained when the machine falls behind.
 PhysX performs one normal initialization tick before its first state read;
 competition timing still starts after the PROS initialization callbacks.
 
 The advanced solver control accepts 1–255 iterations, default 100. This sets
-Bullet's solver iteration limit or PhysX TGS position iterations; PhysX velocity
+MuJoCo's Newton iteration limit, Bullet's solver iteration limit, or PhysX TGS position iterations; PhysX velocity
 iterations remain 1. Lower values change convergence. Equal iteration counts
 across the engines are not equivalent numerical settings.
 
@@ -125,7 +127,7 @@ Motor current is derived from that estimate. Physical force limits still use
 the VEX torque envelope, but this telemetry must not be treated as calibrated
 load or electrical measurements.
 
-Both engines use the same configured friction coefficients with multiplication
+Bullet and PhysX use the same configured friction coefficients with multiplication
 as the pair-combination rule. Their contact, friction, sleeping, and joint
 solvers still differ. The PhysX conversion approximates Bullet margins with
 contact offsets; Bullet rolling/spinning friction has no direct material mapping.

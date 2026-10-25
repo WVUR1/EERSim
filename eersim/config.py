@@ -119,8 +119,8 @@ class SimConfig:
         return config
 
     def validate(self) -> None:
-        if self.physics_backend not in ("auto", "bullet", "physx_gpu", "physx_cpu"):
-            raise ValueError("physics_backend must be auto, bullet, physx_gpu, or physx_cpu")
+        if self.physics_backend not in ("auto", "mujoco", "bullet", "physx_gpu", "physx_cpu"):
+            raise ValueError("physics_backend must be auto, mujoco, bullet, physx_gpu, or physx_cpu")
         if (isinstance(self.physics_device, bool) or not isinstance(self.physics_device, int)
                 or self.physics_device < 0):
             raise ValueError("physics_device must be a nonnegative integer CUDA device index")

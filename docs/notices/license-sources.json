@@ -8,5 +8,14 @@
     "source": "https://raw.githubusercontent.com/qt/qtbase/v6.8.3/LICENSES/GPL-3.0-only.txt",
     "bytes": 35147,
     "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+  },
+  "PyOpenGL-3.1.10-license.txt": {
+    "source": "https://raw.githubusercontent.com/mcfletch/pyopengl/bca277036974e5ed9567b90c8176f8c09cd035ec/license.txt",
+    "bytes": 11678,
+    "sha256": "d37ec6e00a4f88bf80ec0b7b3b9dbea88534c1c66c2f529dc64c7c02e07a6a1b",
+    "distribution": "PyOpenGL",
+    "version": "3.1.10",
+    "source_commit": "bca277036974e5ed9567b90c8176f8c09cd035ec",
+    "release_provenance": "https://pypi.org/project/PyOpenGL/3.1.10/"
   }
 }

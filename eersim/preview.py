@@ -1,6 +1,6 @@
 """Independent fixed-base URDF workbench for live motor binding checks.
 
-All Bullet calls stay on one dedicated worker. Joint movement uses World and its
+All physics calls stay on one dedicated worker. Joint movement uses MuJoCo and its
 cartridge torque model, exactly as the main simulator does. Rendering never
 changes the fixed 240 Hz integration step.
 """
@@ -99,7 +99,7 @@ class UrdfPreview(QObject):
             # Imported lazily so a missing physics dependency is reported through
             # the GUI signal rather than breaking the import dialog's module.
             import pybullet as p
-            from .physics import World
+            from .physics_backend import create_world
 
             temporary = tempfile.TemporaryDirectory(prefix="eersim-preview-")
             field = Path(temporary.name) / "preview-field.json"
@@ -129,7 +129,7 @@ class UrdfPreview(QObject):
                                           robot_config="", motors=args[1], motor_overrides={},
                                           game_pack=str(field), fixed_base=True,
                                           start_pose=[0.0, 0.0, 0.0, 0.0], physics_hz=240)
-                            world = World(config)
+                            world = create_world({**config, "physics_backend": "mujoco"})
                             bindings = deepcopy(args[1])
                             commands = {str(motor["port"]): {"mode": "voltage", "value": 0, "brake": "coast"}
                                         for motor in world.motor_bindings}

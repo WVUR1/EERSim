@@ -30,7 +30,7 @@ try {
         Move-Item -LiteralPath $download -Destination $micromamba -Force
     }
     $environmentFile = Join-Path $simRoot 'environment.yml'
-    Write-Host 'Installing Python, PyBullet, PySide6, NumPy, and VTK. The first setup can take several minutes.'
+    Write-Host 'Installing Python, MuJoCo, PyBullet, PySide6, NumPy, and VTK. The first setup can take several minutes.'
     if (Test-Path -LiteralPath (Join-Path $runtimePrefix 'conda-meta/history')) {
         & $micromamba env update --no-rc --root-prefix $mambaRoot --prefix $runtimePrefix --file $environmentFile --yes
     } else {

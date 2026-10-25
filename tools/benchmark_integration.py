@@ -16,6 +16,7 @@ import argparse
 import csv
 from contextlib import contextmanager
 import hashlib
+from importlib import metadata
 import json
 import math
 import os
@@ -33,6 +34,23 @@ if (_CHECKOUT / "eersim" / "__init__.py").is_file():
 
 class ValidationError(RuntimeError):
     pass
+
+
+def hardware_metadata(backend: str, device: int = 0) -> dict:
+    """Portable inventory outside timing, without initializing CUDA or GL."""
+    from eersim.diagnostic_hardware import system_info
+    result = system_info(logical_device=device if backend == "physx_gpu" else None)
+    for package in ("mujoco", "mujoco-warp", "warp-lang"):
+        try:
+            result["runtime_versions"][package] = metadata.version(package)
+        except (metadata.PackageNotFoundError, OSError, ValueError):
+            result["runtime_versions"][package] = None
+    try:
+        result["cpu"]["process_affinity_logical_cores"] = len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        result["cpu"]["process_affinity_logical_cores"] = None
+    result["scope"] = "Read-only host inventory; GPU presence is not evidence of GPU physics or rendering."
+    return result
 
 
 def json_value(value: Any, path: str = "state") -> Any:
@@ -107,11 +125,21 @@ def validate_backend(status: dict, expected: str, iterations: int) -> None:
         raise ValidationError(f"Requested {iterations} solver iterations, got {status.get('solver_iterations')}")
 
 
+def cpu_threads_argument(value: str) -> int:
+    from eersim.config import validate_physics_cpu_threads
+    try:
+        return validate_physics_cpu_threads(int(value))
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    result.add_argument("--backend", choices=("bullet", "physx_cpu", "physx_gpu"), default="physx_gpu")
+    result.add_argument("--backend", choices=("bullet", "physx_cpu", "physx_gpu", "mujoco"), default="physx_gpu")
     result.add_argument("--device", type=int, default=0, help="CUDA device ordinal visible to this process")
     result.add_argument("--iterations", type=int, default=100)
+    result.add_argument("--cpu-threads", type=cpu_threads_argument, default=None,
+                        help="Native CPU workers (0..1024); 0 runs inline, omission preserves the profile setting")
     result.add_argument("--physics-hz", type=int, choices=(120, 240), default=240,
                         help="Fixed physics rate; competition duration is independent of the selected rate")
     result.add_argument("--fixture", choices=("claw", "practice"), default="claw")
@@ -139,6 +167,10 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
             raise ValueError(f"{name.replace('_', '-')} must be positive and finite")
     if args.device < 0:
         raise ValueError("device must be nonnegative")
+    cpu_threads = getattr(args, "cpu_threads", None)
+    if cpu_threads is not None:
+        from eersim.config import validate_physics_cpu_threads
+        validate_physics_cpu_threads(cpu_threads)
     if args.steps is not None and args.steps <= 0:
         raise ValueError("steps must be positive")
     seconds = 30.0 if args.seconds is None else args.seconds
@@ -169,10 +201,11 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
     output.parent.mkdir(parents=True, exist_ok=True)
     report = {"schema_version": 1, "status": "failed", "validation_scope": scope,
               "request": {"backend": args.backend, "device": args.device, "iterations": args.iterations,
+                          "cpu_threads": cpu_threads,
                           "fixture": args.fixture, "physics_hz": hz, "ticks": ticks, "seconds": seconds,
                           "pros": not args.no_pros},
               "timing_seconds": {}, "progress": [], "checks": {}, "notes": [
-                  "No rendering; startup and observation are excluded from step-only realtime factor.",
+                  "No rendering. Step timing includes native PROS exchange, motor/tire forces, integration and sensors; separate benchmark observation/CSV and startup are excluded.",
                   "Initialization and competition use the same fixed dt; initialization is excluded from mode time.",
                   "Performance snapshots retain existing lifetime counters, including setup; enable them with EERSIM_PROFILE=1.",
                   "Placement is prototype physical contact detection, not official game scoring.",
@@ -261,6 +294,14 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
 
     try:
         log_stream = output.with_suffix(".log").open("w", encoding="utf-8")
+        # Missing inventory must not hide a valid physics result. Query costs
+        # are isolated from loading, initialization and measured stepping.
+        with timed("hardware_inventory"):
+            try:
+                report["hardware"] = hardware_metadata(args.backend, args.device)
+            except Exception as exc:
+                report["hardware"] = {"status": "unavailable", "error": f"{type(exc).__name__}: {exc}"}
+        report["benchmark_source_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
         csv_stream = output.with_suffix(".csv").open("w", newline="", encoding="utf-8")
         columns = ("time", "tick", "mode_time", "phase", "step_wall_seconds", "x_m", "y_m", "z_m",
                    "yaw_rad", "preload_z_m", "joints_json", "motors_json", "scoring_json")
@@ -280,6 +321,8 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
                 config = deepcopy(config)
             config.update(physics_backend=args.backend, physics_device=args.device,
                           physics_solver_iterations=args.iterations, physics_hz=hz, renderer="cpu", noise={})
+            if cpu_threads is not None:
+                config["physics_cpu_threads"] = cpu_threads
             config.setdefault("duration_overrides", {})["skills_auto"] = seconds
             if args.workspace:
                 config["workspace"] = str(args.workspace.expanduser().resolve())

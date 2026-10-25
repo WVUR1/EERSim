@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eerkit-simulator"
-version = "0.1.10"
+version = "0.1.11"
 description = "WVU EERKit desktop autonomy lab with rigid-body physics and a native PROS runtime"
 requires-python = ">=3.11,<3.14"
 license = {file = "LICENSE"}
-dependencies = ["numpy>=1.26,<3", "pybullet>=3.2.5,<4", "PySide6>=6.8,<6.10", "vtk>=9.5,<9.7"]
+dependencies = ["mujoco==3.17.0", "numpy>=1.26,<3", "pybullet>=3.2.5,<4", "PySide6>=6.8,<6.10", "vtk>=9.5,<9.7"]
 
 [project.optional-dependencies]
 test = ["pytest>=8,<9"]

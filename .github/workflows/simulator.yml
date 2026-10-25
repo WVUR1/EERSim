@@ -48,7 +48,7 @@ jobs:
           from PySide6 import QtGui  # Import only; no QApplication or graphics context.
           records = [json.loads(path.read_text()) for path in (Path(sys.prefix) / "conda-meta").glob("pybullet-*.json")]
           assert len(records) == 1 and records[0]["version"] == "3.25", "CI must use environment.yml's conda-forge Bullet 3.25"
-          for name in ("pybullet", "numpy", "PySide6", "vtk", "pytest"):
+          for name in ("mujoco", "pybullet", "numpy", "PySide6", "vtk", "pytest"):
               print(f"{name}: {importlib.metadata.version(name)}")
           print(f"Conda Bullet build: {records[0]['build']}")
           PY

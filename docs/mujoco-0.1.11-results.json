@@ -1,0 +1,591 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-25",
+  "version": "0.1.11",
+  "scope": "Headless full-field CPU physics on the A100 host; GPUs disabled. Not desktop rendering FPS or a GeForce comparison.",
+  "baseline_commit": "eeee33779bc230a136c1b00e51541a7246ac3bbd",
+  "hardware": {
+    "os": {
+      "system": "Linux",
+      "release": "6.8.0-146-generic",
+      "version": "#146-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep  3 16:12:30 UTC 2026",
+      "architecture": "x86_64"
+    },
+    "cpu": {
+      "model": "AMD EPYC 7H12 64-Core Processor",
+      "logical_cores": 256,
+      "physical_cores": 128,
+      "process_affinity_logical_cores": 256
+    },
+    "python": {
+      "version": "3.12.3",
+      "implementation": "CPython",
+      "bits": 64
+    },
+    "runtime_versions": {
+      "eerkit-simulator": null,
+      "numpy": "2.5.4",
+      "pybullet": "3.2.7",
+      "PySide6": null,
+      "vtk": null,
+      "ovphysx": null,
+      "ovstage": null,
+      "scipy": null,
+      "mujoco": "3.17.0",
+      "mujoco-warp": null,
+      "warp-lang": null
+    }
+  },
+  "source_sha256": {
+    "eersim/mujoco_scene.py": "0080218bfc010321b9ca2d274b0ae73dcf5003656629f4a8f54c43150d2bad06",
+    "eersim/mujoco_world.py": "426d821a3b4cacd2aa016c4d17172c4b147245301078f95e67ef5b8c97f93ec8",
+    "examples/claw_demo/src/main.cpp": "fe9ae615f0d848c23102ef11cc63fdebc625081c67dfbf18076dc0210292b526",
+    "assets/robots/xdrive_claw.urdf": "0a4c4edec3f3c06f7660f5365bd4ece5601b7b9b57d5ac2db2eb9bb3baa88303",
+    "assets/robots/xdrive_claw.json": "f87b99b433d4a13869ca69f40597a60fac29589cf5e633ac1a9b96a9dadfed27",
+    "assets/games/override-2026-27.json": "0af90d082ff28ca49905a6d7a79c2f4b9d522b3cca15617059249506acbac7ca"
+  },
+  "native_claw_runs": {
+    "baseline-bullet-120": {
+      "status": "failed",
+      "error": "TimeoutError: Stepping exceeded wall budget of 300 seconds",
+      "request": {
+        "backend": "bullet",
+        "device": 0,
+        "iterations": 100,
+        "fixture": "claw",
+        "physics_hz": 120,
+        "ticks": 3600,
+        "seconds": 30.0,
+        "pros": true
+      },
+      "steps": {
+        "initialization": 13,
+        "competition": 1063,
+        "passive": 0,
+        "total": 1076
+      },
+      "simulation_seconds": {
+        "initialization": 0.10833333333333334,
+        "competition": 8.858333333333333,
+        "passive": 0,
+        "total_advanced": 8.966666666666667,
+        "prepared_world_time": 0.0
+      },
+      "step_realtime_factor": 0.029993362355738948,
+      "timing_seconds": {
+        "hardware_inventory": 0.20307335909456015,
+        "configuration": 0.013264795998111367,
+        "native_build": 3.7743694640230387,
+        "session_construction": 7.39404505607672,
+        "session_start": 0.007627737941220403,
+        "observation": 0.3990358687005937,
+        "initialization_steps": 4.340831093257293,
+        "competition_steps": 295.3431238641497,
+        "close": 0.3456883409526199
+      },
+      "checks": {
+        "source_unchanged": true
+      },
+      "report_sha256": "bc899b91d1989019a79ee14b0d36bf20b455c474eaa974ab05de9c57f371eee3",
+      "csv_sha256": "c18e8d1cc767521482422ec478b3ba710c004d42efca6a492a58f4ecad243952"
+    },
+    "baseline-bullet-240": {
+      "status": "failed",
+      "error": "TimeoutError: Stepping exceeded wall budget of 300 seconds",
+      "request": {
+        "backend": "bullet",
+        "device": 0,
+        "iterations": 100,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 7200,
+        "seconds": 30.0,
+        "pros": true
+      },
+      "steps": {
+        "initialization": 25,
+        "competition": 890,
+        "passive": 0,
+        "total": 915
+      },
+      "simulation_seconds": {
+        "initialization": 0.10416666666666667,
+        "competition": 3.7083333333333335,
+        "passive": 0,
+        "total_advanced": 3.8125,
+        "prepared_world_time": 0.0
+      },
+      "step_realtime_factor": 0.012722545022198654,
+      "timing_seconds": {
+        "hardware_inventory": 0.20819152309559286,
+        "configuration": 0.012460495112463832,
+        "native_build": 0.00871761585585773,
+        "session_construction": 7.1894093048758805,
+        "session_start": 0.006067804992198944,
+        "observation": 0.34102423023432493,
+        "initialization_steps": 8.310385852120817,
+        "competition_steps": 291.47732052532956,
+        "close": 0.3427444139961153
+      },
+      "checks": {
+        "source_unchanged": true
+      },
+      "report_sha256": "7cbd908b22251624327be4156d3917f634beb589d17c5a2b9d35b054d98e1ade",
+      "csv_sha256": "4e9b83d0a1e1239cbd513ae5b9b2f0a99758d20bdf722db41910512323a33e0a"
+    },
+    "candidate2-mujoco-120": {
+      "status": "failed",
+      "error": "ValidationError: demo_preload is not retained in the intended near red goal (goal_red_5)",
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "fixture": "claw",
+        "physics_hz": 120,
+        "ticks": 3600,
+        "seconds": 30.0,
+        "pros": true
+      },
+      "steps": {
+        "initialization": 13,
+        "competition": 3600,
+        "passive": 0,
+        "total": 3613
+      },
+      "simulation_seconds": {
+        "initialization": 0.10833333333333334,
+        "competition": 30.0,
+        "passive": 0,
+        "total_advanced": 30.108333333333334,
+        "prepared_world_time": 0.0
+      },
+      "step_realtime_factor": 0.14973665964690325,
+      "timing_seconds": {
+        "hardware_inventory": 0.2125163460150361,
+        "configuration": 0.012304217088967562,
+        "native_build": 3.6102422140538692,
+        "session_construction": 28.24002104694955,
+        "session_start": 0.008975873002782464,
+        "observation": 1.5159545827191323,
+        "initialization_steps": 0.6520162231754512,
+        "competition_steps": 200.3517379828263,
+        "validation": 0.00807295204140246,
+        "close": 0.3881104029715061
+      },
+      "checks": {
+        "source_unchanged": true
+      },
+      "report_sha256": "a4c5c4912500c91670f4ff8128ac283470c6f3db77498ab2616a679aa560e437",
+      "csv_sha256": "cc897de2a533d15bcdd2af87caee8f9edb1c000e9eb2a1126f5c97475e1f1df7",
+      "preload": {
+        "initial_height_m": 0.08299999684095383,
+        "maximum_height_m": 0.27278748664811914,
+        "lift_m": 0.1897874898071653,
+        "final_scoring": {
+          "label": "Prototype placed pins · contact detection, not official points",
+          "placed_pins": 5,
+          "placements": [
+            {
+              "pin": "pin_goal_2",
+              "goal": "goal_neutral_2",
+              "alliance": "neutral"
+            },
+            {
+              "pin": "pin_goal_0",
+              "goal": "goal_center_0",
+              "alliance": "neutral"
+            },
+            {
+              "pin": "pin_goal_4",
+              "goal": "goal_neutral_4",
+              "alliance": "neutral"
+            },
+            {
+              "pin": "pin_goal_1",
+              "goal": "goal_neutral_1",
+              "alliance": "neutral"
+            },
+            {
+              "pin": "pin_goal_3",
+              "goal": "goal_neutral_3",
+              "alliance": "neutral"
+            }
+          ]
+        },
+        "final_robot_contact": false
+      }
+    },
+    "candidate2-mujoco-240": {
+      "status": "passed",
+      "error": null,
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 7200,
+        "seconds": 30.0,
+        "pros": true
+      },
+      "steps": {
+        "initialization": 25,
+        "competition": 7200,
+        "passive": 0,
+        "total": 7225
+      },
+      "simulation_seconds": {
+        "initialization": 0.10416666666666667,
+        "competition": 30.0,
+        "passive": 0,
+        "total_advanced": 30.104166666666668,
+        "prepared_world_time": 0.0
+      },
+      "step_realtime_factor": 0.07263347050313877,
+      "timing_seconds": {
+        "hardware_inventory": 0.20772736193612218,
+        "configuration": 0.012403417145833373,
+        "native_build": 0.008579038083553314,
+        "session_construction": 28.149919336894527,
+        "session_start": 0.007827376015484333,
+        "observation": 2.957582992501557,
+        "initialization_steps": 1.350543349282816,
+        "competition_steps": 413.0327215839643,
+        "validation": 0.008152281865477562,
+        "close": 0.38724068785086274
+      },
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": true,
+        "source_unchanged": true
+      },
+      "report_sha256": "f6794ec9f20f717f049207bffa4558d35792010ae526c8f4355f123c369147b3",
+      "csv_sha256": "7cc4d866a992311cc39c95ae36223bea3205d5ed3f784d8b8cfad088ae817462",
+      "preload": {
+        "initial_height_m": 0.08299999684095383,
+        "maximum_height_m": 0.27641588546127416,
+        "lift_m": 0.19341588862032033,
+        "final_scoring": {
+          "label": "Prototype placed pins · contact detection, not official points",
+          "placed_pins": 6,
+          "placements": [
+            {
+              "pin": "pin_goal_2",
+              "goal": "goal_neutral_2",
+              "alliance": "neutral"
+            },
+            {
+              "pin": "pin_goal_0",
+              "goal": "goal_center_0",
+              "alliance": "neutral"
+            },
+            {
+              "pin": "pin_goal_4",
+              "goal": "goal_neutral_4",
+              "alliance": "neutral"
+            },
+            {
+              "pin": "pin_goal_1",
+              "goal": "goal_neutral_1",
+              "alliance": "neutral"
+            },
+            {
+              "pin": "pin_goal_3",
+              "goal": "goal_neutral_3",
+              "alliance": "neutral"
+            },
+            {
+              "pin": "demo_preload",
+              "goal": "goal_red_5",
+              "alliance": "red"
+            }
+          ]
+        },
+        "final_robot_contact": false
+      }
+    }
+  },
+  "matched_first_3_seconds": {
+    "baseline-bullet-120": {
+      "ticks": 360,
+      "simulation_seconds": 3,
+      "step_wall_seconds": 119.42209441470914,
+      "step_realtime_factor": 0.025120979620254356
+    },
+    "baseline-bullet-240": {
+      "ticks": 720,
+      "simulation_seconds": 3,
+      "step_wall_seconds": 236.45467878133059,
+      "step_realtime_factor": 0.012687420758437819
+    },
+    "candidate2-mujoco-120": {
+      "ticks": 360,
+      "simulation_seconds": 3,
+      "step_wall_seconds": 19.98557899822481,
+      "step_realtime_factor": 0.1501082355565716
+    },
+    "candidate2-mujoco-240": {
+      "ticks": 720,
+      "simulation_seconds": 3,
+      "step_wall_seconds": 40.280703835887834,
+      "step_realtime_factor": 0.07447734806776563
+    }
+  },
+  "passive_workers": {
+    "0": {
+      "status": "passed",
+      "error": null,
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 480,
+        "seconds": 2.0,
+        "pros": false
+      },
+      "steps": {
+        "initialization": 0,
+        "competition": 0,
+        "passive": 480,
+        "total": 480
+      },
+      "simulation_seconds": {
+        "initialization": 0.0,
+        "competition": 0,
+        "passive": 2.0,
+        "total_advanced": 2.0,
+        "prepared_world_time": 0.0
+      },
+      "step_realtime_factor": 0.05567546632927621,
+      "timing_seconds": {
+        "hardware_inventory": 0.20129937794990838,
+        "configuration": 0.0002599970903247595,
+        "world_construction": 27.96112293098122,
+        "observation": 0.14467286970466375,
+        "passive_steps": 35.92246516933665,
+        "validation": 0.0070744529366493225,
+        "close": 0.3830782878212631
+      },
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": false
+      },
+      "report_sha256": "22a67ab31c55a912f72f84a76d060b10917740c2f71c4c57bfc3f9fb82dacf4c",
+      "csv_sha256": "7b9ac00766d58180ab3ae10e66f24994c6d0b2ef912bcb0f7cf3d35eaa0d0ec9",
+      "effective_workers": 0,
+      "identical_final_field_to_inline": true,
+      "identical_final_robot_pose_to_inline": true
+    },
+    "2": {
+      "status": "passed",
+      "error": null,
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 480,
+        "seconds": 2.0,
+        "pros": false
+      },
+      "steps": {
+        "initialization": 0,
+        "competition": 0,
+        "passive": 480,
+        "total": 480
+      },
+      "simulation_seconds": {
+        "initialization": 0.0,
+        "competition": 0,
+        "passive": 2.0,
+        "total_advanced": 2.0,
+        "prepared_world_time": 0.0
+      },
+      "step_realtime_factor": 0.07343735785819717,
+      "timing_seconds": {
+        "hardware_inventory": 0.20199469104409218,
+        "configuration": 0.0002597770653665066,
+        "world_construction": 28.055577915161848,
+        "observation": 0.1463372614234686,
+        "passive_steps": 27.234095266088843,
+        "validation": 0.006991433911025524,
+        "close": 0.5077257060911506
+      },
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": false
+      },
+      "report_sha256": "71297a75ea7b74ba524323a1159733edc49daa36f0bf2bcdfac68c13356d32b6",
+      "csv_sha256": "aaedb939bda4925fab7ed501b5a65204f771a0ba78ab98b93cd1fa3fe0e8a3b3",
+      "effective_workers": 2,
+      "identical_final_field_to_inline": true,
+      "identical_final_robot_pose_to_inline": true
+    },
+    "4": {
+      "status": "passed",
+      "error": null,
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 480,
+        "seconds": 2.0,
+        "pros": false
+      },
+      "steps": {
+        "initialization": 0,
+        "competition": 0,
+        "passive": 480,
+        "total": 480
+      },
+      "simulation_seconds": {
+        "initialization": 0.0,
+        "competition": 0,
+        "passive": 2.0,
+        "total_advanced": 2.0,
+        "prepared_world_time": 0.0
+      },
+      "step_realtime_factor": 0.08832663626168161,
+      "timing_seconds": {
+        "hardware_inventory": 0.20157998497597873,
+        "configuration": 0.00020654802210628986,
+        "world_construction": 27.948783815139905,
+        "observation": 0.144383734324947,
+        "passive_steps": 22.64322615065612,
+        "validation": 0.007078814087435603,
+        "close": 0.3872971481177956
+      },
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": false
+      },
+      "report_sha256": "42b3f55daabe30127a02779bb18fdd06425005a96f01cdad32b481e525216ba7",
+      "csv_sha256": "0a7dffd161698e4b6fe46464eb32f070bd9772d16c9f1048b8f7b59af1897cf0",
+      "effective_workers": 4,
+      "identical_final_field_to_inline": true,
+      "identical_final_robot_pose_to_inline": true
+    },
+    "8": {
+      "status": "passed",
+      "error": null,
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 480,
+        "seconds": 2.0,
+        "pros": false
+      },
+      "steps": {
+        "initialization": 0,
+        "competition": 0,
+        "passive": 480,
+        "total": 480
+      },
+      "simulation_seconds": {
+        "initialization": 0.0,
+        "competition": 0,
+        "passive": 2.0,
+        "total_advanced": 2.0,
+        "prepared_world_time": 0.0
+      },
+      "step_realtime_factor": 0.10345408817552827,
+      "timing_seconds": {
+        "hardware_inventory": 0.20069800806231797,
+        "configuration": 0.00026107695885002613,
+        "world_construction": 27.926660133060068,
+        "observation": 0.14817668683826923,
+        "passive_steps": 19.332247137557715,
+        "validation": 0.006888015894219279,
+        "close": 0.3899156888946891
+      },
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": false
+      },
+      "report_sha256": "0a0054afe8051fd1a01bf9a39bb2c4567dc1c53e1887750dd912b0c1a8d8f69f",
+      "csv_sha256": "7b1487541bb1363453fe7c44f5128b69868240d1fe6bcb9e415f10fc02ecabbd",
+      "effective_workers": 8,
+      "identical_final_field_to_inline": true,
+      "identical_final_robot_pose_to_inline": true
+    }
+  },
+  "limits": [
+    "Both Bullet full runs hit a 300 wall-second stepping budget; they do not validate full scoring.",
+    "120 Hz MuJoCo completes the controller route but fails physical preload placement.",
+    "240 Hz full-field acceptance is reported separately from reduced-field diagnostics.",
+    "Native collision detection, solver and motor/sensor work remain active every tick. Sleeping is not enabled in the cached MuJoCo pipeline.",
+    "Geometry, motor model, source program and solver iteration limit were not simplified to obtain the comparison.",
+    "The MuJoCo contact compliance floor depends on timestep; rate comparisons are not formal convergence of one fixed compliant ODE.",
+    "No matched PhysX comparison was run in this experiment. Previous PhysX measurements are historical and not a controlled speed ratio."
+  ],
+  "cache_equivalence": {
+    "source_sha256": {
+      "eersim\\mujoco_world.py": "426d821a3b4cacd2aa016c4d17172c4b147245301078f95e67ef5b8c97f93ec8",
+      "eersim\\mujoco_scene.py": "0080218bfc010321b9ca2d274b0ae73dcf5003656629f4a8f54c43150d2bad06"
+    },
+    "ticks": 100,
+    "physics_hz": 120,
+    "cpu_workers": 2,
+    "same_contacts": true,
+    "maximum_absolute_difference": {
+      "qpos": 0.0,
+      "qvel": 0.0,
+      "qacc": 0.0,
+      "efc_force": 0.0
+    },
+    "cached_seconds": 10.18613300472498,
+    "stock_seconds": 16.04572300054133,
+    "max_contacts": 3831,
+    "native_warnings": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "notes": "Paired same-process correctness check, not standalone hardware benchmark;60 braked claw ticks followed by40 low-speed drive ticks. Includes corrected joint damping, finite-force regulation and explicit body drag."
+  },
+  "test_summary": {
+    "changed_code": {
+      "passed": 181,
+      "skipped": 1
+    },
+    "opt_in_native_claw_240": "passed",
+    "broad_suite": {
+      "passed": 934,
+      "skipped": 5,
+      "deselected": 1,
+      "failures": [
+        "stale in-memory MuJoCo test subsequently passed after freeze",
+        "legacy Bullet cup/pin exact sleep",
+        "legacy Bullet goal/pin exact sleep"
+      ]
+    },
+    "legacy_bullet_baseline": {
+      "commit": "eeee33779bc230a136c1b00e51541a7246ac3bbd",
+      "reproduced_failures": 2,
+      "same_interpreter_and_velocities": true,
+      "log_sha256": "f02cb06f01fb5c8cfe97e30699fdc43b65244fde14c9122fe8e106bbfda22a8b"
+    }
+  }
+}

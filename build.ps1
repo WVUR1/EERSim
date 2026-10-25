@@ -80,6 +80,16 @@ try {
 
     & $python -m pip install -r (Join-Path $simRoot 'packaging/requirements-build.txt')
     if ($LASTEXITCODE -ne 0) { throw 'Could not install the pinned EXE build tools.' }
+    # Isolate pip from checkout egg-info, including the PYTHONPATH set above.
+    # Otherwise it may mistake local metadata for the installed distribution
+    # and leave an older site-packages dist-info beside the new version.
+    Push-Location -LiteralPath ([IO.Path]::GetTempPath())
+    try {
+        & $python -I -m pip install -e $simRoot --no-deps
+        if ($LASTEXITCODE -ne 0) { throw 'Could not refresh application metadata for this checkout.' }
+    } finally {
+        Pop-Location
+    }
     $env:EERSIM_BUNDLE_MODE = if ($Layout -eq 'OneFile') { 'onefile' } else { 'onedir' }
     $env:EERSIM_BUNDLE_COMPILER = if ($WithoutCompiler) { '' } else { $CompilerPath }
     $probeArguments = @('-m', 'eersim.physx_probe_build', '--output', (Join-Path $simRoot 'build/native/physx_scene_probe.dll'),
@@ -100,13 +110,19 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Signing or signature verification failed. This build is not a signed release.' }
     }
     . (Join-Path $simRoot 'packaging/check-gpu-payload.ps1')
+    . (Join-Path $simRoot 'packaging/check-mujoco-payload.ps1')
+    $applicationVersion = Get-EERSimSourceVersion -SourceRoot $simRoot
     if ($Layout -eq 'Directory') {
         $gpuPayload = Get-EERSimGpuPayload -PayloadRoot (Join-Path $output 'EERSim/_internal')
+        $mujocoPayload = Get-EERSimMuJoCoPayload -PayloadRoot (Join-Path $output 'EERSim/_internal') -ExpectedAppVersion $applicationVersion
     } else {
         # Read the one-file archive directly; never launch an app or GPU probe.
         $gpuJson = & $python (Join-Path $simRoot 'packaging/inspect_gpu_archive.py') $executable
         if ($LASTEXITCODE -ne 0) { throw 'The one-file archive is missing its pinned GPU physics payload.' }
         $gpuPayload = ($gpuJson | Out-String) | ConvertFrom-Json
+        $mujocoJson = & $python (Join-Path $simRoot 'packaging/inspect_mujoco_archive.py') $executable $applicationVersion
+        if ($LASTEXITCODE -ne 0) { throw 'The one-file archive is missing MuJoCo or does not match this application version.' }
+        $mujocoPayload = ($mujocoJson | Out-String) | ConvertFrom-Json
     }
     $artifact = $executable
     if ($Layout -eq 'Directory' -and -not $SkipArchive) {
@@ -133,6 +149,11 @@ try {
         layout = $env:EERSIM_BUNDLE_MODE
         archive = ($Layout -eq 'Directory' -and -not $SkipArchive)
         includes_compiler = -not $WithoutCompiler
+        version = $mujocoPayload.application_version
+        includes_mujoco = [bool]$mujocoPayload.includes_mujoco
+        mujoco_version = $mujocoPayload.mujoco_version
+        mujoco_version_source = $mujocoPayload.mujoco_version_source
+        mujoco_library_sha256 = $mujocoPayload.mujoco_library_sha256
         includes_gpu_physics = [bool]$gpuPayload.includes_gpu_physics
         gpu_runtime_versions = $gpuPayload.gpu_runtime_versions
         gpu_runtime_versions_source = $gpuPayload.gpu_runtime_versions_source

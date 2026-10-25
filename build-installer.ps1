@@ -114,6 +114,9 @@ try {
     # Also applies to -SkipBundleBuild: an old CPU-only bundle cannot become a GPU release.
     . (Join-Path $simRoot 'packaging/check-gpu-payload.ps1')
     $gpuPayload = Get-EERSimGpuPayload -PayloadRoot (Join-Path $bundle '_internal')
+    . (Join-Path $simRoot 'packaging/check-mujoco-payload.ps1')
+    $applicationVersion = Get-EERSimSourceVersion -SourceRoot $simRoot
+    $mujocoPayload = Get-EERSimMuJoCoPayload -PayloadRoot (Join-Path $bundle '_internal') -ExpectedAppVersion $applicationVersion
     $includesCompiler = (Test-Path -LiteralPath (Join-Path $bundle '_internal/compiler/bin/clang++.exe') -PathType Leaf) -and
         (Test-Path -LiteralPath (Join-Path $bundle '_internal/compiler/x86_64-w64-mingw32') -PathType Container)
     if (-not $includesCompiler -and -not $WithoutCompiler) { throw 'The bundle is missing the native compiler. Rebuild it, or explicitly use -WithoutCompiler for a package requiring an external CXX compiler.' }
@@ -160,10 +163,14 @@ try {
         sha256 = $hash
         bytes = (Get-Item -LiteralPath $artifact).Length
         format = 'windows-installer'
-        version = '0.1.10'
+        version = $mujocoPayload.application_version
         installer_compiler_version = $inno.Version
         install_scope = 'current_user'
         includes_compiler = [bool]$includesCompiler
+        includes_mujoco = [bool]$mujocoPayload.includes_mujoco
+        mujoco_version = $mujocoPayload.mujoco_version
+        mujoco_version_source = $mujocoPayload.mujoco_version_source
+        mujoco_library_sha256 = $mujocoPayload.mujoco_library_sha256
         includes_gpu_physics = [bool]$gpuPayload.includes_gpu_physics
         gpu_runtime_versions = $gpuPayload.gpu_runtime_versions
         gpu_runtime_versions_source = $gpuPayload.gpu_runtime_versions_source

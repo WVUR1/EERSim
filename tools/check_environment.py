@@ -12,7 +12,7 @@ def main() -> int:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     import eersim  # Configure native DLL search paths before loading dependencies.
     failures = []
-    for name, module in (("NumPy", "numpy"), ("PyBullet", "pybullet"),
+    for name, module in (("NumPy", "numpy"), ("MuJoCo", "mujoco"), ("PyBullet", "pybullet"),
                          ("PySide6", "PySide6.QtWidgets"),
                          ("VTK", "vtkmodules.vtkRenderingOpenGL2")):
         try:

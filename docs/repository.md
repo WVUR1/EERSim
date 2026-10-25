@@ -20,8 +20,9 @@ For an activated Conda or virtual environment, use `python -m pip install -e
 ".[gpu]"`. The extra installs `ovphysx==0.5.11`, its matching
 `ovstage==0.1.1.355824`, and `scipy==1.16.3`. CUDA physics needs a compatible NVIDIA
 GPU with compute capability 7.0 or newer and a driver exposing CUDA 12.8 or newer.
-In **Field → Physics engine**, **Auto** selects CUDA when available
-and otherwise uses Bullet, with the reason shown in Field and Telemetry. An
+In **Field → Physics engine**, **Auto** selects MuJoCo CPU, included by normal
+setup. If MuJoCo initialization fails, Auto uses Bullet and shows the reason
+in Field and Telemetry. An
 explicit **PhysX · NVIDIA CUDA** selection reports an error instead of silently
 switching engines. Save an explicit engine selection for comparisons across
 machines. **Graphics renderer** independently controls the viewport.
@@ -29,8 +30,8 @@ machines. **Graphics renderer** independently controls the viewport.
 The Windows installer build includes these GPU runtime packages by default;
 installed-app users do not need Python, Conda, or a separate package install.
 Vendor runtime DLLs stay in ignored build/distribution folders, not Git.
-The GPU-enabled installer still awaits Windows CUDA validation and publication;
-see [physics backend details](gpu-physics.md) for current limits.
+See [physics backend details](gpu-physics.md) and the
+[MuJoCo integration](mujoco.md) for current limits and historical validation.
 
 The launcher discovers environments relative to itself and accepts a local
 `.venv` only when its dependencies load. An explicit `EERSIM_PYTHON` overrides the

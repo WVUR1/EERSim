@@ -47,8 +47,8 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="EERKit Autonomy Lab")
     parser.add_argument("--headless", action="store_true", help="Run without the desktop")
     parser.add_argument("--renderer", choices=["auto", "gpu", "cpu"], help="Graphics renderer; independent of the physics engine")
-    parser.add_argument("--physics-backend", choices=["auto", "bullet", "physx_gpu", "physx_cpu"],
-                        help="Physics engine: auto selects CUDA when available, otherwise Bullet; explicit selections do not fall back")
+    parser.add_argument("--physics-backend", choices=["auto", "mujoco", "bullet", "physx_gpu", "physx_cpu"],
+                        help="Physics engine: auto selects MuJoCo CPU, with a reported Bullet fallback if unavailable; explicit selections do not fall back")
     parser.add_argument("--physics-device", type=int,
                         help="Logical CUDA device index (0 or greater, after CUDA_VISIBLE_DEVICES filtering)")
     parser.add_argument("--solver-iterations", type=int,

@@ -67,7 +67,7 @@ SETTING_HELP = {
     "field": "Choose a game-pack JSON or field URDF. A URDF becomes static collision geometry; a game pack can also define movable pieces. Import selects the asset; Apply settings loads it.",
     "field_preset": "Full dynamics allow game pieces to move, collide, and be grasped. Fixed-piece route planning keeps pieces stationary and is faster, but cannot test scoring interactions. Apply settings after choosing a field.",
     "camera": "Change the viewpoint without moving the robot or restarting physics. Close view centers on the current robot; you can still orbit, pan, and zoom with the mouse.",
-    "physics_hz": "Fixed simulation steps per simulated second. A higher rate resolves motor/contact changes more finely but costs more CPU/GPU work. Lowering it changes numerical accuracy; viewport FPS does not change this rate.",
+    "physics_hz": "Fixed simulation steps per simulated second. A higher rate resolves motor/contact changes more finely but costs more CPU/GPU work. Lowering it changes numerical accuracy; viewport FPS does not change this rate. For MuJoCo frictional grasps, keep the default 240 Hz or test a higher rate: 120 Hz softens its stabilized contacts and can let a pin creep in the claw before release.",
     "render_fps": "Maximum requested viewport updates per wall-clock second. Higher values increase rendering work. Lower values can improve simulation throughput without skipping or changing physics steps.",
     "gravity": "Downward acceleration in metres per second squared. Earth gravity is about 9.80665. Lower values reduce weight and contact loads; zero is useful for isolated mechanism experiments and does not represent a field robot.",
     "restitution": "Collision bounce from 0 (inelastic) to 1 (highly elastic). Increasing it makes colliding pieces rebound more strongly. Contact-pair combination rules depend on the physics backend.",
@@ -1366,25 +1366,26 @@ class Workbench(QMainWindow):
         layout.addWidget(label("PHYSICS & RENDERING", "Section"))
         form = HelpFormLayout()
         self.physics_select = QComboBox()
-        self.physics_select.addItem("Auto · CUDA when available", "auto")
+        self.physics_select.addItem("Auto · MuJoCo CPU", "auto")
+        self.physics_select.addItem("MuJoCo · CPU", "mujoco")
         self.physics_select.addItem("Bullet · CPU", "bullet")
         self.physics_select.addItem("PhysX · NVIDIA CUDA", "physx_gpu")
         self.physics_select.addItem("PhysX · CPU", "physx_cpu")
-        self.physics_select.setToolTip("Selects the engine that computes motion and contacts. Auto uses CUDA when available and reports any Bullet fallback below. Explicit PhysX selections report an error if unavailable. Pin an engine in saved experiments for repeatable comparisons.")
+        self.physics_select.setToolTip("Selects the engine that computes motion and contacts. Auto uses MuJoCo CPU and reports any Bullet fallback below. MuJoCo computes physics independently of GPU rendering. Explicit engine selections report an error if unavailable. Pin an engine in saved experiments for repeatable comparisons.")
         self.physics_device = QSpinBox()
         self.physics_device.setRange(0, 2147483647)
         self.physics_device.setToolTip("Logical CUDA device index, starting at 0, after any CUDA_VISIBLE_DEVICES filtering. This selects the physics GPU independently of the graphics renderer.")
         self.physics_iterations = QSpinBox()
         self.physics_iterations.setRange(1, 255)
-        self.physics_iterations.setToolTip("Advanced contact and joint solver setting. Default 100. Reducing iterations changes solver convergence; validate grasping and stacking after changes. Equal counts in Bullet and PhysX do not imply equivalent solvers.")
+        self.physics_iterations.setToolTip("Advanced contact and joint solver setting. Default 100. Reducing iterations changes solver convergence; validate grasping and stacking after changes. MuJoCo uses this as a Newton solver iteration limit and may converge earlier. Equal counts across engines do not imply equal accuracy.")
         self.physics_cpu_threads = QSpinBox()
         self.physics_cpu_threads.setRange(0, min(1024, max(2, os.cpu_count() or 1)))
         self.physics_cpu_threads.setSpecialValueText("0 · inline")
-        self.physics_cpu_threads.setToolTip("PhysX CPU task workers, including host work for CUDA physics. 0 runs tasks inline; default 2. More workers are not always faster. EERSIM_PHYSX_THREADS overrides this setting when present. Does not parallelize fixed physics steps or PROS callbacks.")
+        self.physics_cpu_threads.setToolTip("Native physics task workers. MuJoCo can parallelize collision detection and independent constraint groups within each fixed step; PhysX uses workers for CPU and CUDA host work. 0 runs inline; default 2. More workers can be slower. EERSIM_PHYSX_THREADS overrides only PhysX. Does not parallelize dependent time steps or PROS callbacks.")
         self.physics_select.currentIndexChanged.connect(
             lambda: self.physics_cpu_threads.setEnabled(self.physics_select.currentData() != "bullet"))
         self.physics_select.currentIndexChanged.connect(
-            lambda: self.physics_device.setEnabled(self.physics_select.currentData() in ("auto", "physx_gpu")))
+            lambda: self.physics_device.setEnabled(self.physics_select.currentData() == "physx_gpu"))
         self.physics_hz = QSpinBox()
         self.physics_hz.setRange(120, 2000)
         self.physics_hz.setSuffix(" Hz")
@@ -1398,14 +1399,14 @@ class Workbench(QMainWindow):
         self.renderer_select.setToolTip("Selects only viewport rendering. The Physics engine control independently selects motion and contact computation. Unsupported graphics fall back to CPU; Telemetry shows the active device and reason.")
         self.gravity = real_spin(0, 30, 9.80665, 5, " m/s²")
         self.friction = real_spin(0, 5, 0.9, 3)
-        self.friction.setToolTip("Body coefficient for wheels and field tiles. Bullet multiplies the coefficients of the two touching bodies. Adjust from measured hardware behavior.")
+        self.friction.setToolTip("Body coefficient for wheels and field tiles. The backends multiply the coefficients of the two touching bodies; omniwheel traction uses its separate tire model. Adjust from measured hardware behavior.")
         self.plastic_friction = real_spin(0, 5, 0.5, 3)
-        self.plastic_friction.setToolTip("Body coefficient for pins, cups, goals, loaders and toggles. Bullet multiplies the two body coefficients: defaults give plastic/plastic μ = 0.25 and plastic/tile μ = 0.45. These are calibration assumptions, not official measured VEX values. Per-object game-pack overrides take precedence.")
+        self.plastic_friction.setToolTip("Body coefficient for pins, cups, goals, loaders and toggles. The backends multiply the two body coefficients: defaults give plastic/plastic μ = 0.25 and plastic/tile μ = 0.45. These are calibration assumptions, not official measured VEX values. Per-object game-pack overrides take precedence.")
         self.restitution = real_spin(0, 1, 0.05, 3)
         form.addRow("Physics engine", self.physics_select, self.physics_select.toolTip())
         form.addRow("CUDA physics device", self.physics_device, self.physics_device.toolTip())
         form.addRow("Solver iterations · advanced", self.physics_iterations, self.physics_iterations.toolTip())
-        form.addRow("PhysX CPU workers · advanced", self.physics_cpu_threads, self.physics_cpu_threads.toolTip())
+        form.addRow("Physics CPU workers · advanced", self.physics_cpu_threads, self.physics_cpu_threads.toolTip())
         form.addRow("Fixed physics rate", self.physics_hz, SETTING_HELP["physics_hz"])
         form.addRow("Viewport frame rate", self.render_fps, SETTING_HELP["render_fps"])
         form.addRow("Graphics renderer", self.renderer_select, self.renderer_select.toolTip())
@@ -1564,7 +1565,7 @@ class Workbench(QMainWindow):
         self.physics_hz.setValue(int(config.get("physics_hz", 240)))
         self.physics_select.setCurrentIndex(max(0, self.physics_select.findData(config.get("physics_backend", "auto"))))
         self.physics_device.setValue(int(config.get("physics_device", 0)))
-        self.physics_device.setEnabled(self.physics_select.currentData() in ("auto", "physx_gpu"))
+        self.physics_device.setEnabled(self.physics_select.currentData() == "physx_gpu")
         self.physics_iterations.setValue(int(config.get("physics_solver_iterations", 100)))
         threads = int(config.get("physics_cpu_threads", 2))
         self.physics_cpu_threads.setMaximum(min(1024, max(2, os.cpu_count() or 1, threads)))

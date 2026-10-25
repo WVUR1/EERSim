@@ -1,4 +1,4 @@
-"""Live import preview: real Qt worker, Bullet torque, frame delivery and shutdown."""
+"""Live import preview: real Qt worker, MuJoCo torque, frame delivery and shutdown."""
 from __future__ import annotations
 
 import os
@@ -11,6 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 try:
     from PySide6.QtCore import QCoreApplication
     import pybullet
+    import mujoco
     from eersim.preview import UrdfPreview
 except ImportError:
     QCoreApplication = None
@@ -35,7 +36,7 @@ URDF = """<robot name="preview_fixture">
 """
 
 
-@unittest.skipIf(QCoreApplication is None, "PySide6 and PyBullet are required for live preview tests")
+@unittest.skipIf(QCoreApplication is None, "PySide6, MuJoCo and PyBullet are required for live preview tests")
 class PreviewTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -77,6 +78,7 @@ class PreviewTests(unittest.TestCase):
         self.wait_for(lambda: bool(self.frames))
         state = self.states[-1]
         self.assertTrue(state["fixed_base"])
+        self.assertEqual(state["physics"]["backend"], "mujoco")
         self.assertEqual(state["pose"][:3], [0, 0, 0])
         self.assertGreater(state["motors"]["4"]["velocity"], 0)
         self.assertEqual(self.frames[-1].shape, (480, 640, 4))

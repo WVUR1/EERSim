@@ -33,7 +33,7 @@ def test_loaded_driver_api_error_is_not_misreported_as_missing_driver(monkeypatc
     assert result == {'available': False, 'reason': 'CUDA driver returned error 35', 'ordinal': 0}
 
 
-def test_auto_falls_back_but_explicit_gpu_preserves_missing_driver_error(monkeypatch):
+def test_explicit_gpu_preserves_missing_driver_error(monkeypatch):
     def unavailable(_):
         raise ImportError('Simulated frozen dynamic-library loader')
 
@@ -42,8 +42,5 @@ def test_auto_falls_back_but_explicit_gpu_preserves_missing_driver_error(monkeyp
     monkeypatch.setattr(physics_backend, 'find_spec', lambda _: object())
     monkeypatch.setattr(physics_backend, 'World', lambda values: SimpleNamespace(
         physics_status={'backend': 'bullet', 'hardware_accelerated': False}))
-    world = physics_backend.create_world({'physics_backend': 'auto'})
-    assert world.physics_status['backend'] == 'bullet'
-    assert 'NVIDIA CUDA driver' in world.physics_status['reason']
     with pytest.raises(RuntimeError, match='NVIDIA CUDA driver'):
         physics_backend.create_world({'physics_backend': 'physx_gpu'})
