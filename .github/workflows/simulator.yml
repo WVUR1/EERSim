@@ -32,6 +32,8 @@ jobs:
         # Resolving pip dependencies here would replace it with a newer solver.
         run: |
           python -m pip install -e . --no-deps
+          # Legacy collider tests require SciPy; preserve validated NumPy and Bullet.
+          python -m pip install scipy==1.16.3 --no-deps
           python -m pip check
       - name: Install Qt runtime library
         # QtGui links EGL even for import-only tests that create no window.
