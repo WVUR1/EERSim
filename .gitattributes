@@ -19,3 +19,4 @@
 # Pinned vendor files retain upstream bytes and whitespace for hash verification.
 eersim/_native/physx/include/** -text -whitespace
 eersim/_native/physx/LICENSE.md -text -whitespace
+docs/notices/PyOpenGL-3.1.10-license.txt -text -whitespace
