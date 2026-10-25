@@ -22,6 +22,13 @@ It bundles Python, MuJoCo, the optional PhysX GPU runtime, simulator dependencie
 and fields, and the native robot compiler. It installs for your Windows account
 without administrator privileges; a desktop shortcut is optional. This preview
 build is unsigned. CUDA physics requires a supported NVIDIA GPU and driver.
+Version 0.1.12 fixes MuJoCo's disabled sleeping: settled pieces can sleep and
+wake on contact, with awake/sleeping counts in the GUI. At 240 Hz with six
+workers, the server's measured settled interval improved from 0.092× to 0.126×;
+**this is still below realtime**. PhysX CPU inline reached 0.443× in that same
+idle interval. For this field, try **PhysX · CPU** with **0 · inline** workers;
+Auto still selects MuJoCo. See the [matched measurements and validation](docs/performance-0.1.12.md).
+
 Version 0.1.11 switches the default **Auto** selection to MuJoCo CPU and keeps
 Bullet and PhysX available explicitly. Saved profiles with an explicit engine
 choice retain it. Use the default 240 Hz for frictional grasps; 120 Hz can
@@ -134,6 +141,9 @@ use MuJoCo; the VEX cartridge model, PROS callbacks, tuning and replay workflows
 remain shared.
 
 ### Historical PhysX CPU measurements
+
+For current **240 Hz** comparisons, see the [0.1.12 idle regression study](docs/performance-0.1.12.md).
+The older 120 Hz instructions below reproduce a historical experiment.
 
 The measured server CPU configuration can be selected directly in **Field**:
 choose **Physics engine → PhysX · CPU**, **Physics CPU workers · advanced → 0 · inline**,

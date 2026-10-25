@@ -1,0 +1,6215 @@
+{
+  "schema_version": 1,
+  "description": "Matched CPU physics benchmarks for EERSim 0.1.12 native sleeping.",
+  "hardware": {
+    "cpu": {
+      "model": "AMD EPYC 7H12 64-Core Processor",
+      "logical_cores": 256,
+      "physical_cores": 128,
+      "process_affinity_logical_cores": 256
+    },
+    "versions": {
+      "mujoco": "3.17.0",
+      "pybullet": "3.2.7",
+      "numpy": "2.5.4",
+      "ovphysx": "0.5.11",
+      "ovstage": "0.1.1.355824",
+      "scipy": "1.16.3"
+    },
+    "python": {
+      "version": "3.12.3",
+      "implementation": "CPython",
+      "bits": 64
+    },
+    "os": {
+      "system": "Linux",
+      "release": "6.8.0-146-generic",
+      "version": "#146-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep  3 16:12:30 UTC 2026",
+      "architecture": "x86_64"
+    }
+  },
+  "source": {
+    "baseline_commit": "9fbd0f8cb8fa5a723ca3d93d781e55b7c21d1f26",
+    "baseline_archive_sha256": "58c22c2de76ab8a747c629e0da28cac3e4644084cdc93ebbb68b320713cfc099",
+    "candidate_physics_sha256": {
+      "eersim/mujoco_world.py": "35aa614cb7422dcbb8e308018fd54a18ffb039baf4727533d607a96c71f5ad71",
+      "eersim/mujoco_scene.py": "b57f232172853b045deea15687b5b93f8546889d68b3c3babedda2505ae2e5eb"
+    },
+    "baseline_physics_sha256": {
+      "eersim/mujoco_world.py": "ca981980e57a9c3d5628a3b7eca701a2c4598e278071f528d3fd283af59a29a8",
+      "eersim/mujoco_scene.py": "96c19eb74ffd3bfb871daca06c97b0ba2d41599102aa8c82e5338de037bb0212"
+    },
+    "identical_benchmark_tool_sha256": "a15a8d9fc5ae8052664e348e083bf8d1fa94cd7fcf5e4f52bb0ef4e93759ce49",
+    "unchanged_assets_and_native_pros_manifest_sha256": "908c338bdb6b171df6a55eefe0da8035a2116b97605fc36c40cef1549290793b"
+  },
+  "limits": [
+    "CPU physics on a shared A100 host; GPUs, rendering, GUI, replay and tensor cores were not used.",
+    "Timing excludes world construction and separate observation/diagnostic queries. Window durations use per-tick CSV measurements.",
+    "Passive smoke checks validate finite state and fixed clocks, not autonomous placement. Full native claw cases use unchanged PROS source and strict physical lift/place/retreat checks.",
+    "The release baseline differs only by the same read-only benchmark-tool overlay used for the candidate. Candidate additionally contains the two listed frozen physics files.",
+    "Matching rate, scene and iteration counts does not establish trajectory equivalence or identical solver accuracy across engines.",
+    "Sleeping trees are MuJoCo counters; PhysX reports ordinary dynamic actors and articulations separately. Those counts are not interchangeable.",
+    "Results are individual sequential runs, not confidence intervals; another machine or scene can differ."
+  ],
+  "cases": [
+    {
+      "case": "baseline-mujoco-claw-6",
+      "source": "release_0.1.11",
+      "status": "passed",
+      "validation_scope": "native_claw_placement",
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "cpu_threads": 6,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 7200,
+        "seconds": 30.0,
+        "pros": true
+      },
+      "seed": 7,
+      "started_at_utc": "2026-10-25T21:47:12.828283+00:00",
+      "finished_at_utc": "2026-10-25T21:53:24.133080+00:00",
+      "physics": {
+        "backend": "mujoco",
+        "engine": "MuJoCo",
+        "version": "3.17.0",
+        "device": "CPU",
+        "hardware_accelerated": false,
+        "solver": "Newton",
+        "solver_iterations": 100,
+        "cpu_threads": 6,
+        "cpu_threads_requested": 6,
+        "static_flex_cache": true,
+        "initialization_steps": 0
+      },
+      "reproduce": [
+        "python",
+        "tools/benchmark_integration.py",
+        "--backend",
+        "mujoco",
+        "--physics-hz",
+        "240",
+        "--cpu-threads",
+        "6",
+        "--iterations",
+        "100",
+        "--diagnostics-seconds",
+        "1",
+        "--seconds",
+        "30",
+        "--validation",
+        "claw",
+        "--output",
+        "results/baseline-mujoco-claw-6.json"
+      ],
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": true,
+        "source_unchanged": true
+      },
+      "steps": {
+        "initialization": 25,
+        "competition": 7200,
+        "passive": 0,
+        "total": 7225
+      },
+      "simulation_seconds": {
+        "initialization": 0.10416666666666667,
+        "competition": 30.0,
+        "passive": 0,
+        "total_advanced": 30.104166666666668,
+        "prepared_world_time": 0.0
+      },
+      "timing_seconds": {
+        "hardware_inventory": 0.20229599601589143,
+        "configuration": 0.0015535340644419193,
+        "native_build": 3.585882362909615,
+        "session_construction": 27.946682839887217,
+        "session_start": 0.008249561069533229,
+        "observation": 3.0642203711904585,
+        "diagnostics": 0.17019469011574984,
+        "initialization_steps": 1.0393174712080508,
+        "competition_steps": 333.18393857660703,
+        "validation": 0.008201211923733354,
+        "close": 0.3790894008707255
+      },
+      "step_realtime_factor": 0.09004035467064471,
+      "per_window": [
+        {
+          "simulation_interval_seconds": [
+            0,
+            1
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.37818270479329,
+          "realtime_factor": 0.09635598335902662
+        },
+        {
+          "simulation_interval_seconds": [
+            1,
+            2
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.187852896051481,
+          "realtime_factor": 0.09815610906470501
+        },
+        {
+          "simulation_interval_seconds": [
+            2,
+            3
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.083585566841066,
+          "realtime_factor": 0.09917107296519673
+        },
+        {
+          "simulation_interval_seconds": [
+            3,
+            4
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.152013645041734,
+          "realtime_factor": 0.09850262568238392
+        },
+        {
+          "simulation_interval_seconds": [
+            4,
+            5
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.264480975223705,
+          "realtime_factor": 0.09742333805418797
+        },
+        {
+          "simulation_interval_seconds": [
+            5,
+            6
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.334724990651011,
+          "realtime_factor": 0.0967611620923265
+        },
+        {
+          "simulation_interval_seconds": [
+            6,
+            7
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.528614290058613,
+          "realtime_factor": 0.09497926056083426
+        },
+        {
+          "simulation_interval_seconds": [
+            7,
+            8
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.610255259322003,
+          "realtime_factor": 0.09424843941632939
+        },
+        {
+          "simulation_interval_seconds": [
+            8,
+            9
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.761878481833264,
+          "realtime_factor": 0.0929205808900429
+        },
+        {
+          "simulation_interval_seconds": [
+            9,
+            10
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.615891649853438,
+          "realtime_factor": 0.09419839924739679
+        },
+        {
+          "simulation_interval_seconds": [
+            10,
+            11
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.528314315946773,
+          "realtime_factor": 0.09498196672237874
+        },
+        {
+          "simulation_interval_seconds": [
+            11,
+            12
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.332299624104053,
+          "realtime_factor": 0.0882433427609854
+        },
+        {
+          "simulation_interval_seconds": [
+            12,
+            13
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.642623357940465,
+          "realtime_factor": 0.0858912952223936
+        },
+        {
+          "simulation_interval_seconds": [
+            13,
+            14
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.739046129398048,
+          "realtime_factor": 0.08518579695293162
+        },
+        {
+          "simulation_interval_seconds": [
+            14,
+            15
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.632886771578342,
+          "realtime_factor": 0.08596318520379793
+        },
+        {
+          "simulation_interval_seconds": [
+            15,
+            16
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.488177417078987,
+          "realtime_factor": 0.08704600944910046
+        },
+        {
+          "simulation_interval_seconds": [
+            16,
+            17
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.489985037595034,
+          "realtime_factor": 0.08703231524915109
+        },
+        {
+          "simulation_interval_seconds": [
+            17,
+            18
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.634970778832212,
+          "realtime_factor": 0.08594778783796557
+        },
+        {
+          "simulation_interval_seconds": [
+            18,
+            19
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.657062621088699,
+          "realtime_factor": 0.08578490418254321
+        },
+        {
+          "simulation_interval_seconds": [
+            19,
+            20
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.514016254339367,
+          "realtime_factor": 0.08685066773491162
+        },
+        {
+          "simulation_interval_seconds": [
+            20,
+            21
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.46046997141093,
+          "realtime_factor": 0.0872564565410128
+        },
+        {
+          "simulation_interval_seconds": [
+            21,
+            22
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.454072352964431,
+          "realtime_factor": 0.08730519322598741
+        },
+        {
+          "simulation_interval_seconds": [
+            22,
+            23
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.429650487145409,
+          "realtime_factor": 0.08749173923775451
+        },
+        {
+          "simulation_interval_seconds": [
+            23,
+            24
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.433442692272365,
+          "realtime_factor": 0.08746272027723373
+        },
+        {
+          "simulation_interval_seconds": [
+            24,
+            25
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.575630177743733,
+          "realtime_factor": 0.08638838530991452
+        },
+        {
+          "simulation_interval_seconds": [
+            25,
+            26
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.466832164674997,
+          "realtime_factor": 0.0872080436548661
+        },
+        {
+          "simulation_interval_seconds": [
+            26,
+            27
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.456276620272547,
+          "realtime_factor": 0.08728839509954237
+        },
+        {
+          "simulation_interval_seconds": [
+            27,
+            28
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.454334418755025,
+          "realtime_factor": 0.0873031957546679
+        },
+        {
+          "simulation_interval_seconds": [
+            28,
+            29
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.4671599783469,
+          "realtime_factor": 0.08720555062354328
+        },
+        {
+          "simulation_interval_seconds": [
+            29,
+            30
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.448869096813723,
+          "realtime_factor": 0.08734487149288002
+        },
+        {
+          "simulation_interval_seconds": [
+            2,
+            8
+          ],
+          "ticks": 1440,
+          "step_wall_seconds": 61.97367472713813,
+          "realtime_factor": 0.09681530143915468
+        }
+      ],
+      "native_activity": [
+        {
+          "label": "prepared",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 1442,
+            "native_constraints": 8652,
+            "islands": 29
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 1442
+          },
+          "query_wall_seconds": 0.00017568795010447502
+        },
+        {
+          "label": "initialization_complete",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.10416666666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3742,
+            "native_constraints": 22413,
+            "islands": 47
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3742
+          },
+          "query_wall_seconds": 0.00038312585093081
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 1.0,
+          "world_seconds": 1.1041666666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3774,
+            "native_constraints": 22605,
+            "islands": 55
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3774
+          },
+          "query_wall_seconds": 0.0011411970481276512
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 2.0,
+          "world_seconds": 2.1041666666666665,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3526,
+            "native_constraints": 21116,
+            "islands": 62
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3526
+          },
+          "query_wall_seconds": 0.0017552010249346495
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 3.0,
+          "world_seconds": 3.1041666666666665,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3298,
+            "native_constraints": 19748,
+            "islands": 62
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3298
+          },
+          "query_wall_seconds": 0.002234505955129862
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 4.0,
+          "world_seconds": 4.104166666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3302,
+            "native_constraints": 19772,
+            "islands": 62
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3302
+          },
+          "query_wall_seconds": 0.0031292058993130922
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 5.0,
+          "world_seconds": 5.104166666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3302,
+            "native_constraints": 19772,
+            "islands": 62
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3302
+          },
+          "query_wall_seconds": 0.0037991791032254696
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 6.0,
+          "world_seconds": 6.104166666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3295,
+            "native_constraints": 19730,
+            "islands": 62
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3295
+          },
+          "query_wall_seconds": 0.004238413879647851
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 7.0,
+          "world_seconds": 7.104166666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3297,
+            "native_constraints": 19742,
+            "islands": 62
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3297
+          },
+          "query_wall_seconds": 0.005766917020082474
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 8.0,
+          "world_seconds": 8.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3289,
+            "native_constraints": 19714,
+            "islands": 62
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3289
+          },
+          "query_wall_seconds": 0.006443209946155548
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 9.0,
+          "world_seconds": 9.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3290,
+            "native_constraints": 19710,
+            "islands": 62
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3290
+          },
+          "query_wall_seconds": 0.006515289889648557
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 10.0,
+          "world_seconds": 10.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3292,
+            "native_constraints": 19712,
+            "islands": 62
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3292
+          },
+          "query_wall_seconds": 0.006532400147989392
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 11.0,
+          "world_seconds": 11.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3292,
+            "native_constraints": 19712,
+            "islands": 62
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3292
+          },
+          "query_wall_seconds": 0.006566399009898305
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 12.0,
+          "world_seconds": 12.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.006548549048602581
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 13.0,
+          "world_seconds": 13.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.006449010223150253
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 14.0,
+          "world_seconds": 14.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3338,
+            "native_constraints": 19988,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3338
+          },
+          "query_wall_seconds": 0.006540948990732431
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 15.0,
+          "world_seconds": 15.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3335,
+            "native_constraints": 19990,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3335
+          },
+          "query_wall_seconds": 0.006852105958387256
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 16.0,
+          "world_seconds": 16.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3339,
+            "native_constraints": 19994,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3339
+          },
+          "query_wall_seconds": 0.005901227006688714
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 17.0,
+          "world_seconds": 17.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3339,
+            "native_constraints": 19994,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3339
+          },
+          "query_wall_seconds": 0.006088105030357838
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 18.0,
+          "world_seconds": 18.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3339,
+            "native_constraints": 19994,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3339
+          },
+          "query_wall_seconds": 0.006810697028413415
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 19.0,
+          "world_seconds": 19.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3339,
+            "native_constraints": 19994,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3339
+          },
+          "query_wall_seconds": 0.006058793980628252
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 20.0,
+          "world_seconds": 20.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3339,
+            "native_constraints": 19994,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3339
+          },
+          "query_wall_seconds": 0.0061542929615825415
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 21.0,
+          "world_seconds": 21.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.006104514002799988
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 22.0,
+          "world_seconds": 22.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.007180773187428713
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 23.0,
+          "world_seconds": 23.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.005999465007334948
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 24.0,
+          "world_seconds": 24.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.006193222943693399
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 25.0,
+          "world_seconds": 25.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.006182072916999459
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 26.0,
+          "world_seconds": 26.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.0062836220022290945
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 27.0,
+          "world_seconds": 27.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.0063010521698743105
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 28.0,
+          "world_seconds": 28.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.006443590857088566
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 29.0,
+          "world_seconds": 29.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.006495929090306163
+        },
+        {
+          "label": "final",
+          "competition_or_passive_seconds": 30.0,
+          "world_seconds": 30.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3340,
+            "native_constraints": 20000,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3340
+          },
+          "query_wall_seconds": 0.00705583393573761
+        }
+      ],
+      "profiling_seconds": {
+        "session": {
+          "session.setup.world": {
+            "count": 1,
+            "total": 27.743641042,
+            "mean": 27.743641042,
+            "p50": 27.743641042,
+            "p95": 27.743641042
+          },
+          "session.setup.native": {
+            "count": 1,
+            "total": 0.008009314,
+            "mean": 0.008009314,
+            "p50": 0.008009314,
+            "p95": 0.008009314
+          },
+          "session.native.input_snapshot": {
+            "count": 7225,
+            "total": 0.7488535199999984,
+            "mean": 0.00010364754602076103,
+            "p50": 0.000102939,
+            "p95": 0.000113392
+          },
+          "session.native.roundtrip": {
+            "count": 7225,
+            "total": 3.8319173119999954,
+            "mean": 0.0005303691781314873,
+            "p50": 0.00048196999999999997,
+            "p95": 0.0008612289999999997
+          },
+          "session.world.step": {
+            "count": 7225,
+            "total": 329.1154781699997,
+            "mean": 0.045552315317647016,
+            "p50": 0.0466310955,
+            "p95": 0.049745155
+          },
+          "session.telemetry": {
+            "count": 7225,
+            "total": 0.032123182999999986,
+            "mean": 4.446115294117645e-06,
+            "p50": 4.2e-06,
+            "p95": 5.02e-06
+          },
+          "session.state": {
+            "count": 7225,
+            "total": 0.14682591700000014,
+            "mean": 2.032192622837372e-05,
+            "p50": 1.8289e-05,
+            "p95": 2.2273e-05
+          },
+          "session.native.disable_roundtrip": {
+            "count": 1,
+            "total": 0.000862301,
+            "mean": 0.000862301,
+            "p50": 0.000862301,
+            "p95": 0.000862301
+          },
+          "session.native.close": {
+            "count": 1,
+            "total": 0.001421385,
+            "mean": 0.001421385,
+            "p50": 0.001421385,
+            "p95": 0.001421385
+          }
+        },
+        "world": {
+          "world.mujoco_compile": {
+            "count": 1,
+            "total": 20.747456528,
+            "mean": 20.747456528,
+            "p50": 20.747456528,
+            "p95": 20.747456528
+          },
+          "world.setup": {
+            "count": 1,
+            "total": 27.617703128,
+            "mean": 27.617703128,
+            "p50": 27.617703128,
+            "p95": 27.617703128
+          },
+          "world.control.motors": {
+            "count": 7225,
+            "total": 0.8866964570000008,
+            "mean": 0.00012272615321799317,
+            "p50": 0.000120378,
+            "p95": 0.00013639614999999997
+          },
+          "world.control.pneumatics": {
+            "count": 7225,
+            "total": 0.003867246000000067,
+            "mean": 5.352589619377256e-07,
+            "p50": 4.9e-07,
+            "p95": 6.1e-07
+          },
+          "world.control.manual_joints": {
+            "count": 7225,
+            "total": 0.005321015000000108,
+            "mean": 7.364726643598765e-07,
+            "p50": 6.9e-07,
+            "p95": 8.6e-07
+          },
+          "world.control.tires": {
+            "count": 7225,
+            "total": 13.404413645999986,
+            "mean": 0.0018552821655363303,
+            "p50": 0.0020121385,
+            "p95": 0.00206870935
+          },
+          "world.mujoco.body_drag": {
+            "count": 7225,
+            "total": 9.671250299000013,
+            "mean": 0.0013385813562629776,
+            "p50": 0.0013226555,
+            "p95": 0.0013756675
+          },
+          "world.mujoco.kinematics": {
+            "count": 7225,
+            "total": 0.39771881200000136,
+            "mean": 5.504758643598635e-05,
+            "p50": 5.3079e-05,
+            "p95": 6.121265e-05
+          },
+          "world.mujoco.inertia": {
+            "count": 7225,
+            "total": 0.17184881599999974,
+            "mean": 2.378530325259512e-05,
+            "p50": 2.388e-05,
+            "p95": 2.542e-05
+          },
+          "world.mujoco.collision": {
+            "count": 7225,
+            "total": 252.61437687300028,
+            "mean": 0.03496392759487893,
+            "p50": 0.036361072,
+            "p95": 0.03805162935
+          },
+          "world.mujoco.materials": {
+            "count": 7225,
+            "total": 4.566000879999997,
+            "mean": 0.0006319724401384079,
+            "p50": 0.0006165185,
+            "p95": 0.000641676
+          },
+          "world.mujoco.constraints": {
+            "count": 7225,
+            "total": 21.382002860000018,
+            "mean": 0.0029594467626297602,
+            "p50": 0.0029342730000000003,
+            "p95": 0.0030050375
+          },
+          "world.mujoco.step1": {
+            "count": 7225,
+            "total": 283.76610641000036,
+            "mean": 0.039275585662283785,
+            "p50": 0.0406331355,
+            "p95": 0.042395441
+          },
+          "world.mujoco.step2": {
+            "count": 7225,
+            "total": 12.535366617999998,
+            "mean": 0.0017349988398615913,
+            "p50": 0.0017099864999999999,
+            "p95": 0.0017586165
+          },
+          "world.integrate": {
+            "count": 7225,
+            "total": 308.4181499920002,
+            "mean": 0.042687633216885845,
+            "p50": 0.0439733895,
+            "p95": 0.04577676
+          },
+          "world.control.feedback": {
+            "count": 7225,
+            "total": 0.19120953200000076,
+            "mean": 2.6464987128027786e-05,
+            "p50": 2.52245e-05,
+            "p95": 2.773849999999999e-05
+          },
+          "world.rest": {
+            "count": 7225,
+            "total": 0.008533533000000077,
+            "mean": 1.1811118339100453e-06,
+            "p50": 1.08e-06,
+            "p95": 1.37e-06
+          },
+          "world.sensors": {
+            "count": 7225,
+            "total": 4.711670330999995,
+            "mean": 0.0006521343018685115,
+            "p50": 0.000267707,
+            "p95": 0.0033233365
+          },
+          "world.snapshot": {
+            "count": 7225,
+            "total": 0.8377225020000018,
+            "mean": 0.00011594775114186875,
+            "p50": 0.00011464400000000001,
+            "p95": 0.00012717485000000002
+          }
+        }
+      },
+      "final_scoring": {
+        "label": "Prototype placed pins \u00b7 contact detection, not official points",
+        "placed_pins": 6,
+        "placements": [
+          {
+            "pin": "pin_goal_2",
+            "goal": "goal_neutral_2",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_0",
+            "goal": "goal_center_0",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_4",
+            "goal": "goal_neutral_4",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_1",
+            "goal": "goal_neutral_1",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_3",
+            "goal": "goal_neutral_3",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "demo_preload",
+            "goal": "goal_red_5",
+            "alliance": "red"
+          }
+        ]
+      },
+      "preload_lift_m": 0.19341588862032033,
+      "preload_final_robot_contact": false,
+      "source_unchanged_during_run": true,
+      "remaining_owned_processes": [],
+      "host_load_average_start": [
+        5.6953125,
+        3.03125,
+        1.87548828125
+      ],
+      "host_load_average_end": [
+        3.51123046875,
+        3.666015625,
+        2.560546875
+      ],
+      "native_pros_source_sha256": {
+        "include/main.h": "25682a23ef4fa6cc8f512e07a3c0110d5ff4acff05a6517ec1f283677318c6bc",
+        "src/main.cpp": "fe9ae615f0d848c23102ef11cc63fdebc625081c67dfbf18076dc0210292b526"
+      },
+      "raw_artifacts_sha256": {
+        "process.json": "b932e3e0cfea78c8946726beb34a8f1eb212c4777acc306a289b2f33589ddc0c",
+        "report.csv": "949064d6330d05dadfc762adad8dca23c0c4f2da097c1971e9b09b5719110095",
+        "report.json": "d04b069b9b5886124df10b8a8ba334735ff512224bb7b160a214e67d0486506c",
+        "report.log": "83f32cb5416cbf475d8fc7ed2a8fbc379cb7a24c068f9fe3ba3c1bb2c5fb1f04",
+        "stdout.log": "c73008aad11aafa2516ed66598f5043c43361c8b4400958505d8a33cb5d8a1f4"
+      }
+    },
+    {
+      "case": "baseline-mujoco-idle-2",
+      "source": "release_0.1.11",
+      "status": "passed",
+      "validation_scope": "physics_only",
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "cpu_threads": 2,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 480,
+        "seconds": 2.0,
+        "pros": false
+      },
+      "seed": 7,
+      "started_at_utc": "2026-10-25T21:35:44.558513+00:00",
+      "finished_at_utc": "2026-10-25T21:36:42.016914+00:00",
+      "physics": {
+        "backend": "mujoco",
+        "engine": "MuJoCo",
+        "version": "3.17.0",
+        "device": "CPU",
+        "hardware_accelerated": false,
+        "solver": "Newton",
+        "solver_iterations": 100,
+        "cpu_threads": 2,
+        "cpu_threads_requested": 2,
+        "static_flex_cache": true,
+        "initialization_steps": 0
+      },
+      "reproduce": [
+        "python",
+        "tools/benchmark_integration.py",
+        "--backend",
+        "mujoco",
+        "--physics-hz",
+        "240",
+        "--cpu-threads",
+        "2",
+        "--iterations",
+        "100",
+        "--diagnostics-seconds",
+        "1",
+        "--no-pros",
+        "--steps",
+        "480",
+        "--validation",
+        "smoke",
+        "--output",
+        "results/baseline-mujoco-idle-2.json"
+      ],
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": false
+      },
+      "steps": {
+        "initialization": 0,
+        "competition": 0,
+        "passive": 480,
+        "total": 480
+      },
+      "simulation_seconds": {
+        "initialization": 0.0,
+        "competition": 0,
+        "passive": 2.0,
+        "total_advanced": 2.0,
+        "prepared_world_time": 0.0
+      },
+      "timing_seconds": {
+        "hardware_inventory": 0.20764729799702764,
+        "configuration": 0.0027515902183949947,
+        "world_construction": 27.945366960950196,
+        "observation": 0.14646440953947604,
+        "diagnostics": 0.002085567219182849,
+        "passive_steps": 26.84965062281117,
+        "validation": 0.006907644914463162,
+        "close": 0.38696129294112325
+      },
+      "step_realtime_factor": 0.07448886497989743,
+      "per_window": [
+        {
+          "simulation_interval_seconds": [
+            0,
+            1
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 13.490211085649207,
+          "realtime_factor": 0.07412782451297542
+        },
+        {
+          "simulation_interval_seconds": [
+            1,
+            2
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 13.361978525761515,
+          "realtime_factor": 0.07483921621876793
+        }
+      ],
+      "native_activity": [
+        {
+          "label": "prepared",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 1442,
+            "native_constraints": 8652,
+            "islands": 29
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 1442
+          },
+          "query_wall_seconds": 0.00016312790103256702
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 1.0,
+          "world_seconds": 1.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3770,
+            "native_constraints": 22581,
+            "islands": 55
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3770
+          },
+          "query_wall_seconds": 0.0007659820839762688
+        },
+        {
+          "label": "final",
+          "competition_or_passive_seconds": 2.0,
+          "world_seconds": 2.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3518,
+            "native_constraints": 21069,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3518
+          },
+          "query_wall_seconds": 0.0011683970224112272
+        }
+      ],
+      "profiling_seconds": {
+        "world": {
+          "world.mujoco_compile": {
+            "count": 1,
+            "total": 20.814879789,
+            "mean": 20.814879789,
+            "p50": 20.814879789,
+            "p95": 20.814879789
+          },
+          "world.setup": {
+            "count": 1,
+            "total": 27.791651028,
+            "mean": 27.791651028,
+            "p50": 27.791651028,
+            "p95": 27.791651028
+          },
+          "world.control.motors": {
+            "count": 480,
+            "total": 0.04251823800000007,
+            "mean": 8.857966250000014e-05,
+            "p50": 8.7624e-05,
+            "p95": 9.97635e-05
+          },
+          "world.control.pneumatics": {
+            "count": 480,
+            "total": 0.00024029700000000013,
+            "mean": 5.006187500000003e-07,
+            "p50": 5e-07,
+            "p95": 5.5e-07
+          },
+          "world.control.manual_joints": {
+            "count": 480,
+            "total": 0.000429227,
+            "mean": 8.942229166666667e-07,
+            "p50": 8.2e-07,
+            "p95": 1.2004999999999996e-06
+          },
+          "world.control.tires": {
+            "count": 480,
+            "total": 0.883491647,
+            "mean": 0.0018406075979166667,
+            "p50": 0.001956548,
+            "p95": 0.002013867
+          },
+          "world.mujoco.body_drag": {
+            "count": 480,
+            "total": 0.6424675000000002,
+            "mean": 0.0013384739583333337,
+            "p50": 0.0013265655,
+            "p95": 0.001364761
+          },
+          "world.mujoco.kinematics": {
+            "count": 480,
+            "total": 0.025149444,
+            "mean": 5.2394675e-05,
+            "p50": 5.1389e-05,
+            "p95": 5.931955e-05
+          },
+          "world.mujoco.inertia": {
+            "count": 480,
+            "total": 0.008902602000000006,
+            "mean": 1.8547087500000013e-05,
+            "p50": 1.8139499999999998e-05,
+            "p95": 1.9253499999999998e-05
+          },
+          "world.mujoco.collision": {
+            "count": 480,
+            "total": 21.327617053000015,
+            "mean": 0.044432535527083365,
+            "p50": 0.044393063999999996,
+            "p95": 0.044799828
+          },
+          "world.mujoco.materials": {
+            "count": 480,
+            "total": 0.31845933199999976,
+            "mean": 0.0006634569416666662,
+            "p50": 0.0006654275000000001,
+            "p95": 0.0006927099499999999
+          },
+          "world.mujoco.constraints": {
+            "count": 480,
+            "total": 1.3343823310000003,
+            "mean": 0.0027799631895833337,
+            "p50": 0.0028014240000000003,
+            "p95": 0.00300433095
+          },
+          "world.mujoco.step1": {
+            "count": 480,
+            "total": 23.32434189100003,
+            "mean": 0.048592378939583396,
+            "p50": 0.048587238000000005,
+            "p95": 0.04918875995
+          },
+          "world.mujoco.step2": {
+            "count": 480,
+            "total": 1.4178381790000016,
+            "mean": 0.0029538295395833366,
+            "p50": 0.002955188,
+            "p95": 0.00342156505
+          },
+          "world.integrate": {
+            "count": 480,
+            "total": 25.51741228199999,
+            "mean": 0.05316127558749998,
+            "p50": 0.053209683,
+            "p95": 0.0544641615
+          },
+          "world.control.feedback": {
+            "count": 480,
+            "total": 0.012450573000000008,
+            "mean": 2.5938693750000018e-05,
+            "p50": 2.5465e-05,
+            "p95": 2.8055999999999983e-05
+          },
+          "world.rest": {
+            "count": 480,
+            "total": 0.0005245339999999999,
+            "mean": 1.0927791666666663e-06,
+            "p50": 1.06e-06,
+            "p95": 1.36e-06
+          },
+          "world.sensors": {
+            "count": 480,
+            "total": 0.3100941099999998,
+            "mean": 0.0006460293958333329,
+            "p50": 0.0002600025,
+            "p95": 0.0032838965
+          },
+          "world.snapshot": {
+            "count": 480,
+            "total": 0.056191885000000004,
+            "mean": 0.00011706642708333335,
+            "p50": 0.00011576349999999999,
+            "p95": 0.00013255899999999998
+          }
+        }
+      },
+      "final_scoring": {
+        "label": "Prototype placed pins \u00b7 contact detection, not official points",
+        "placed_pins": 5,
+        "placements": [
+          {
+            "pin": "pin_goal_2",
+            "goal": "goal_neutral_2",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_0",
+            "goal": "goal_center_0",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_4",
+            "goal": "goal_neutral_4",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_1",
+            "goal": "goal_neutral_1",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_3",
+            "goal": "goal_neutral_3",
+            "alliance": "neutral"
+          }
+        ]
+      },
+      "preload_lift_m": 0.0,
+      "preload_final_robot_contact": false,
+      "source_unchanged_during_run": true,
+      "remaining_owned_processes": [],
+      "host_load_average_start": [
+        1.42333984375,
+        1.75927734375,
+        1.15283203125
+      ],
+      "host_load_average_end": [
+        2.169921875,
+        1.90966796875,
+        1.240234375
+      ],
+      "native_pros_source_sha256": null,
+      "raw_artifacts_sha256": {
+        "process.json": "055006e7aeaf4fe7c29aebfaa0e40815cef3edb3c8ecfa3d2878b6a7ba74eef4",
+        "report.csv": "61a793e85b27e2c4bfb1c39d50bc1001d3b3d0a9b8e65beda53509c1fc202c5e",
+        "report.json": "1ac6fdf2da97fc41306e558389d6ce60a312f6902ba49b8497c8a98b099e108d",
+        "report.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout.log": "fa3cac2ee5cc55010cc54d485d11508404155c23136c79bb2fd4cd71bbd53ce1"
+      }
+    },
+    {
+      "case": "baseline-mujoco-idle-6",
+      "source": "release_0.1.11",
+      "status": "passed",
+      "validation_scope": "physics_only",
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "cpu_threads": 6,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 480,
+        "seconds": 2.0,
+        "pros": false
+      },
+      "seed": 7,
+      "started_at_utc": "2026-10-25T21:34:26.505341+00:00",
+      "finished_at_utc": "2026-10-25T21:35:18.577979+00:00",
+      "physics": {
+        "backend": "mujoco",
+        "engine": "MuJoCo",
+        "version": "3.17.0",
+        "device": "CPU",
+        "hardware_accelerated": false,
+        "solver": "Newton",
+        "solver_iterations": 100,
+        "cpu_threads": 6,
+        "cpu_threads_requested": 6,
+        "static_flex_cache": true,
+        "initialization_steps": 0
+      },
+      "reproduce": [
+        "python",
+        "tools/benchmark_integration.py",
+        "--backend",
+        "mujoco",
+        "--physics-hz",
+        "240",
+        "--cpu-threads",
+        "6",
+        "--iterations",
+        "100",
+        "--diagnostics-seconds",
+        "1",
+        "--no-pros",
+        "--steps",
+        "480",
+        "--validation",
+        "smoke",
+        "--output",
+        "results/baseline-mujoco-idle-6.json"
+      ],
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": false
+      },
+      "steps": {
+        "initialization": 0,
+        "competition": 0,
+        "passive": 480,
+        "total": 480
+      },
+      "simulation_seconds": {
+        "initialization": 0.0,
+        "competition": 0,
+        "passive": 2.0,
+        "total_advanced": 2.0,
+        "prepared_world_time": 0.0
+      },
+      "timing_seconds": {
+        "hardware_inventory": 0.20770816807635128,
+        "configuration": 0.002665140898898244,
+        "world_construction": 28.1137558540795,
+        "observation": 0.15344362193718553,
+        "diagnostics": 0.0022119060158729553,
+        "passive_steps": 21.30928829824552,
+        "validation": 0.007051944034174085,
+        "close": 0.39301683800294995
+      },
+      "step_realtime_factor": 0.0938557858905437,
+      "per_window": [
+        {
+          "simulation_interval_seconds": [
+            0,
+            1
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.399008630076423,
+          "realtime_factor": 0.09616301279987022
+        },
+        {
+          "simulation_interval_seconds": [
+            1,
+            2
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 10.91334809619002,
+          "realtime_factor": 0.09163090842388798
+        }
+      ],
+      "native_activity": [
+        {
+          "label": "prepared",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 1442,
+            "native_constraints": 8652,
+            "islands": 29
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 1442
+          },
+          "query_wall_seconds": 0.00018555810675024986
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 1.0,
+          "world_seconds": 1.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3770,
+            "native_constraints": 22581,
+            "islands": 55
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3770
+          },
+          "query_wall_seconds": 0.0007172420155256987
+        },
+        {
+          "label": "final",
+          "competition_or_passive_seconds": 2.0,
+          "world_seconds": 2.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 3518,
+            "native_constraints": 21069,
+            "islands": 63
+          },
+          "sleeping": {
+            "enabled": false,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 3518
+          },
+          "query_wall_seconds": 0.0013309251517057419
+        }
+      ],
+      "profiling_seconds": {
+        "world": {
+          "world.mujoco_compile": {
+            "count": 1,
+            "total": 20.903568938,
+            "mean": 20.903568938,
+            "p50": 20.903568938,
+            "p95": 20.903568938
+          },
+          "world.setup": {
+            "count": 1,
+            "total": 27.893686411,
+            "mean": 27.893686411,
+            "p50": 27.893686411,
+            "p95": 27.893686411
+          },
+          "world.control.motors": {
+            "count": 480,
+            "total": 0.04440481300000005,
+            "mean": 9.251002708333344e-05,
+            "p50": 8.8209e-05,
+            "p95": 0.00010611199999999999
+          },
+          "world.control.pneumatics": {
+            "count": 480,
+            "total": 0.0002631700000000002,
+            "mean": 5.482708333333337e-07,
+            "p50": 5.2e-07,
+            "p95": 8.6e-07
+          },
+          "world.control.manual_joints": {
+            "count": 480,
+            "total": 0.00045920599999999987,
+            "mean": 9.566791666666665e-07,
+            "p50": 8.7e-07,
+            "p95": 1.6695499999999995e-06
+          },
+          "world.control.tires": {
+            "count": 480,
+            "total": 0.8800327679999999,
+            "mean": 0.0018334015999999997,
+            "p50": 0.0019491884999999999,
+            "p95": 0.002048094
+          },
+          "world.mujoco.body_drag": {
+            "count": 480,
+            "total": 0.6356272359999997,
+            "mean": 0.0013242234083333327,
+            "p50": 0.0013115955,
+            "p95": 0.001374422
+          },
+          "world.mujoco.kinematics": {
+            "count": 480,
+            "total": 0.025896994000000007,
+            "mean": 5.395207083333335e-05,
+            "p50": 5.262e-05,
+            "p95": 6.0589049999999975e-05
+          },
+          "world.mujoco.inertia": {
+            "count": 480,
+            "total": 0.010131558999999993,
+            "mean": 2.1107414583333317e-05,
+            "p50": 2.0639499999999998e-05,
+            "p95": 2.3354999999999992e-05
+          },
+          "world.mujoco.collision": {
+            "count": 480,
+            "total": 15.945013423000006,
+            "mean": 0.03321877796458335,
+            "p50": 0.03231642,
+            "p95": 0.03634915095
+          },
+          "world.mujoco.materials": {
+            "count": 480,
+            "total": 0.3308222220000001,
+            "mean": 0.0006892129625000002,
+            "p50": 0.000653463,
+            "p95": 0.0007195919999999999
+          },
+          "world.mujoco.constraints": {
+            "count": 480,
+            "total": 1.5125587820000002,
+            "mean": 0.003151164129166667,
+            "p50": 0.003156861,
+            "p95": 0.0033347219999999996
+          },
+          "world.mujoco.step1": {
+            "count": 480,
+            "total": 18.14435303599999,
+            "mean": 0.03780073549166665,
+            "p50": 0.036935744,
+            "p95": 0.040918878
+          },
+          "world.mujoco.step2": {
+            "count": 480,
+            "total": 0.9981884060000003,
+            "mean": 0.002079559179166667,
+            "p50": 0.0020734079999999997,
+            "p95": 0.00234820795
+          },
+          "world.integrate": {
+            "count": 480,
+            "total": 19.953166719000016,
+            "mean": 0.041569097331250034,
+            "p50": 0.040796682,
+            "p95": 0.044710036999999994
+          },
+          "world.control.feedback": {
+            "count": 480,
+            "total": 0.013935867999999997,
+            "mean": 2.9033058333333326e-05,
+            "p50": 2.6664500000000002e-05,
+            "p95": 3.749354999999999e-05
+          },
+          "world.rest": {
+            "count": 480,
+            "total": 0.000581994,
+            "mean": 1.2124875e-06,
+            "p50": 1.05e-06,
+            "p95": 1.87e-06
+          },
+          "world.sensors": {
+            "count": 480,
+            "total": 0.32831195800000024,
+            "mean": 0.0006839832458333338,
+            "p50": 0.0002935915,
+            "p95": 0.003378380949999999
+          },
+          "world.snapshot": {
+            "count": 480,
+            "total": 0.05767549900000001,
+            "mean": 0.00012015728958333335,
+            "p50": 0.00011754300000000001,
+            "p95": 0.00013631594999999997
+          }
+        }
+      },
+      "final_scoring": {
+        "label": "Prototype placed pins \u00b7 contact detection, not official points",
+        "placed_pins": 5,
+        "placements": [
+          {
+            "pin": "pin_goal_2",
+            "goal": "goal_neutral_2",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_0",
+            "goal": "goal_center_0",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_4",
+            "goal": "goal_neutral_4",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_1",
+            "goal": "goal_neutral_1",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_3",
+            "goal": "goal_neutral_3",
+            "alliance": "neutral"
+          }
+        ]
+      },
+      "preload_lift_m": 0.0,
+      "preload_final_robot_contact": false,
+      "source_unchanged_during_run": true,
+      "remaining_owned_processes": [],
+      "host_load_average_start": [
+        0.90283203125,
+        1.72216796875,
+        1.0830078125
+      ],
+      "host_load_average_end": [
+        2.07470703125,
+        1.896484375,
+        1.17919921875
+      ],
+      "native_pros_source_sha256": null,
+      "raw_artifacts_sha256": {
+        "process.json": "6a0cdee4c7399c6df0b799ae0bf15e2b2c6ecca65d72a6f8c25a978463cb8d59",
+        "report.csv": "89fbc661d5f85a19aba959614e4297e970869346db106910a7ceec3a0005a211",
+        "report.json": "8a033c92a04db33ba22181a76b4b81844bf3ec13e632347be17e7997f4faf524",
+        "report.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout.log": "c6b39341200f32884acbceef0508357c5bad562a3eecd16a018b88b48057adfc"
+      }
+    },
+    {
+      "case": "baseline-physx-claw-0",
+      "source": "release_0.1.11",
+      "status": "passed",
+      "validation_scope": "native_claw_placement",
+      "request": {
+        "backend": "physx_cpu",
+        "device": 0,
+        "iterations": 100,
+        "cpu_threads": 0,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 7200,
+        "seconds": 30.0,
+        "pros": true
+      },
+      "seed": 7,
+      "started_at_utc": "2026-10-25T21:54:00.195322+00:00",
+      "finished_at_utc": "2026-10-25T21:55:52.770772+00:00",
+      "physics": {
+        "backend": "physx",
+        "device": "PhysX CPU",
+        "hardware_accelerated": false,
+        "solver": "TGS",
+        "solver_iterations": 100,
+        "requested_cpu_workers": 0,
+        "initialization_steps": 1
+      },
+      "reproduce": [
+        "python",
+        "tools/benchmark_integration.py",
+        "--backend",
+        "physx_cpu",
+        "--physics-hz",
+        "240",
+        "--cpu-threads",
+        "0",
+        "--iterations",
+        "100",
+        "--diagnostics-seconds",
+        "1",
+        "--seconds",
+        "30",
+        "--validation",
+        "claw",
+        "--output",
+        "results/baseline-physx-claw-0.json"
+      ],
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": true,
+        "source_unchanged": true
+      },
+      "steps": {
+        "initialization": 25,
+        "competition": 7200,
+        "passive": 0,
+        "total": 7225
+      },
+      "simulation_seconds": {
+        "initialization": 0.10416666666666667,
+        "competition": 30.0,
+        "passive": 0,
+        "total_advanced": 30.104166666666668,
+        "prepared_world_time": 0.004166666666666667
+      },
+      "timing_seconds": {
+        "hardware_inventory": 0.21055097389034927,
+        "configuration": 0.0028009500820189714,
+        "native_build": 0.009070951957255602,
+        "session_construction": 29.02082400606014,
+        "session_start": 0.00871910504065454,
+        "observation": 5.9759897366166115,
+        "diagnostics": 4.391752915456891,
+        "initialization_steps": 2.7254916252568364,
+        "competition_steps": 67.75204853340983,
+        "validation": 0.017067685024812818,
+        "close": 0.7919027779716998
+      },
+      "step_realtime_factor": 0.44279103952416177,
+      "per_window": [
+        {
+          "simulation_interval_seconds": [
+            0,
+            1
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.46468238462694,
+          "realtime_factor": 0.11813792349919017
+        },
+        {
+          "simulation_interval_seconds": [
+            1,
+            2
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 2.659756838111207,
+          "realtime_factor": 0.37597421902302075
+        },
+        {
+          "simulation_interval_seconds": [
+            2,
+            3
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 2.020516236545518,
+          "realtime_factor": 0.49492302111350645
+        },
+        {
+          "simulation_interval_seconds": [
+            3,
+            4
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.9763104948215187,
+          "realtime_factor": 0.5059933662348488
+        },
+        {
+          "simulation_interval_seconds": [
+            4,
+            5
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.9809213811531663,
+          "realtime_factor": 0.5048155921351425
+        },
+        {
+          "simulation_interval_seconds": [
+            5,
+            6
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.9802444814704359,
+          "realtime_factor": 0.5049881513910077
+        },
+        {
+          "simulation_interval_seconds": [
+            6,
+            7
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.9350198842585087,
+          "realtime_factor": 0.5167905550403146
+        },
+        {
+          "simulation_interval_seconds": [
+            7,
+            8
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 2.58268542191945,
+          "realtime_factor": 0.3871938841304183
+        },
+        {
+          "simulation_interval_seconds": [
+            8,
+            9
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 2.8367400662973523,
+          "realtime_factor": 0.352517317987914
+        },
+        {
+          "simulation_interval_seconds": [
+            9,
+            10
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 2.01168151688762,
+          "realtime_factor": 0.4970965789590558
+        },
+        {
+          "simulation_interval_seconds": [
+            10,
+            11
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 2.0530940473545343,
+          "realtime_factor": 0.4870697478707935
+        },
+        {
+          "simulation_interval_seconds": [
+            11,
+            12
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 3.215184786124155,
+          "realtime_factor": 0.3110241141708938
+        },
+        {
+          "simulation_interval_seconds": [
+            12,
+            13
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.778115124674514,
+          "realtime_factor": 0.5623932815840882
+        },
+        {
+          "simulation_interval_seconds": [
+            13,
+            14
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 2.7099844694603235,
+          "realtime_factor": 0.369005804745126
+        },
+        {
+          "simulation_interval_seconds": [
+            14,
+            15
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 2.5947684263810515,
+          "realtime_factor": 0.38539084637880755
+        },
+        {
+          "simulation_interval_seconds": [
+            15,
+            16
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.7214584941975772,
+          "realtime_factor": 0.5809027655157782
+        },
+        {
+          "simulation_interval_seconds": [
+            16,
+            17
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.8114401253405958,
+          "realtime_factor": 0.5520469520415283
+        },
+        {
+          "simulation_interval_seconds": [
+            17,
+            18
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.8050791858695447,
+          "realtime_factor": 0.5539923166962223
+        },
+        {
+          "simulation_interval_seconds": [
+            18,
+            19
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.7919123109895736,
+          "realtime_factor": 0.5580630223181823
+        },
+        {
+          "simulation_interval_seconds": [
+            19,
+            20
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.805862944573164,
+          "realtime_factor": 0.553751879678976
+        },
+        {
+          "simulation_interval_seconds": [
+            20,
+            21
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.8140189349651337,
+          "realtime_factor": 0.5512621620012034
+        },
+        {
+          "simulation_interval_seconds": [
+            21,
+            22
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.8079124419018626,
+          "realtime_factor": 0.5531241319120709
+        },
+        {
+          "simulation_interval_seconds": [
+            22,
+            23
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.811854438856244,
+          "realtime_factor": 0.5519207164518484
+        },
+        {
+          "simulation_interval_seconds": [
+            23,
+            24
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.8064749140758067,
+          "realtime_factor": 0.5535642882212956
+        },
+        {
+          "simulation_interval_seconds": [
+            24,
+            25
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.7939733122475445,
+          "realtime_factor": 0.5574218931647146
+        },
+        {
+          "simulation_interval_seconds": [
+            25,
+            26
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.8085983409546316,
+          "realtime_factor": 0.5529143632146486
+        },
+        {
+          "simulation_interval_seconds": [
+            26,
+            27
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.8137392760254443,
+          "realtime_factor": 0.5513471606521969
+        },
+        {
+          "simulation_interval_seconds": [
+            27,
+            28
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.799260392319411,
+          "realtime_factor": 0.5557839233658163
+        },
+        {
+          "simulation_interval_seconds": [
+            28,
+            29
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.8168893209658563,
+          "realtime_factor": 0.5503912585431462
+        },
+        {
+          "simulation_interval_seconds": [
+            29,
+            30
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 1.8015898757148534,
+          "realtime_factor": 0.5550652862118298
+        },
+        {
+          "simulation_interval_seconds": [
+            2,
+            8
+          ],
+          "ticks": 1440,
+          "step_wall_seconds": 12.475697900168598,
+          "realtime_factor": 0.4809350184664952
+        }
+      ],
+      "native_activity": [
+        {
+          "label": "prepared",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.004166666666666667,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 0,
+            "regular_awake": 78,
+            "regular_awake_moving": 78,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.5955713908188045
+        },
+        {
+          "label": "initialization_complete",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.10833333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 0,
+            "regular_awake": 78,
+            "regular_awake_moving": 78,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.0713604788761586
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 1.0,
+          "world_seconds": 1.1083333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 61,
+            "regular_awake": 17,
+            "regular_awake_moving": 17,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.09548172797076404
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 2.0,
+          "world_seconds": 2.1083333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 72,
+            "regular_awake": 6,
+            "regular_awake_moving": 6,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.11548329098150134
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 3.0,
+          "world_seconds": 3.1083333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 73,
+            "regular_awake": 5,
+            "regular_awake_moving": 5,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.11825359100475907
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 4.0,
+          "world_seconds": 4.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 73,
+            "regular_awake": 5,
+            "regular_awake_moving": 5,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.11618429399095476
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 5.0,
+          "world_seconds": 5.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 73,
+            "regular_awake": 5,
+            "regular_awake_moving": 5,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12498602806590497
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 6.0,
+          "world_seconds": 6.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 73,
+            "regular_awake": 5,
+            "regular_awake_moving": 5,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.1237683619838208
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 7.0,
+          "world_seconds": 7.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 73,
+            "regular_awake": 5,
+            "regular_awake_moving": 5,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.1239253100939095
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 8.0,
+          "world_seconds": 8.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 69,
+            "regular_awake": 9,
+            "regular_awake_moving": 9,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.10655798693187535
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 9.0,
+          "world_seconds": 9.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 73,
+            "regular_awake": 5,
+            "regular_awake_moving": 5,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.13473386294208467
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 10.0,
+          "world_seconds": 10.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 73,
+            "regular_awake": 5,
+            "regular_awake_moving": 5,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.1277889390476048
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 11.0,
+          "world_seconds": 11.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 73,
+            "regular_awake": 5,
+            "regular_awake_moving": 5,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12668488989584148
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 12.0,
+          "world_seconds": 12.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12658578203991055
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 13.0,
+          "world_seconds": 13.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12854933994822204
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 14.0,
+          "world_seconds": 14.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12661712104454637
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 15.0,
+          "world_seconds": 15.108333333333333,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.1236955018248409
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 16.0,
+          "world_seconds": 16.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12422597710974514
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 17.0,
+          "world_seconds": 17.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12823357316665351
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 18.0,
+          "world_seconds": 18.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12670290004462004
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 19.0,
+          "world_seconds": 19.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12709074607118964
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 20.0,
+          "world_seconds": 20.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12813906511291862
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 21.0,
+          "world_seconds": 21.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.1279444971587509
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 22.0,
+          "world_seconds": 22.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12881561694666743
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 23.0,
+          "world_seconds": 23.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12839368218556046
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 24.0,
+          "world_seconds": 24.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.1251284668687731
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 25.0,
+          "world_seconds": 25.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12781576812267303
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 26.0,
+          "world_seconds": 26.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.1295047600287944
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 27.0,
+          "world_seconds": 27.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12608259706757963
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 28.0,
+          "world_seconds": 28.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.1286515591200441
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 29.0,
+          "world_seconds": 29.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12489418988116086
+        },
+        {
+          "label": "final",
+          "competition_or_passive_seconds": 30.0,
+          "world_seconds": 30.108333333333334,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 74,
+            "regular_awake": 4,
+            "regular_awake_moving": 4,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.12421499681659043
+        }
+      ],
+      "profiling_seconds": {
+        "worker": {
+          "worker.native.bootstrap": {
+            "count": 1,
+            "total": 0.433122197,
+            "mean": 0.433122197,
+            "p50": 0.433122197,
+            "p95": 0.433122197
+          },
+          "worker.setup": {
+            "count": 1,
+            "total": 17.768994261,
+            "mean": 17.768994261,
+            "p50": 17.768994261,
+            "p95": 17.768994261
+          },
+          "worker.state.read": {
+            "count": 7226,
+            "total": 0.9810934439999993,
+            "mean": 0.00013577268807085516,
+            "p50": 0.000136439,
+            "p95": 0.000156008
+          },
+          "worker.contacts.binding_read": {
+            "count": 7226,
+            "total": 3.0567471380000035,
+            "mean": 0.00042302063908109655,
+            "p50": 0.0004209305,
+            "p95": 0.00044602515
+          },
+          "worker.contacts.payload_validation": {
+            "count": 7226,
+            "total": 1.3200291470000047,
+            "mean": 0.0001826777120121789,
+            "p50": 0.000175208,
+            "p95": 0.0001986145
+          },
+          "worker.contacts.id_resolution": {
+            "count": 7226,
+            "total": 0.624040048,
+            "mean": 8.636037199003599e-05,
+            "p50": 7.3359e-05,
+            "p95": 8.77485e-05
+          },
+          "worker.contacts.pair_selection": {
+            "count": 7226,
+            "total": 0.8188349560000027,
+            "mean": 0.0001133178737890953,
+            "p50": 8.3389e-05,
+            "p95": 9.84755e-05
+          },
+          "worker.contacts.robot_materialization": {
+            "count": 7226,
+            "total": 1.542713288000005,
+            "mean": 0.00021349478106836493,
+            "p50": 9.5189e-05,
+            "p95": 0.00011086515
+          },
+          "worker.contacts.pair_retention": {
+            "count": 7226,
+            "total": 1.4408116499999999,
+            "mean": 0.00019939269997232216,
+            "p50": 0.0002019975,
+            "p95": 0.00022990664999999997
+          },
+          "worker.contacts.read_convert": {
+            "count": 7226,
+            "total": 9.569898469000002,
+            "mean": 0.001324370117492389,
+            "p50": 0.001167882,
+            "p95": 0.00122256
+          },
+          "worker.diagnostics.scene_activity": {
+            "count": 32,
+            "total": 3.4923562200000005,
+            "mean": 0.10913613187500001,
+            "p50": 0.0963551985,
+            "p95": 0.10178198035
+          },
+          "worker.control.write": {
+            "count": 7225,
+            "total": 2.7319991240000006,
+            "mean": 0.0003781313666435987,
+            "p50": 0.000381631,
+            "p95": 0.0004349435
+          },
+          "worker.native.step": {
+            "count": 7225,
+            "total": 24.74541904300009,
+            "mean": 0.003424971493840843,
+            "p50": 0.001116768,
+            "p95": 0.001198452
+          }
+        },
+        "ipc": {
+          "physx.process.spawn": {
+            "count": 1,
+            "total": 0.10357191,
+            "mean": 0.10357191,
+            "p50": 0.10357191,
+            "p95": 0.10357191
+          },
+          "physx.process.ready": {
+            "count": 1,
+            "total": 17.874313982,
+            "mean": 17.874313982,
+            "p50": 17.874313982,
+            "p95": 17.874313982
+          },
+          "physx.rpc.diagnostics": {
+            "count": 33,
+            "total": 4.040822959,
+            "mean": 0.12244918057575757,
+            "p50": 0.114112916,
+            "p95": 0.11897121159999999
+          },
+          "physx.rpc.step": {
+            "count": 7225,
+            "total": 42.39762010499982,
+            "mean": 0.0058681827134947845,
+            "p50": 0.003413728,
+            "p95": 0.00354623065
+          }
+        },
+        "session": {
+          "session.setup.world": {
+            "count": 1,
+            "total": 28.792541844,
+            "mean": 28.792541844,
+            "p50": 28.792541844,
+            "p95": 28.792541844
+          },
+          "session.setup.native": {
+            "count": 1,
+            "total": 0.008493019,
+            "mean": 0.008493019,
+            "p50": 0.008493019,
+            "p95": 0.008493019
+          },
+          "session.native.input_snapshot": {
+            "count": 7225,
+            "total": 1.6133510499999997,
+            "mean": 0.00022330118339100341,
+            "p50": 0.00022158749999999999,
+            "p95": 0.000252408
+          },
+          "session.native.roundtrip": {
+            "count": 7225,
+            "total": 3.0858250510000005,
+            "mean": 0.0004271038132871973,
+            "p50": 0.00040485550000000003,
+            "p95": 0.0004844104999999999
+          },
+          "session.world.step": {
+            "count": 7225,
+            "total": 65.13036813499976,
+            "mean": 0.009014583824913462,
+            "p50": 0.006471215,
+            "p95": 0.00929464985
+          },
+          "session.telemetry": {
+            "count": 7225,
+            "total": 0.034843874,
+            "mean": 4.822681522491349e-06,
+            "p50": 4.57e-06,
+            "p95": 5.33e-06
+          },
+          "session.state": {
+            "count": 7225,
+            "total": 0.20799551099999988,
+            "mean": 2.8788306020761228e-05,
+            "p50": 2.739e-05,
+            "p95": 4.416564999999999e-05
+          },
+          "session.native.disable_roundtrip": {
+            "count": 1,
+            "total": 0.00089178,
+            "mean": 0.00089178,
+            "p50": 0.00089178,
+            "p95": 0.00089178
+          },
+          "session.native.close": {
+            "count": 1,
+            "total": 0.001503933,
+            "mean": 0.001503933,
+            "p50": 0.001503933,
+            "p95": 0.001503933
+          }
+        },
+        "world": {
+          "world.setup": {
+            "count": 1,
+            "total": 28.752696855,
+            "mean": 28.752696855,
+            "p50": 28.752696855,
+            "p95": 28.752696855
+          },
+          "world.control.motors": {
+            "count": 7225,
+            "total": 1.3278630999999987,
+            "mean": 0.00018378728027681644,
+            "p50": 0.000183163,
+            "p95": 0.0002064945
+          },
+          "world.control.pneumatics": {
+            "count": 7225,
+            "total": 0.00634662599999995,
+            "mean": 8.784257439446297e-07,
+            "p50": 8.2e-07,
+            "p95": 9.7e-07
+          },
+          "world.control.manual_joints": {
+            "count": 7225,
+            "total": 0.008902424999999966,
+            "mean": 1.2321695501730055e-06,
+            "p50": 1.2e-06,
+            "p95": 1.39e-06
+          },
+          "world.control.tires": {
+            "count": 7225,
+            "total": 9.596719630000006,
+            "mean": 0.0013282656927335649,
+            "p50": 0.001549124,
+            "p95": 0.00176680785
+          },
+          "world.integrate": {
+            "count": 7225,
+            "total": 46.24323535699987,
+            "mean": 0.006400447800276798,
+            "p50": 0.0039435325,
+            "p95": 0.0040801035
+          },
+          "world.control.feedback": {
+            "count": 7225,
+            "total": 0.20754853400000037,
+            "mean": 2.8726440692041574e-05,
+            "p50": 2.729e-05,
+            "p95": 3.1789e-05
+          },
+          "world.rest": {
+            "count": 7225,
+            "total": 0.007992768000000072,
+            "mean": 1.1062654671280376e-06,
+            "p50": 1.09e-06,
+            "p95": 1.2664999999999986e-06
+          },
+          "world.sensors": {
+            "count": 7225,
+            "total": 5.044739377000007,
+            "mean": 0.0006982338238062293,
+            "p50": 0.0003362065,
+            "p95": 0.0031624945
+          },
+          "world.snapshot": {
+            "count": 7225,
+            "total": 1.6232451440000009,
+            "mean": 0.00022467060816609008,
+            "p50": 0.000218878,
+            "p95": 0.00025129264999999997
+          }
+        }
+      },
+      "final_scoring": {
+        "label": "Prototype placed pins \u00b7 contact detection, not official points",
+        "placed_pins": 6,
+        "placements": [
+          {
+            "pin": "pin_goal_2",
+            "goal": "goal_neutral_2",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_0",
+            "goal": "goal_center_0",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_4",
+            "goal": "goal_neutral_4",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_1",
+            "goal": "goal_neutral_1",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_3",
+            "goal": "goal_neutral_3",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "demo_preload",
+            "goal": "goal_red_5",
+            "alliance": "red"
+          }
+        ]
+      },
+      "preload_lift_m": 0.19978222995996475,
+      "preload_final_robot_contact": false,
+      "source_unchanged_during_run": true,
+      "remaining_owned_processes": [],
+      "host_load_average_start": [
+        2.1103515625,
+        3.3037109375,
+        2.4794921875
+      ],
+      "host_load_average_end": [
+        1.513671875,
+        2.72607421875,
+        2.35888671875
+      ],
+      "native_pros_source_sha256": {
+        "include/main.h": "25682a23ef4fa6cc8f512e07a3c0110d5ff4acff05a6517ec1f283677318c6bc",
+        "src/main.cpp": "fe9ae615f0d848c23102ef11cc63fdebc625081c67dfbf18076dc0210292b526"
+      },
+      "raw_artifacts_sha256": {
+        "process.json": "a4cda2966ec0cd4835b09156878f5b0d9792ff38db1e282f0888a057ea3ce607",
+        "report.csv": "6473e8de3d91d2d46edb51be513084d6092724128a93d3d3babf0c4ecf18fb19",
+        "report.json": "aa8cfaea8f16e4dd6f1d8d3e8882f77f72855d263d3bd84d400d26c8bddd827f",
+        "report.log": "32cb9a6aab91e1f703f3fa1a157294b96373ba48b99bc08743f14ab90df5e2d5",
+        "stdout.log": "4e688ad1c1fa4d79df8642102808c7930a021dd485cb049ea3773d1fdcbb1fd0"
+      }
+    },
+    {
+      "case": "baseline-physx-idle-0",
+      "source": "release_0.1.11",
+      "status": "passed",
+      "validation_scope": "physics_only",
+      "request": {
+        "backend": "physx_cpu",
+        "device": 0,
+        "iterations": 100,
+        "cpu_threads": 0,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 480,
+        "seconds": 2.0,
+        "pros": false
+      },
+      "seed": 7,
+      "started_at_utc": "2026-10-25T21:40:15.559516+00:00",
+      "finished_at_utc": "2026-10-25T21:41:01.802612+00:00",
+      "physics": {
+        "backend": "physx",
+        "device": "PhysX CPU",
+        "hardware_accelerated": false,
+        "solver": "TGS",
+        "solver_iterations": 100,
+        "requested_cpu_workers": 0,
+        "initialization_steps": 1
+      },
+      "reproduce": [
+        "python",
+        "tools/benchmark_integration.py",
+        "--backend",
+        "physx_cpu",
+        "--physics-hz",
+        "240",
+        "--cpu-threads",
+        "0",
+        "--iterations",
+        "100",
+        "--diagnostics-seconds",
+        "1",
+        "--no-pros",
+        "--steps",
+        "480",
+        "--validation",
+        "smoke",
+        "--output",
+        "results/baseline-physx-idle-0.json"
+      ],
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": false
+      },
+      "steps": {
+        "initialization": 0,
+        "competition": 0,
+        "passive": 480,
+        "total": 480
+      },
+      "simulation_seconds": {
+        "initialization": 0.0,
+        "competition": 0,
+        "passive": 2.0,
+        "total_advanced": 2.0,
+        "prepared_world_time": 0.004166666666666667
+      },
+      "timing_seconds": {
+        "hardware_inventory": 0.20974658499471843,
+        "configuration": 0.002757510868832469,
+        "world_construction": 28.846675456967205,
+        "observation": 0.2822312202770263,
+        "diagnostics": 0.7768650341313332,
+        "passive_steps": 13.325462725013494,
+        "validation": 0.014170056907460093,
+        "close": 0.8790242180693895
+      },
+      "step_realtime_factor": 0.15008859664180815,
+      "per_window": [
+        {
+          "simulation_interval_seconds": [
+            0,
+            1
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 11.072987463790923,
+          "realtime_factor": 0.09030986472892133
+        },
+        {
+          "simulation_interval_seconds": [
+            1,
+            2
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 2.2564802765846252,
+          "realtime_factor": 0.4431680659374453
+        }
+      ],
+      "native_activity": [
+        {
+          "label": "prepared",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.004166666666666667,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 0,
+            "regular_awake": 78,
+            "regular_awake_moving": 78,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.5897001849953085
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 1.0,
+          "world_seconds": 1.0041666666666667,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 55,
+            "regular_awake": 23,
+            "regular_awake_moving": 23,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.07825081120245159
+        },
+        {
+          "label": "final",
+          "competition_or_passive_seconds": 2.0,
+          "world_seconds": 2.0041666666666664,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 71,
+            "regular_awake": 7,
+            "regular_awake_moving": 7,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.1089464679826051
+        }
+      ],
+      "profiling_seconds": {
+        "worker": {
+          "worker.native.bootstrap": {
+            "count": 1,
+            "total": 0.439954619,
+            "mean": 0.439954619,
+            "p50": 0.439954619,
+            "p95": 0.439954619
+          },
+          "worker.setup": {
+            "count": 1,
+            "total": 17.639378936,
+            "mean": 17.639378936,
+            "p50": 17.639378936,
+            "p95": 17.639378936
+          },
+          "worker.state.read": {
+            "count": 481,
+            "total": 0.05317252899999997,
+            "mean": 0.00011054579833679827,
+            "p50": 0.000104399,
+            "p95": 0.000160438
+          },
+          "worker.contacts.binding_read": {
+            "count": 481,
+            "total": 0.21536558700000002,
+            "mean": 0.0004477455031185032,
+            "p50": 0.000336707,
+            "p95": 0.000743842
+          },
+          "worker.contacts.payload_validation": {
+            "count": 481,
+            "total": 0.10410872799999998,
+            "mean": 0.00021644226195426192,
+            "p50": 0.000157808,
+            "p95": 0.000479355
+          },
+          "worker.contacts.id_resolution": {
+            "count": 481,
+            "total": 0.08704683199999998,
+            "mean": 0.00018097054469854465,
+            "p50": 9.8049e-05,
+            "p95": 0.000507294
+          },
+          "worker.contacts.pair_selection": {
+            "count": 481,
+            "total": 0.12863638600000002,
+            "mean": 0.00026743531392931397,
+            "p50": 0.000159279,
+            "p95": 0.000643503
+          },
+          "worker.contacts.robot_materialization": {
+            "count": 481,
+            "total": 0.10286769399999997,
+            "mean": 0.00021386214968814962,
+            "p50": 0.000205678,
+            "p95": 0.000321346
+          },
+          "worker.contacts.pair_retention": {
+            "count": 481,
+            "total": 0.07067066299999995,
+            "mean": 0.0001469244553014552,
+            "p50": 0.000115259,
+            "p95": 0.000215087
+          },
+          "worker.contacts.read_convert": {
+            "count": 481,
+            "total": 0.7477253679999999,
+            "mean": 0.0015545225945945943,
+            "p50": 0.001242156,
+            "p95": 0.002845949
+          },
+          "worker.diagnostics.scene_activity": {
+            "count": 3,
+            "total": 0.7183115499999999,
+            "mean": 0.2394371833333333,
+            "p50": 0.090465339,
+            "p95": 0.5138075982
+          },
+          "worker.control.write": {
+            "count": 480,
+            "total": 0.13016510499999998,
+            "mean": 0.0002711773020833333,
+            "p50": 0.000276287,
+            "p95": 0.00039238199999999993
+          },
+          "worker.native.step": {
+            "count": 480,
+            "total": 10.575765618999993,
+            "mean": 0.022032845039583318,
+            "p50": 0.0058759165,
+            "p95": 0.08735532689999999
+          }
+        },
+        "ipc": {
+          "physx.process.spawn": {
+            "count": 1,
+            "total": 0.105259269,
+            "mean": 0.105259269,
+            "p50": 0.105259269,
+            "p95": 0.105259269
+          },
+          "physx.process.ready": {
+            "count": 1,
+            "total": 17.746514405,
+            "mean": 17.746514405,
+            "p50": 17.746514405,
+            "p95": 17.746514405
+          },
+          "physx.rpc.diagnostics": {
+            "count": 4,
+            "total": 0.765912075,
+            "mean": 0.19147801875,
+            "p50": 0.0892013375,
+            "p95": 0.5141632086499999
+          },
+          "physx.rpc.step": {
+            "count": 480,
+            "total": 11.781843816,
+            "mean": 0.02454550795,
+            "p50": 0.0077486759999999995,
+            "p95": 0.09161493319999997
+          }
+        },
+        "world": {
+          "world.setup": {
+            "count": 1,
+            "total": 28.800307759,
+            "mean": 28.800307759,
+            "p50": 28.800307759,
+            "p95": 28.800307759
+          },
+          "world.control.motors": {
+            "count": 480,
+            "total": 0.06494524200000004,
+            "mean": 0.00013530258750000008,
+            "p50": 0.000128124,
+            "p95": 0.0001483285
+          },
+          "world.control.pneumatics": {
+            "count": 480,
+            "total": 0.0004508849999999999,
+            "mean": 9.393437499999997e-07,
+            "p50": 8.9e-07,
+            "p95": 1.19e-06
+          },
+          "world.control.manual_joints": {
+            "count": 480,
+            "total": 0.0005996320000000003,
+            "mean": 1.249233333333334e-06,
+            "p50": 1.1745e-06,
+            "p95": 1.59e-06
+          },
+          "world.control.tires": {
+            "count": 480,
+            "total": 0.6652659589999996,
+            "mean": 0.001385970747916666,
+            "p50": 0.001373115,
+            "p95": 0.0016820334999999996
+          },
+          "world.integrate": {
+            "count": 480,
+            "total": 12.065939012999996,
+            "mean": 0.025137372943749993,
+            "p50": 0.008285525,
+            "p95": 0.09287062029999994
+          },
+          "world.control.feedback": {
+            "count": 480,
+            "total": 0.01563173100000001,
+            "mean": 3.256610625000002e-05,
+            "p50": 2.97445e-05,
+            "p95": 4.49515e-05
+          },
+          "world.rest": {
+            "count": 480,
+            "total": 0.0010269780000000002,
+            "mean": 2.1395375000000005e-06,
+            "p50": 1.63e-06,
+            "p95": 3.4614999999999985e-06
+          },
+          "world.sensors": {
+            "count": 480,
+            "total": 0.35893103799999987,
+            "mean": 0.0007477729958333331,
+            "p50": 0.0003526715,
+            "p95": 0.0033383314999999997
+          },
+          "world.snapshot": {
+            "count": 480,
+            "total": 0.11004086099999992,
+            "mean": 0.00022925179374999984,
+            "p50": 0.000225048,
+            "p95": 0.00026565249999999996
+          }
+        }
+      },
+      "final_scoring": {
+        "label": "Prototype placed pins \u00b7 contact detection, not official points",
+        "placed_pins": 5,
+        "placements": [
+          {
+            "pin": "pin_goal_2",
+            "goal": "goal_neutral_2",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_0",
+            "goal": "goal_center_0",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_4",
+            "goal": "goal_neutral_4",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_1",
+            "goal": "goal_neutral_1",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_3",
+            "goal": "goal_neutral_3",
+            "alliance": "neutral"
+          }
+        ]
+      },
+      "preload_lift_m": 0.0,
+      "preload_final_robot_contact": true,
+      "source_unchanged_during_run": true,
+      "remaining_owned_processes": [],
+      "host_load_average_start": [
+        0.73486328125,
+        1.31884765625,
+        1.13623046875
+      ],
+      "host_load_average_end": [
+        1.52490234375,
+        1.4462890625,
+        1.189453125
+      ],
+      "native_pros_source_sha256": null,
+      "raw_artifacts_sha256": {
+        "process.json": "6edd81d2c29a90a223d762b0dbef868c17f8034e93cf8a46f623cc3c4356ae21",
+        "report.csv": "5f3a448d1bac3e3010e616f8943b51d7bfd951833bcebea2969e1096384916e2",
+        "report.json": "b1bb4217a7315af542745100ee437c908490a1f01613b54424c56a5fe8c99767",
+        "report.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout.log": "6e8996c8d0d966aa2146a7a6549e5f7e5e9526fefb6562e667730411797c3b5b"
+      }
+    },
+    {
+      "case": "baseline-physx-idle-6",
+      "source": "release_0.1.11",
+      "status": "passed",
+      "validation_scope": "physics_only",
+      "request": {
+        "backend": "physx_cpu",
+        "device": 0,
+        "iterations": 100,
+        "cpu_threads": 6,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 480,
+        "seconds": 2.0,
+        "pros": false
+      },
+      "seed": 7,
+      "started_at_utc": "2026-10-25T21:37:15.055208+00:00",
+      "finished_at_utc": "2026-10-25T21:38:08.631878+00:00",
+      "physics": {
+        "backend": "physx",
+        "device": "PhysX CPU",
+        "hardware_accelerated": false,
+        "solver": "TGS",
+        "solver_iterations": 100,
+        "requested_cpu_workers": 6,
+        "initialization_steps": 1
+      },
+      "reproduce": [
+        "python",
+        "tools/benchmark_integration.py",
+        "--backend",
+        "physx_cpu",
+        "--physics-hz",
+        "240",
+        "--cpu-threads",
+        "6",
+        "--iterations",
+        "100",
+        "--diagnostics-seconds",
+        "1",
+        "--no-pros",
+        "--steps",
+        "480",
+        "--validation",
+        "smoke",
+        "--output",
+        "results/baseline-physx-idle-6.json"
+      ],
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": false
+      },
+      "steps": {
+        "initialization": 0,
+        "competition": 0,
+        "passive": 480,
+        "total": 480
+      },
+      "simulation_seconds": {
+        "initialization": 0.0,
+        "competition": 0,
+        "passive": 2.0,
+        "total_advanced": 2.0,
+        "prepared_world_time": 0.004166666666666667
+      },
+      "timing_seconds": {
+        "hardware_inventory": 0.20902850292623043,
+        "configuration": 0.0027189799584448338,
+        "world_construction": 29.4412501079496,
+        "observation": 0.26662427466362715,
+        "diagnostics": 0.9568220530636609,
+        "passive_steps": 20.292467488208786,
+        "validation": 0.01282841106876731,
+        "close": 0.7634325919207186
+      },
+      "step_realtime_factor": 0.09855873866310873,
+      "per_window": [
+        {
+          "simulation_interval_seconds": [
+            0,
+            1
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 17.679326871410012,
+          "realtime_factor": 0.05656323949850955
+        },
+        {
+          "simulation_interval_seconds": [
+            1,
+            2
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 2.6170342850964516,
+          "realtime_factor": 0.3821119217638162
+        }
+      ],
+      "native_activity": [
+        {
+          "label": "prepared",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.004166666666666667,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 0,
+            "regular_awake": 78,
+            "regular_awake_moving": 78,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.7203940970357507
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 1.0,
+          "world_seconds": 1.0041666666666667,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 55,
+            "regular_awake": 23,
+            "regular_awake_moving": 23,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.11930041597224772
+        },
+        {
+          "label": "final",
+          "competition_or_passive_seconds": 2.0,
+          "world_seconds": 2.0041666666666664,
+          "counts": {
+            "static_actors": 68,
+            "regular_dynamic_actors": 78,
+            "regular_sleeping": 71,
+            "regular_awake": 7,
+            "regular_awake_moving": 7,
+            "regular_awake_zero_velocity": 0,
+            "articulations": 1,
+            "articulations_sleeping": 0,
+            "articulations_awake": 1,
+            "articulations_awake_moving": 1,
+            "articulations_awake_zero_velocity": 0,
+            "articulation_links": 10,
+            "articulation_links_sleeping": 0,
+            "articulation_links_awake": 10
+          },
+          "sleeping": null,
+          "query_wall_seconds": 0.11715602898038924
+        }
+      ],
+      "profiling_seconds": {
+        "worker": {
+          "worker.native.bootstrap": {
+            "count": 1,
+            "total": 0.402556064,
+            "mean": 0.402556064,
+            "p50": 0.402556064,
+            "p95": 0.402556064
+          },
+          "worker.setup": {
+            "count": 1,
+            "total": 18.243104609,
+            "mean": 18.243104609,
+            "p50": 18.243104609,
+            "p95": 18.243104609
+          },
+          "worker.state.read": {
+            "count": 481,
+            "total": 0.06351134499999997,
+            "mean": 0.00013204021829521824,
+            "p50": 0.000121389,
+            "p95": 0.000164679
+          },
+          "worker.contacts.binding_read": {
+            "count": 481,
+            "total": 0.2413442,
+            "mean": 0.0005017550935550936,
+            "p50": 0.000391755,
+            "p95": 0.00088259
+          },
+          "worker.contacts.payload_validation": {
+            "count": 481,
+            "total": 0.15811954500000006,
+            "mean": 0.0003287308627858629,
+            "p50": 0.000213117,
+            "p95": 0.000827201
+          },
+          "worker.contacts.id_resolution": {
+            "count": 481,
+            "total": 0.13606661199999973,
+            "mean": 0.00028288276923076863,
+            "p50": 0.000143548,
+            "p95": 0.000904641
+          },
+          "worker.contacts.pair_selection": {
+            "count": 481,
+            "total": 0.23610215100000012,
+            "mean": 0.0004908568627858631,
+            "p50": 0.000318807,
+            "p95": 0.001328305
+          },
+          "worker.contacts.robot_materialization": {
+            "count": 481,
+            "total": 0.151517509,
+            "mean": 0.0003150052162162162,
+            "p50": 0.000306807,
+            "p95": 0.000347516
+          },
+          "worker.contacts.pair_retention": {
+            "count": 481,
+            "total": 0.09660899300000002,
+            "mean": 0.00020085029729729732,
+            "p50": 0.000197158,
+            "p95": 0.000220028
+          },
+          "worker.contacts.read_convert": {
+            "count": 481,
+            "total": 1.0736442289999988,
+            "mean": 0.0022321085841995815,
+            "p50": 0.001689692,
+            "p95": 0.004575211
+          },
+          "worker.diagnostics.scene_activity": {
+            "count": 3,
+            "total": 0.868712999,
+            "mean": 0.28957099966666666,
+            "p50": 0.10046996,
+            "p95": 0.6139920077
+          },
+          "worker.control.write": {
+            "count": 480,
+            "total": 0.18965110500000015,
+            "mean": 0.00039510646875000034,
+            "p50": 0.00038504550000000005,
+            "p95": 0.00045689649999999994
+          },
+          "worker.native.step": {
+            "count": 480,
+            "total": 17.254170432999963,
+            "mean": 0.03594618840208326,
+            "p50": 0.011883181,
+            "p95": 0.15081672289999998
+          }
+        },
+        "ipc": {
+          "physx.process.spawn": {
+            "count": 1,
+            "total": 0.105882742,
+            "mean": 0.105882742,
+            "p50": 0.105882742,
+            "p95": 0.105882742
+          },
+          "physx.process.ready": {
+            "count": 1,
+            "total": 18.363385705,
+            "mean": 18.363385705,
+            "p50": 18.363385705,
+            "p95": 18.363385705
+          },
+          "physx.rpc.diagnostics": {
+            "count": 4,
+            "total": 0.946570504,
+            "mean": 0.236642626,
+            "p50": 0.1136176275,
+            "p95": 0.6275605978499997
+          },
+          "physx.rpc.step": {
+            "count": 480,
+            "total": 18.858584809999996,
+            "mean": 0.03928871835416666,
+            "p50": 0.0147035405,
+            "p95": 0.1567791634
+          }
+        },
+        "world": {
+          "world.setup": {
+            "count": 1,
+            "total": 29.398247715,
+            "mean": 29.398247715,
+            "p50": 29.398247715,
+            "p95": 29.398247715
+          },
+          "world.control.motors": {
+            "count": 480,
+            "total": 0.057843106000000005,
+            "mean": 0.00012050647083333334,
+            "p50": 0.000116744,
+            "p95": 0.00013425699999999996
+          },
+          "world.control.pneumatics": {
+            "count": 480,
+            "total": 0.00043510700000000017,
+            "mean": 9.064729166666671e-07,
+            "p50": 8.8e-07,
+            "p95": 9.9e-07
+          },
+          "world.control.manual_joints": {
+            "count": 480,
+            "total": 0.0005501579999999996,
+            "mean": 1.1461624999999992e-06,
+            "p50": 1.14e-06,
+            "p95": 1.25e-06
+          },
+          "world.control.tires": {
+            "count": 480,
+            "total": 0.6297765979999996,
+            "mean": 0.001312034579166666,
+            "p50": 0.0013157949999999998,
+            "p95": 0.0015844190499999997
+          },
+          "world.integrate": {
+            "count": 480,
+            "total": 19.110914227999995,
+            "mean": 0.039814404641666655,
+            "p50": 0.015212955,
+            "p95": 0.1573144039
+          },
+          "world.control.feedback": {
+            "count": 480,
+            "total": 0.013981789000000001,
+            "mean": 2.9128727083333336e-05,
+            "p50": 2.7159e-05,
+            "p95": 3.255199999999999e-05
+          },
+          "world.rest": {
+            "count": 480,
+            "total": 0.0005750530000000001,
+            "mean": 1.1980270833333334e-06,
+            "p50": 1.14e-06,
+            "p95": 1.6204999999999996e-06
+          },
+          "world.sensors": {
+            "count": 480,
+            "total": 0.33567760099999994,
+            "mean": 0.0006993283354166665,
+            "p50": 0.0003287715,
+            "p95": 0.0030841785
+          },
+          "world.snapshot": {
+            "count": 480,
+            "total": 0.104210766,
+            "mean": 0.0002171057625,
+            "p50": 0.0002102125,
+            "p95": 0.000250607
+          }
+        }
+      },
+      "final_scoring": {
+        "label": "Prototype placed pins \u00b7 contact detection, not official points",
+        "placed_pins": 5,
+        "placements": [
+          {
+            "pin": "pin_goal_2",
+            "goal": "goal_neutral_2",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_0",
+            "goal": "goal_center_0",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_4",
+            "goal": "goal_neutral_4",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_1",
+            "goal": "goal_neutral_1",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_3",
+            "goal": "goal_neutral_3",
+            "alliance": "neutral"
+          }
+        ]
+      },
+      "preload_lift_m": 0.0,
+      "preload_final_robot_contact": true,
+      "source_unchanged_during_run": true,
+      "remaining_owned_processes": [],
+      "host_load_average_start": [
+        1.265625,
+        1.71240234375,
+        1.19775390625
+      ],
+      "host_load_average_end": [
+        1.3486328125,
+        1.654296875,
+        1.205078125
+      ],
+      "native_pros_source_sha256": null,
+      "raw_artifacts_sha256": {
+        "process.json": "dbfd91ef20d5930002f8dcb550eb263bf66ede325910d52017eed173486eb1ce",
+        "report.csv": "2dcced229e4ccea5258b4b8ece7e25f7bd3246234a19a632f740f4b918758213",
+        "report.json": "e5510151a27ab9daea7fc860e10f44e6d0ec40c5c442964840ff805bb5d679f7",
+        "report.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout.log": "fc7ddd772604692f3a3a8133770a5e24bfa8d13dcd2badfbfaf153f2d35eb0ee"
+      }
+    },
+    {
+      "case": "candidate-mujoco-claw-6",
+      "source": "sleeping_candidate",
+      "status": "passed",
+      "validation_scope": "native_claw_placement",
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "cpu_threads": 6,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 7200,
+        "seconds": 30.0,
+        "pros": true
+      },
+      "seed": 7,
+      "started_at_utc": "2026-10-25T21:42:08.665927+00:00",
+      "finished_at_utc": "2026-10-25T21:46:48.457270+00:00",
+      "physics": {
+        "backend": "mujoco",
+        "engine": "MuJoCo",
+        "version": "3.17.0",
+        "device": "CPU",
+        "hardware_accelerated": false,
+        "solver": "Newton",
+        "solver_iterations": 100,
+        "cpu_threads": 6,
+        "cpu_threads_requested": 6,
+        "static_flex_cache": false,
+        "sleeping": {
+          "enabled": true,
+          "awake_trees": 79,
+          "sleeping_trees": 0,
+          "contact_count": 1442
+        },
+        "initialization_steps": 0
+      },
+      "reproduce": [
+        "python",
+        "tools/benchmark_integration.py",
+        "--backend",
+        "mujoco",
+        "--physics-hz",
+        "240",
+        "--cpu-threads",
+        "6",
+        "--iterations",
+        "100",
+        "--diagnostics-seconds",
+        "1",
+        "--seconds",
+        "30",
+        "--validation",
+        "claw",
+        "--output",
+        "results/candidate-mujoco-claw-6.json"
+      ],
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": true,
+        "source_unchanged": true
+      },
+      "steps": {
+        "initialization": 25,
+        "competition": 7200,
+        "passive": 0,
+        "total": 7225
+      },
+      "simulation_seconds": {
+        "initialization": 0.10416666666666667,
+        "competition": 30.0,
+        "passive": 0,
+        "total_advanced": 30.104166666666668,
+        "prepared_world_time": 0.0
+      },
+      "timing_seconds": {
+        "hardware_inventory": 0.20446637296117842,
+        "configuration": 0.0026625110767781734,
+        "native_build": 3.5883320251014084,
+        "session_construction": 28.143615530105308,
+        "session_start": 0.008101481944322586,
+        "observation": 3.003364567179233,
+        "diagnostics": 0.12866365653462708,
+        "initialization_steps": 1.2867276251781732,
+        "competition_steps": 241.1021961478982,
+        "validation": 0.00714630214497447,
+        "close": 0.3861086929682642
+      },
+      "step_realtime_factor": 0.12442856381779799,
+      "per_window": [
+        {
+          "simulation_interval_seconds": [
+            0,
+            1
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 9.414158066967502,
+          "realtime_factor": 0.10622298806611402
+        },
+        {
+          "simulation_interval_seconds": [
+            1,
+            2
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.097336121834815,
+          "realtime_factor": 0.12349740519026461
+        },
+        {
+          "simulation_interval_seconds": [
+            2,
+            3
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.093344169436023,
+          "realtime_factor": 0.12355831891796146
+        },
+        {
+          "simulation_interval_seconds": [
+            3,
+            4
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.151722650742158,
+          "realtime_factor": 0.12267345723654581
+        },
+        {
+          "simulation_interval_seconds": [
+            4,
+            5
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.099015552550554,
+          "realtime_factor": 0.12347179648087951
+        },
+        {
+          "simulation_interval_seconds": [
+            5,
+            6
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.107484148582444,
+          "realtime_factor": 0.1233428251814523
+        },
+        {
+          "simulation_interval_seconds": [
+            6,
+            7
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.086029388243333,
+          "realtime_factor": 0.12367009220297272
+        },
+        {
+          "simulation_interval_seconds": [
+            7,
+            8
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.078460850287229,
+          "realtime_factor": 0.1237859560790525
+        },
+        {
+          "simulation_interval_seconds": [
+            8,
+            9
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.062135694082826,
+          "realtime_factor": 0.12403661237480115
+        },
+        {
+          "simulation_interval_seconds": [
+            9,
+            10
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.055103245656937,
+          "realtime_factor": 0.12414490162359733
+        },
+        {
+          "simulation_interval_seconds": [
+            10,
+            11
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.9374346784316,
+          "realtime_factor": 0.12598528876304343
+        },
+        {
+          "simulation_interval_seconds": [
+            11,
+            12
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.144327836344019,
+          "realtime_factor": 0.12278484119186674
+        },
+        {
+          "simulation_interval_seconds": [
+            12,
+            13
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.961221462348476,
+          "realtime_factor": 0.12560886601752824
+        },
+        {
+          "simulation_interval_seconds": [
+            13,
+            14
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 8.045640781521797,
+          "realtime_factor": 0.12429090822656072
+        },
+        {
+          "simulation_interval_seconds": [
+            14,
+            15
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.943716389359906,
+          "realtime_factor": 0.12588566245132257
+        },
+        {
+          "simulation_interval_seconds": [
+            15,
+            16
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.928273315308616,
+          "realtime_factor": 0.12613086863051393
+        },
+        {
+          "simulation_interval_seconds": [
+            16,
+            17
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.892105690669268,
+          "realtime_factor": 0.1267088961038987
+        },
+        {
+          "simulation_interval_seconds": [
+            17,
+            18
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.926347467349842,
+          "realtime_factor": 0.12616151438215312
+        },
+        {
+          "simulation_interval_seconds": [
+            18,
+            19
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.934544846881181,
+          "realtime_factor": 0.1260311737217124
+        },
+        {
+          "simulation_interval_seconds": [
+            19,
+            20
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.935736676445231,
+          "realtime_factor": 0.12601224571477898
+        },
+        {
+          "simulation_interval_seconds": [
+            20,
+            21
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.952153862919658,
+          "realtime_factor": 0.1257520939909036
+        },
+        {
+          "simulation_interval_seconds": [
+            21,
+            22
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.931418212130666,
+          "realtime_factor": 0.1260808563177964
+        },
+        {
+          "simulation_interval_seconds": [
+            22,
+            23
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.9351720116101205,
+          "realtime_factor": 0.12602121271434047
+        },
+        {
+          "simulation_interval_seconds": [
+            23,
+            24
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.930244317743927,
+          "realtime_factor": 0.1260995197540761
+        },
+        {
+          "simulation_interval_seconds": [
+            24,
+            25
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.9418893763795495,
+          "realtime_factor": 0.12591462215202343
+        },
+        {
+          "simulation_interval_seconds": [
+            25,
+            26
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.9313792935572565,
+          "realtime_factor": 0.12608147498535477
+        },
+        {
+          "simulation_interval_seconds": [
+            26,
+            27
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.937951146392152,
+          "realtime_factor": 0.12597709176561336
+        },
+        {
+          "simulation_interval_seconds": [
+            27,
+            28
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.94440699997358,
+          "realtime_factor": 0.12587471915818582
+        },
+        {
+          "simulation_interval_seconds": [
+            28,
+            29
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.86190919787623,
+          "realtime_factor": 0.12719556723831588
+        },
+        {
+          "simulation_interval_seconds": [
+            29,
+            30
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.8801766145043075,
+          "realtime_factor": 0.12690070907286433
+        },
+        {
+          "simulation_interval_seconds": [
+            2,
+            8
+          ],
+          "ticks": 1440,
+          "step_wall_seconds": 48.61605675984174,
+          "realtime_factor": 0.12341601519924529
+        }
+      ],
+      "native_activity": [
+        {
+          "label": "prepared",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 1442,
+            "native_constraints": 8652,
+            "islands": 29
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 1442
+          },
+          "query_wall_seconds": 0.00016437796875834465
+        },
+        {
+          "label": "initialization_complete",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.10416666666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 37,
+            "sleeping_trees": 42,
+            "bodies": 185,
+            "awake_and_static_bodies": 143,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 208,
+            "native_contacts": 2128,
+            "native_constraints": 12729,
+            "islands": 21
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 37,
+            "sleeping_trees": 42,
+            "contact_count": 2128
+          },
+          "query_wall_seconds": 0.00032656616531312466
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 1.0,
+          "world_seconds": 1.1041666666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1209,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.0008401810191571712
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 2.0,
+          "world_seconds": 2.1041666666666665,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "bodies": 185,
+            "awake_and_static_bodies": 112,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 22,
+            "native_contacts": 220,
+            "native_constraints": 1280,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "contact_count": 220
+          },
+          "query_wall_seconds": 0.001229996094480157
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 3.0,
+          "world_seconds": 3.1041666666666665,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "bodies": 185,
+            "awake_and_static_bodies": 112,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 22,
+            "native_contacts": 216,
+            "native_constraints": 1256,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "contact_count": 216
+          },
+          "query_wall_seconds": 0.001689382130280137
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 4.0,
+          "world_seconds": 4.104166666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "bodies": 185,
+            "awake_and_static_bodies": 112,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 22,
+            "native_contacts": 220,
+            "native_constraints": 1280,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "contact_count": 220
+          },
+          "query_wall_seconds": 0.0027046408504247665
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 5.0,
+          "world_seconds": 5.104166666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "bodies": 185,
+            "awake_and_static_bodies": 112,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 22,
+            "native_contacts": 220,
+            "native_constraints": 1280,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "contact_count": 220
+          },
+          "query_wall_seconds": 0.002845149952918291
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 6.0,
+          "world_seconds": 6.104166666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "bodies": 185,
+            "awake_and_static_bodies": 112,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 22,
+            "native_contacts": 213,
+            "native_constraints": 1238,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "contact_count": 213
+          },
+          "query_wall_seconds": 0.0033782129175961018
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 7.0,
+          "world_seconds": 7.104166666666667,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "bodies": 185,
+            "awake_and_static_bodies": 112,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 22,
+            "native_contacts": 215,
+            "native_constraints": 1250,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "contact_count": 215
+          },
+          "query_wall_seconds": 0.003971356898546219
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 8.0,
+          "world_seconds": 8.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "bodies": 185,
+            "awake_and_static_bodies": 112,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 22,
+            "native_contacts": 212,
+            "native_constraints": 1232,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "contact_count": 212
+          },
+          "query_wall_seconds": 0.004572089994326234
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 9.0,
+          "world_seconds": 9.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "bodies": 185,
+            "awake_and_static_bodies": 112,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 22,
+            "native_contacts": 210,
+            "native_constraints": 1220,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "contact_count": 210
+          },
+          "query_wall_seconds": 0.004746007965877652
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 10.0,
+          "world_seconds": 10.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "bodies": 185,
+            "awake_and_static_bodies": 112,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 22,
+            "native_contacts": 210,
+            "native_constraints": 1220,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "contact_count": 210
+          },
+          "query_wall_seconds": 0.004668388981372118
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 11.0,
+          "world_seconds": 11.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "bodies": 185,
+            "awake_and_static_bodies": 112,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 22,
+            "native_contacts": 210,
+            "native_constraints": 1220,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 6,
+            "sleeping_trees": 73,
+            "contact_count": 210
+          },
+          "query_wall_seconds": 0.00465603987686336
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 12.0,
+          "world_seconds": 12.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004953325958922505
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 13.0,
+          "world_seconds": 13.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004840617999434471
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 14.0,
+          "world_seconds": 14.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.005233662901446223
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 15.0,
+          "world_seconds": 15.104166666666666,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004654149990528822
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 16.0,
+          "world_seconds": 16.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004884847206994891
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 17.0,
+          "world_seconds": 17.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004719257820397615
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 18.0,
+          "world_seconds": 18.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004751109052449465
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 19.0,
+          "world_seconds": 19.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004782967967912555
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 20.0,
+          "world_seconds": 20.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004799647955223918
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 21.0,
+          "world_seconds": 21.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.00481698801741004
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 22.0,
+          "world_seconds": 22.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.0048381679225713015
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 23.0,
+          "world_seconds": 23.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004983855877071619
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 24.0,
+          "world_seconds": 24.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004879327025264502
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 25.0,
+          "world_seconds": 25.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004884456982836127
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 26.0,
+          "world_seconds": 26.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004896656144410372
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 27.0,
+          "world_seconds": 27.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.0049218060448765755
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 28.0,
+          "world_seconds": 28.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.005110935075208545
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 29.0,
+          "world_seconds": 29.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.004910936811938882
+        },
+        {
+          "label": "final",
+          "competition_or_passive_seconds": 30.0,
+          "world_seconds": 30.104166666666668,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1208,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.005134514067322016
+        }
+      ],
+      "profiling_seconds": {
+        "session": {
+          "session.setup.world": {
+            "count": 1,
+            "total": 27.885824006,
+            "mean": 27.885824006,
+            "p50": 27.885824006,
+            "p95": 27.885824006
+          },
+          "session.setup.native": {
+            "count": 1,
+            "total": 0.007877275,
+            "mean": 0.007877275,
+            "p50": 0.007877275,
+            "p95": 0.007877275
+          },
+          "session.native.input_snapshot": {
+            "count": 7225,
+            "total": 0.7727680059999998,
+            "mean": 0.00010695750948096883,
+            "p50": 0.000106769,
+            "p95": 0.00011550435
+          },
+          "session.native.roundtrip": {
+            "count": 7225,
+            "total": 3.431261487000013,
+            "mean": 0.00047491508470588414,
+            "p50": 0.00043953000000000004,
+            "p95": 0.000561437
+          },
+          "session.world.step": {
+            "count": 7225,
+            "total": 237.69530966799988,
+            "mean": 0.032899004798339085,
+            "p50": 0.032073642,
+            "p95": 0.0344701495
+          },
+          "session.telemetry": {
+            "count": 7225,
+            "total": 0.026579903000000116,
+            "mean": 3.6788793079584936e-06,
+            "p50": 3.49e-06,
+            "p95": 4.09e-06
+          },
+          "session.state": {
+            "count": 7225,
+            "total": 0.16163173499999947,
+            "mean": 2.2371174394463595e-05,
+            "p50": 1.936e-05,
+            "p95": 4.174585e-05
+          },
+          "session.native.disable_roundtrip": {
+            "count": 1,
+            "total": 0.00091028,
+            "mean": 0.00091028,
+            "p50": 0.00091028,
+            "p95": 0.00091028
+          },
+          "session.native.close": {
+            "count": 1,
+            "total": 0.001518483,
+            "mean": 0.001518483,
+            "p50": 0.001518483,
+            "p95": 0.001518483
+          }
+        },
+        "world": {
+          "world.mujoco_compile": {
+            "count": 1,
+            "total": 20.791023298,
+            "mean": 20.791023298,
+            "p50": 20.791023298,
+            "p95": 20.791023298
+          },
+          "world.setup": {
+            "count": 1,
+            "total": 27.734607387,
+            "mean": 27.734607387,
+            "p50": 27.734607387,
+            "p95": 27.734607387
+          },
+          "world.control.motors": {
+            "count": 7225,
+            "total": 0.8320326539999968,
+            "mean": 0.0001151602289273352,
+            "p50": 0.0001144485,
+            "p95": 0.00012671485
+          },
+          "world.control.pneumatics": {
+            "count": 7225,
+            "total": 0.003572833999999953,
+            "mean": 4.945098961937651e-07,
+            "p50": 4.8e-07,
+            "p95": 5.8e-07
+          },
+          "world.control.manual_joints": {
+            "count": 7225,
+            "total": 0.005567906999999939,
+            "mean": 7.706445674740399e-07,
+            "p50": 7.8e-07,
+            "p95": 9.8e-07
+          },
+          "world.control.tires": {
+            "count": 7225,
+            "total": 6.043316014,
+            "mean": 0.0008364451230449827,
+            "p50": 0.000837641,
+            "p95": 0.0008597051499999999
+          },
+          "world.mujoco.materials": {
+            "count": 7225,
+            "total": 3.672146402999994,
+            "mean": 0.0005082555575086497,
+            "p50": 0.0004606655,
+            "p95": 0.00048125749999999997
+          },
+          "world.mujoco.step1": {
+            "count": 7225,
+            "total": 196.35028095699997,
+            "mean": 0.027176509475017298,
+            "p50": 0.026601351500000002,
+            "p95": 0.027508089
+          },
+          "world.mujoco.body_drag": {
+            "count": 7225,
+            "total": 2.5182748589999937,
+            "mean": 0.0003485501534948088,
+            "p50": 0.0003242615,
+            "p95": 0.000336652
+          },
+          "world.mujoco.step2": {
+            "count": 7225,
+            "total": 1.696302666999998,
+            "mean": 0.00023478237605536307,
+            "p50": 0.00016319350000000002,
+            "p95": 0.0002319445
+          },
+          "world.integrate": {
+            "count": 7225,
+            "total": 225.9183508050009,
+            "mean": 0.03126897588996552,
+            "p50": 0.0305696935,
+            "p95": 0.0315171735
+          },
+          "world.control.feedback": {
+            "count": 7225,
+            "total": 0.16175256300000007,
+            "mean": 2.2387897993079596e-05,
+            "p50": 2.1659e-05,
+            "p95": 2.471965e-05
+          },
+          "world.rest": {
+            "count": 7225,
+            "total": 0.007705122000000239,
+            "mean": 1.0664528719723514e-06,
+            "p50": 9e-07,
+            "p95": 1.7264999999999986e-06
+          },
+          "world.sensors": {
+            "count": 7225,
+            "total": 3.319107080999993,
+            "mean": 0.0004593919835294108,
+            "p50": 0.0002158075,
+            "p95": 0.0021472195000000003
+          },
+          "world.snapshot": {
+            "count": 7225,
+            "total": 0.7861737600000004,
+            "mean": 0.00010881297716262981,
+            "p50": 0.000108119,
+            "p95": 0.0001169655
+          }
+        }
+      },
+      "final_scoring": {
+        "label": "Prototype placed pins \u00b7 contact detection, not official points",
+        "placed_pins": 6,
+        "placements": [
+          {
+            "pin": "pin_goal_2",
+            "goal": "goal_neutral_2",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_0",
+            "goal": "goal_center_0",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_4",
+            "goal": "goal_neutral_4",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_1",
+            "goal": "goal_neutral_1",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_3",
+            "goal": "goal_neutral_3",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "demo_preload",
+            "goal": "goal_red_5",
+            "alliance": "red"
+          }
+        ]
+      },
+      "preload_lift_m": 0.19326854402688276,
+      "preload_final_robot_contact": false,
+      "source_unchanged_during_run": true,
+      "remaining_owned_processes": [],
+      "host_load_average_start": [
+        1.27392578125,
+        1.37109375,
+        1.1806640625
+      ],
+      "host_load_average_end": [
+        7.88525390625,
+        3.173828125,
+        1.888671875
+      ],
+      "native_pros_source_sha256": {
+        "include/main.h": "25682a23ef4fa6cc8f512e07a3c0110d5ff4acff05a6517ec1f283677318c6bc",
+        "src/main.cpp": "fe9ae615f0d848c23102ef11cc63fdebc625081c67dfbf18076dc0210292b526"
+      },
+      "raw_artifacts_sha256": {
+        "process.json": "55a0172bc4e5e9e80368457316c1c28e8e07539ef45d7b5ca9836b7a16d8c784",
+        "report.csv": "e4f7b98e2f05c7a5251217386c85a556d294bc66d3faf5f8d5d54f5696afda76",
+        "report.json": "dcd8b3b63c2f77a7c47434d5e7850be289b72842ebb4985a9d065f1e860372ec",
+        "report.log": "83f32cb5416cbf475d8fc7ed2a8fbc379cb7a24c068f9fe3ba3c1bb2c5fb1f04",
+        "stdout.log": "a8d7ae31c6be926a6155a362893812195d01195751c42a276e66981291e0fc8b"
+      }
+    },
+    {
+      "case": "candidate-mujoco-idle-6",
+      "source": "sleeping_candidate",
+      "status": "passed",
+      "validation_scope": "physics_only",
+      "request": {
+        "backend": "mujoco",
+        "device": 0,
+        "iterations": 100,
+        "cpu_threads": 6,
+        "fixture": "claw",
+        "physics_hz": 240,
+        "ticks": 480,
+        "seconds": 2.0,
+        "pros": false
+      },
+      "seed": 7,
+      "started_at_utc": "2026-10-25T21:38:59.397173+00:00",
+      "finished_at_utc": "2026-10-25T21:39:48.080335+00:00",
+      "physics": {
+        "backend": "mujoco",
+        "engine": "MuJoCo",
+        "version": "3.17.0",
+        "device": "CPU",
+        "hardware_accelerated": false,
+        "solver": "Newton",
+        "solver_iterations": 100,
+        "cpu_threads": 6,
+        "cpu_threads_requested": 6,
+        "static_flex_cache": false,
+        "sleeping": {
+          "enabled": true,
+          "awake_trees": 79,
+          "sleeping_trees": 0,
+          "contact_count": 1442
+        },
+        "initialization_steps": 0
+      },
+      "reproduce": [
+        "python",
+        "tools/benchmark_integration.py",
+        "--backend",
+        "mujoco",
+        "--physics-hz",
+        "240",
+        "--cpu-threads",
+        "6",
+        "--iterations",
+        "100",
+        "--diagnostics-seconds",
+        "1",
+        "--no-pros",
+        "--steps",
+        "480",
+        "--validation",
+        "smoke",
+        "--output",
+        "results/candidate-mujoco-idle-6.json"
+      ],
+      "checks": {
+        "fixed_clock": true,
+        "finite_state": true,
+        "requested_backend": true,
+        "full_claw_placement": false
+      },
+      "steps": {
+        "initialization": 0,
+        "competition": 0,
+        "passive": 480,
+        "total": 480
+      },
+      "simulation_seconds": {
+        "initialization": 0.0,
+        "competition": 0,
+        "passive": 2.0,
+        "total_advanced": 2.0,
+        "prepared_world_time": 0.0
+      },
+      "timing_seconds": {
+        "hardware_inventory": 0.20896798302419484,
+        "configuration": 0.0028420391026884317,
+        "world_construction": 27.893901058938354,
+        "observation": 0.1453891305718571,
+        "diagnostics": 0.0015968319494277239,
+        "passive_steps": 17.49169610114768,
+        "validation": 0.006652218056842685,
+        "close": 0.38290830701589584
+      },
+      "step_realtime_factor": 0.11433996957383533,
+      "per_window": [
+        {
+          "simulation_interval_seconds": [
+            0,
+            1
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 9.574804825242609,
+          "realtime_factor": 0.10444077119605012
+        },
+        {
+          "simulation_interval_seconds": [
+            1,
+            2
+          ],
+          "ticks": 240,
+          "step_wall_seconds": 7.919182117795572,
+          "realtime_factor": 0.12627566649248442
+        }
+      ],
+      "native_activity": [
+        {
+          "label": "prepared",
+          "competition_or_passive_seconds": 0.0,
+          "world_seconds": 0.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "bodies": 185,
+            "awake_and_static_bodies": 185,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 460,
+            "native_contacts": 1442,
+            "native_constraints": 8652,
+            "islands": 29
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 79,
+            "sleeping_trees": 0,
+            "contact_count": 1442
+          },
+          "query_wall_seconds": 0.00017811800353229046
+        },
+        {
+          "label": "periodic",
+          "competition_or_passive_seconds": 1.0,
+          "world_seconds": 1.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1209,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.0005386939737945795
+        },
+        {
+          "label": "final",
+          "competition_or_passive_seconds": 2.0,
+          "world_seconds": 2.0,
+          "counts": {
+            "trees": 79,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "bodies": 185,
+            "awake_and_static_bodies": 111,
+            "degrees_of_freedom": 460,
+            "awake_degrees_of_freedom": 16,
+            "native_contacts": 208,
+            "native_constraints": 1209,
+            "islands": 5
+          },
+          "sleeping": {
+            "enabled": true,
+            "awake_trees": 5,
+            "sleeping_trees": 74,
+            "contact_count": 208
+          },
+          "query_wall_seconds": 0.0008919599931687117
+        }
+      ],
+      "profiling_seconds": {
+        "world": {
+          "world.mujoco_compile": {
+            "count": 1,
+            "total": 20.724883215,
+            "mean": 20.724883215,
+            "p50": 20.724883215,
+            "p95": 20.724883215
+          },
+          "world.setup": {
+            "count": 1,
+            "total": 27.734083331,
+            "mean": 27.734083331,
+            "p50": 27.734083331,
+            "p95": 27.734083331
+          },
+          "world.control.motors": {
+            "count": 480,
+            "total": 0.041089962000000015,
+            "mean": 8.560408750000003e-05,
+            "p50": 8.4309e-05,
+            "p95": 9.4559e-05
+          },
+          "world.control.pneumatics": {
+            "count": 480,
+            "total": 0.00023150699999999996,
+            "mean": 4.823062499999999e-07,
+            "p50": 4.9e-07,
+            "p95": 5.7e-07
+          },
+          "world.control.manual_joints": {
+            "count": 480,
+            "total": 0.0004123019999999991,
+            "mean": 8.589624999999982e-07,
+            "p50": 8.1e-07,
+            "p95": 1.11e-06
+          },
+          "world.control.tires": {
+            "count": 480,
+            "total": 0.42023803199999965,
+            "mean": 0.0008754958999999992,
+            "p50": 0.0008557160000000001,
+            "p95": 0.0009322545
+          },
+          "world.mujoco.materials": {
+            "count": 480,
+            "total": 0.5016305940000002,
+            "mean": 0.0010450637375000005,
+            "p50": 0.0005166895,
+            "p95": 0.00185743055
+          },
+          "world.mujoco.step1": {
+            "count": 480,
+            "total": 14.247781245999985,
+            "mean": 0.029682877595833303,
+            "p50": 0.027453362000000002,
+            "p95": 0.033222814999999996
+          },
+          "world.mujoco.body_drag": {
+            "count": 480,
+            "total": 0.2624179059999997,
+            "mean": 0.0005467039708333327,
+            "p50": 0.00033806600000000004,
+            "p95": 0.0009912779999999997
+          },
+          "world.mujoco.step2": {
+            "count": 480,
+            "total": 0.3458836140000002,
+            "mean": 0.0007205908625000004,
+            "p50": 0.00022221250000000001,
+            "p95": 0.001804446
+          },
+          "world.integrate": {
+            "count": 480,
+            "total": 16.714906831999993,
+            "mean": 0.03482272256666665,
+            "p50": 0.0314754435,
+            "p95": 0.04099767194999999
+          },
+          "world.control.feedback": {
+            "count": 480,
+            "total": 0.01137634899999999,
+            "mean": 2.3700727083333313e-05,
+            "p50": 2.3645e-05,
+            "p95": 2.579994999999999e-05
+          },
+          "world.rest": {
+            "count": 480,
+            "total": 0.0005370849999999996,
+            "mean": 1.1189270833333325e-06,
+            "p50": 1.08e-06,
+            "p95": 1.39905e-06
+          },
+          "world.sensors": {
+            "count": 480,
+            "total": 0.22338473799999978,
+            "mean": 0.00046538487083333285,
+            "p50": 0.000213933,
+            "p95": 0.0022469049999999987
+          },
+          "world.snapshot": {
+            "count": 480,
+            "total": 0.05264028799999997,
+            "mean": 0.0001096672666666666,
+            "p50": 0.0001076885,
+            "p95": 0.00011922145
+          }
+        }
+      },
+      "final_scoring": {
+        "label": "Prototype placed pins \u00b7 contact detection, not official points",
+        "placed_pins": 5,
+        "placements": [
+          {
+            "pin": "pin_goal_2",
+            "goal": "goal_neutral_2",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_0",
+            "goal": "goal_center_0",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_4",
+            "goal": "goal_neutral_4",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_1",
+            "goal": "goal_neutral_1",
+            "alliance": "neutral"
+          },
+          {
+            "pin": "pin_goal_3",
+            "goal": "goal_neutral_3",
+            "alliance": "neutral"
+          }
+        ]
+      },
+      "preload_lift_m": 0.0,
+      "preload_final_robot_contact": false,
+      "source_unchanged_during_run": true,
+      "remaining_owned_processes": [],
+      "host_load_average_start": [
+        0.72216796875,
+        1.44189453125,
+        1.15478515625
+      ],
+      "host_load_average_end": [
+        1.11767578125,
+        1.43505859375,
+        1.16796875
+      ],
+      "native_pros_source_sha256": null,
+      "raw_artifacts_sha256": {
+        "process.json": "e8c75d428c528592c16255352f1867dc204b6e3e4e7f403935236a08a5abaed8",
+        "report.csv": "486b24ef3f357899fb7cb0017ffa1c30b759eb885c5f7eeb40a29f694bf3aa83",
+        "report.json": "a34bed5e628c2380090d85fa74c4d39c9471221cd9b4cb8d4a12da0b12cab45d",
+        "report.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout.log": "8cac841f4e45dc7aea01194832ef336911166a8272101747a01e9e1d624e2c07"
+      }
+    }
+  ],
+  "version": "0.1.12",
+  "date": "2026-10-25",
+  "local_validation": {
+    "focused_suite": {
+      "passed": 173,
+      "skipped": 1
+    },
+    "license_notice_tests_passed": 2,
+    "native_240hz_claw_integration": "passed",
+    "frozen_executable": {
+      "status": "passed",
+      "exit_code": 0,
+      "executable_sha256": "8c0d2555861d8dfb9c7706940276614e0a88a2ca7b4e864585098778dfdfdcf4",
+      "physics_backend": "mujoco",
+      "native_sleeping": {
+        "enabled": true,
+        "awake_trees": 6,
+        "sleeping_trees": 73,
+        "contact_count": 220
+      },
+      "telemetry_samples": 505,
+      "bundled_pros_compile": true,
+      "isolated_user_data": true,
+      "external_python_or_compiler_on_path": false
+    },
+    "known_preexisting_ci_failures": [
+      "tests/test_physics.py::test_authored_cup_pin_stack_settles_then_wakes_on_collision",
+      "tests/test_physics.py::test_bounded_rest_goal_pin_sleeps_and_contact_wakes_it"
+    ]
+  }
+}

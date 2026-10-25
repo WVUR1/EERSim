@@ -140,6 +140,128 @@ def test_native_workers_preserve_collision_trajectory(tmp_path):
         assert contact_seen
 
 
+@pytest.mark.parametrize("fixed", [False, True])
+def test_native_sleep_preserves_moving_props_and_motor_responsiveness(tmp_path, fixed):
+    config = fixture_config(tmp_path, fixed)
+    config.update(start_pose=[.7, .7, .4, 0], gravity=0, physics_cpu_threads=0)
+    with World(config) as world:
+        still = world._add_object({"shape": "sphere", "radius": .04, "mass": .1,
+                                   "position": [-.7, -.7, .3]}, tmp_path)
+        moving = world._add_object({"shape": "sphere", "radius": .04, "mass": .1,
+                                    "position": [-.7, .5, .3]}, tmp_path)
+        world._physics.resetBaseVelocity(moving, [.02, 0, 0], physicsClientId=world.client)
+        scene = compile_scene(world)
+        model, data = scene.model, scene.data
+        assert model.opt.enableflags & mujoco.mjtEnableBit.mjENBL_SLEEP
+        assert model.opt.sleep_tolerance == pytest.approx(.001)
+        robot_trees = {int(model.body_treeid[native]) for (body, _), native in scene.body_ids.items()
+                       if body == world.robot and model.body_treeid[native] >= 0}
+        assert robot_trees
+        assert all(model.tree_sleep_policy[tree] == mujoco.mjtSleepPolicy.mjSLEEP_NEVER
+                   for tree in robot_trees)
+        still_tree = model.body_treeid[scene.body_ids[still, -1]]
+        moving_tree = model.body_treeid[scene.body_ids[moving, -1]]
+        assert model.tree_sleep_policy[still_tree] == mujoco.mjtSleepPolicy.mjSLEEP_ALLOWED
+        for _ in range(100):
+            mujoco.mj_step(model, data)
+        assert data.tree_asleep[still_tree] >= 0
+        assert data.tree_asleep[moving_tree] < 0
+        moving_joint = scene.free_joints[moving]
+        assert data.qpos[model.jnt_qposadr[moving_joint]] == pytest.approx(-.7 + 2 * world.dt)
+        assert all(data.tree_asleep[tree] < 0 for tree in robot_trees)
+        key, actuator = next(iter(scene.actuator_ids.items()))
+        dof = model.jnt_dofadr[scene.joint_ids[key]]
+        before = data.qvel[dof]
+        data.ctrl[actuator] = .1
+        mujoco.mj_step(model, data)
+        assert abs(data.qvel[dof] - before) > 1e-6
+
+
+def test_passive_prop_sleeps_on_world_welded_flex_and_wakes_on_impact(tmp_path):
+    config = fixture_config(tmp_path, fixed=True)
+    config.update(start_pose=[.7, .7, .4, 0], physics_cpu_threads=0, restitution=0)
+    plate = tmp_path / 'sleep_plate.obj'
+    plate.write_text('v -1 -1 0\nv 0 -1 0\nv 0 0 0\nv -1 0 0\nf 1 2 3\nf 1 3 4\n')
+    fixture = tmp_path / 'sleep_plate.urdf'
+    fixture.write_text('<robot name="plate"><link name="plate" concave="yes">'
+                       '<inertial><mass value="0"/><inertia ixx="0" iyy="0" izz="0" '
+                       'ixy="0" ixz="0" iyz="0"/></inertial><collision><geometry>'
+                       '<mesh filename="sleep_plate.obj"/></geometry></collision></link></robot>')
+    with World(config) as world:
+        world._add_object({"urdf": str(fixture), "fixed": True, "position": [0, 0, .2]}, tmp_path)
+        target = world._add_object({"shape": "sphere", "radius": .05, "mass": .2,
+                                    "position": [-.5, -.5, .5]}, tmp_path)
+        ball = world._add_object({"shape": "sphere", "radius": .04, "mass": .2,
+                                  "position": [-.8, -.5, .3]}, tmp_path)
+        scene = compile_scene(world)
+        model, data = scene.model, scene.data
+        assert model.nflex == 1 and model.flex_rigid[0]
+        assert all(model.body_treeid[body] < 0 for body in model.flex_vertbodyid)
+        target_native, ball_native = scene.body_ids[target, -1], scene.body_ids[ball, -1]
+        target_tree, ball_tree = model.body_treeid[[target_native, ball_native]]
+        target_joint = scene.free_joints[target]
+        target_pos = model.jnt_qposadr[target_joint]
+        flex_contact_seen = False
+        for _ in range(600):
+            mujoco.mj_step(model, data)
+            flex_contact_seen |= bool(np.any(data.contact.flex[:data.ncon] >= 0))
+        assert flex_contact_seen
+        assert data.qpos[target_pos + 2] == pytest.approx(.25, abs=.002)
+        assert data.tree_asleep[target_tree] >= 0
+        assert data.tree_asleep[ball_tree] >= 0
+        original_x = float(data.qpos[target_pos])
+        data.xfrc_applied[ball_native, 0] = 10.
+        for _ in range(10):
+            mujoco.mj_step(model, data)
+        data.xfrc_applied[ball_native, 0] = 0.
+        assert data.tree_asleep[ball_tree] < 0
+        collision_woke_target = False
+        for _ in range(120):
+            mujoco.mj_step(model, data)
+            for contact in data.contact[:data.ncon]:
+                if np.all(contact.geom >= 0) and set(model.geom_bodyid[contact.geom]) == {target_native, ball_native}:
+                    collision_woke_target |= data.tree_asleep[target_tree] < 0
+        assert collision_woke_target
+        assert data.qpos[target_pos] > original_x + .001
+
+
+def test_fixed_mounts_keep_separate_robot_branches_awake_but_allow_passive_branches_to_sleep(tmp_path):
+    config = fixture_config(tmp_path, fixed=True)
+    config.update(start_pose=[.4, 0, .3, 0], gravity=0, physics_cpu_threads=0)
+    links = ''.join('<link name="' + name + '"><inertial><mass value=".1"/>'
+                    '<inertia ixx=".001" iyy=".001" izz=".001" ixy="0" ixz="0" iyz="0"/>'
+                    '</inertial><collision><geometry><sphere radius=".01"/></geometry></collision></link>'
+                    for name in ('base', 'mount', 'left', 'right'))
+    robot = Path(config['robot_urdf'])
+    robot.write_text('<robot name="branches">' + links + '''
+      <joint name="mount" type="fixed"><parent link="base"/><child link="mount"/>
+       <origin xyz="0 0 .1"/></joint>
+      <joint name="left" type="continuous"><parent link="mount"/><child link="left"/>
+       <origin xyz="0 .1 0"/><axis xyz="0 0 1"/></joint>
+      <joint name="right" type="continuous"><parent link="mount"/><child link="right"/>
+       <origin xyz="0 -.1 0"/><axis xyz="0 0 1"/></joint></robot>''')
+    Path(config['robot_config']).write_text('{"motors": []}')
+    with World(config) as world:
+        passive = world._add_object({'urdf': str(robot), 'fixed': True,
+                                      'position': [-.4, 0, .3]}, tmp_path)
+        scene = compile_scene(world)
+        model, data = scene.model, scene.data
+        def trees(body):
+            return {int(model.body_treeid[native]) for (source, _), native in scene.body_ids.items()
+                    if source == body and model.body_treeid[native] >= 0}
+        robot_trees, passive_trees = trees(world.robot), trees(passive)
+        assert len(robot_trees) == len(passive_trees) == 2
+        for _ in range(100):
+            mujoco.mj_step(model, data)
+        assert all(data.tree_asleep[tree] < 0 for tree in robot_trees)
+        assert all(data.tree_asleep[tree] >= 0 for tree in passive_trees)
+        for key, actuator in scene.actuator_ids.items():
+            data.ctrl[actuator] = .1
+        mujoco.mj_step(model, data)
+        assert all(abs(data.qvel[model.jnt_dofadr[scene.joint_ids[key]]]) > 1e-6
+                   for key in scene.actuator_ids)
+
+
 @pytest.mark.parametrize("hz", [120, 240])
 def test_configured_restitution_changes_rebound_without_adding_energy(tmp_path, hz):
     from eersim.mujoco_world import MuJoCoWorld

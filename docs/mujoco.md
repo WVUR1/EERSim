@@ -89,15 +89,30 @@ bounded by available CPU capacity and the actual count is reported in physics
 status. More workers can be slower. Dependent simulation ticks and PROS
 callbacks still execute in order.
 
-For supported static field surfaces, an audited MuJoCo 3.17 pipeline reuses
-unchanged rigid-flex positions and builds constraints once after applying the
-material coefficients. MuJoCo still performs collision detection, contact
-solving and integration every tick. The optimization is guarded by the engine
-version, integrator and supported model features; other configurations use the
-standard native pipeline. Regression tests compare dynamic state, contacts and
-constraint forces with that standard pipeline. Native instability/contact-buffer
-warnings stop the run with an error; a numerical reset cannot appear as a
-successful simulation.
+Version 0.1.12 enables MuJoCo's native sleeping islands. Passive props start
+awake and settle under the normal solver; the native sleep tolerance remains
+unchanged. Robot mechanisms remain awake so motors respond immediately,
+including separate mechanisms attached beneath a fixed base. Impacts and real
+external forces wake sleeping pieces. Fixed field geometry remains available
+for collisions and does not count as a movable group.
+
+Body drag uses the same COM force and inertia-weighted torque as before, now
+applied through the passive-force path. A tiny drag force no longer counts as an
+external disturbance that prevents sleep. The stock native step pipeline handles
+waking and sleeping; the earlier custom static-flex cache is bypassed in this
+mode. Masses, collision geometry, friction, timestep, and solver limits are unchanged.
+
+The physics status shows **Awake groups**, **Sleeping groups**, and **Active
+contacts**. A group is an independent movable object or connected mechanism;
+an awake group can still look stationary. Sleep is based on the solver's motion
+criteria, not distance from the robot. Moving or jittering objects keep being solved.
+
+MuJoCo omits settled contact pairs from its active contact reports. Scoring
+retains previously observed contact presence only while both movable parties
+remain asleep and the exact link poses are unchanged. Waking, movement, and
+Reset invalidate that evidence. No cached contact force is reused or reported.
+Native instability/contact-buffer warnings still stop the run with an error;
+a numerical reset cannot appear as a successful simulation.
 
 ## Reproduce measurements
 

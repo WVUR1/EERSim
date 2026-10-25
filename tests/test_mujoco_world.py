@@ -280,6 +280,10 @@ def test_cached_static_flex_stage_matches_stock_pipeline_with_dynamic_contacts(t
          'position': [.5, 0, .5], 'friction': .5, 'restitution': .5}])
     with MuJoCoWorld(config) as cached, MuJoCoWorld(deepcopy(config)) as stock:
         a, b = cached._physics, stock._physics
+        # This optimization is deliberately limited to the non-sleep pipeline.
+        import mujoco
+        for adapter in (a, b):
+            adapter.model.opt.enableflags &= ~int(mujoco.mjtEnableBit.mjENBL_SLEEP)
         assert a._can_cache_position_stage()
         b._cached_position_stage = False
         plate = next(obj['id'] for obj in cached.field_objects if obj['name'] == 'plate')
@@ -375,3 +379,150 @@ def test_body_drag_dissipates_energy_and_matches_configured_decay_rate(tmp_path)
         np.testing.assert_allclose(linear, initial_linear * decay, rtol=1e-10, atol=1e-12)
         np.testing.assert_allclose(angular, initial_angular * decay, rtol=1e-10, atol=1e-12)
         assert np.all(np.diff(energy) < 0)
+
+
+def test_native_sleep_preserves_passive_drag_and_robot_stays_awake(tmp_path):
+    config, _ = flywheel_config(tmp_path)
+    config['field_objects'] = [
+        {'name': 'rest', 'shape': 'sphere', 'radius': .03, 'mass': 1, 'position': [.5, -.5, 1]},
+        {'name': 'moving', 'shape': 'sphere', 'radius': .03, 'mass': 1, 'position': [.5, .5, 1]}]
+    with MuJoCoWorld(config) as world:
+        p = world._physics
+        bodies = {item['name']: item['id'] for item in world.field_objects}
+        rest = p.body_ids[bodies['rest'], -1]
+        moving = p.body_ids[bodies['moving'], -1]
+        moving_dof = p.model.jnt_dofadr[p.scene.free_joints[bodies['moving']]]
+        robot_trees = {int(p.model.body_treeid[native]) for (body, _), native in p.body_ids.items()
+                       if body == world.robot and p.model.body_treeid[native] >= 0}
+        p.applyExternalForce(bodies['moving'], -1, [120, 0, 0], [.5, .5, 1], bullet.WORLD_FRAME)
+        world.step()
+        saw_sleep = False
+        for _ in range(180):
+            before = p.getBaseVelocity(bodies['moving'])[0].copy()
+            world.step()
+            after = p.getBaseVelocity(bodies['moving'])[0]
+            np.testing.assert_allclose(after, before * (1 - .04 * world.dt), rtol=1e-10, atol=1e-12)
+            assert p.data.qacc[moving_dof] == pytest.approx(-.04 * before[0], abs=1e-10)
+            assert np.all(p.data.xfrc_applied == 0)
+            assert all(p.data.tree_awake[tree] for tree in robot_trees)
+            saw_sleep |= not p.data.tree_awake[p.model.body_treeid[rest]]
+        assert saw_sleep
+        status = world.snapshot()['physics']['sleeping']
+        assert status['enabled'] and status['sleeping_trees'] == 1
+        assert status['contact_count'] == p.data.ncon
+        assert p.data.tree_awake[p.model.body_treeid[moving]]
+
+
+def test_native_prop_sleeps_and_external_force_wakes_it(tmp_path):
+    config, _ = flywheel_config(tmp_path)
+    config.update(gravity=9.80665, field_objects=[
+        {'name': 'rest', 'shape': 'sphere', 'radius': .05, 'mass': 1, 'position': [.5, 0, .15]}])
+    with MuJoCoWorld(config) as world:
+        p = world._physics
+        body = next(item['id'] for item in world.field_objects if item['name'] == 'rest')
+        native = p.body_ids[body, -1]
+        tree = p.model.body_treeid[native]
+        for _ in range(1200):
+            world.step()
+            if not p.data.tree_awake[tree]:
+                break
+        assert not p.data.tree_awake[tree]
+        position = p.getBasePositionAndOrientation(body)[0]
+        for _ in range(30):
+            world.step()
+        assert p.getBasePositionAndOrientation(body)[0] == position
+        assert p.has_contact(body, world.field_objects[0]['id'])
+        # The native solver's active contact set may omit a sleeping floor pair.
+        assert all(contact[9] >= 0 for contact in p.getContactPoints(bodyA=body))
+        p.applyExternalForce(body, -1, [0, 0, 120], position, bullet.WORLD_FRAME)
+        world.step()
+        assert p.data.tree_awake[tree]
+        assert p.getBaseVelocity(body)[0][2] > .3
+        for _ in range(10):
+            world.step()
+        assert p.getBasePositionAndOrientation(body)[0][2] > position[2] + .003
+        world.reset()
+        assert not world._physics._sleep_contacts
+        assert world.snapshot()['physics']['sleeping']['sleeping_trees'] == 0
+
+
+def test_sleeping_scored_pin_wakes_on_robot_contact_and_does_not_reuse_forces(tmp_path):
+    robot = '''<robot name="pusher">
+      <link name="base"><inertial><mass value="1"/>
+        <inertia ixx=".1" iyy=".1" izz=".1" ixy="0" ixz="0" iyz="0"/></inertial></link>'''
+    robot += inertia_link('finger', .001, .1) + '''
+      <joint name="reach" type="prismatic"><parent link="base"/><child link="finger"/>
+        <origin xyz=".15 0 .12"/><axis xyz="-1 0 0"/>
+        <limit lower="0" upper=".18" effort="20" velocity=".1"/></joint></robot>'''
+    config = scene_config(tmp_path, robot, {'fixed_base': True, 'motors': []},
+                          gravity=9.80665, start_pose=[0, 0, 0, 0])
+    game = json.loads((ASSETS / 'games/override-2026-27.json').read_text())
+    goal = next(item for item in game['objects'] if item['name'] == 'goal_red_5')
+    goal.update(urdf=str(ASSETS / 'objects/goal_red.urdf'), position=[0, 0, 0])
+    config['field_objects'] = [goal, {'name': 'pin', 'kind': 'pin', 'fixed': False,
+        'urdf': str(ASSETS / 'objects/pin_red_yellow.urdf'), 'position': [0, 0, .20]}]
+    with MuJoCoWorld(config) as world:
+        p = world._physics
+        bodies = {item['name']: item['id'] for item in world.field_objects}
+        pin, goal_id = bodies['pin'], bodies['goal_red_5']
+        tree = p.model.body_treeid[p.body_ids[pin, -1]]
+        for _ in range(1440):
+            world.step()
+            if not p.data.tree_awake[tree]:
+                break
+        assert not p.data.tree_awake[tree]
+        for _ in range(30):
+            world.step()
+        assert world._scoring()['placed_pins'] == 1
+        assert p.has_contact(pin, goal_id)
+        assert not p.getContactPoints(bodyA=pin, bodyB=goal_id)
+        assert p._sleep_contacts
+        # Move an actual native joint into the sleeping pin. Contact must wake
+        # it and immediately prevent scoring while the robot holds/touches it.
+        touched = False
+        for _ in range(480):
+            world.step({'joints': {'reach': .13}})
+            if p.getContactPoints(bodyA=pin, bodyB=world.robot):
+                touched = True
+                assert p.data.tree_awake[tree]
+                assert world._scoring()['placed_pins'] == 0
+                assert not p._sleep_contacts.get(tuple(sorted((pin, goal_id))))
+                break
+        assert touched
+        # External force removal must not leave a stale scored pair either.
+        for _ in range(300):
+            world.step({'joints': {'reach': 0}})
+        for _ in range(60):
+            position = p.getBasePositionAndOrientation(pin)[0]
+            p.applyExternalForce(pin, -1, [3, 0, 6], position, bullet.WORLD_FRAME)
+            world.step({'joints': {'reach': 0}})
+        assert p.getBasePositionAndOrientation(pin)[0][2] > .3
+        assert not p.has_contact(pin, goal_id)
+        assert world._scoring()['placed_pins'] == 0
+        world.reset()
+        assert not world._physics._sleep_contacts
+
+
+def test_rolling_prop_is_not_put_to_sleep_while_moving(tmp_path):
+    config, _ = flywheel_config(tmp_path)
+    config.update(gravity=9.80665, field_objects=[
+        {'name': 'rolling', 'shape': 'sphere', 'radius': .05, 'mass': .1,
+         'position': [.2, 0, .051], 'friction': .3, 'rolling_friction': 0}])
+    with MuJoCoWorld(config) as world:
+        p = world._physics
+        body = next(item['id'] for item in world.field_objects if item['name'] == 'rolling')
+        native = p.body_ids[body, -1]
+        tree = p.model.body_treeid[native]
+        for _ in range(120):
+            world.step()
+        initial = p.getBasePositionAndOrientation(body)[0]
+        p.applyExternalForce(body, -1, [5, 0, 0], initial, bullet.WORLD_FRAME)
+        moving_ticks = 0
+        for _ in range(240):
+            world.step()
+            linear, angular = p.getBaseVelocity(body)
+            if np.linalg.norm(linear) > .02 or np.linalg.norm(angular) > .4:
+                moving_ticks += 1
+                assert p.data.tree_awake[tree]
+        assert moving_ticks > 100
+        assert p.getBasePositionAndOrientation(body)[0][0] > initial[0] + .05

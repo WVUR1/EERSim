@@ -3,6 +3,11 @@
 The Windows installer contains Python, PySide6, MuJoCo, PyBullet, VTK, PhysX/OVStage, SciPy, default robots and
 fields, and the desktop LLVM-MinGW compiler for selected PROS workspaces.
 Published builds are available in the [releases](https://github.com/WVUR1/EERSim/releases).
+Version 0.1.12 adds native MuJoCo sleep/wake, scoring retention for sleeping
+pieces, and GUI activity counts. It reduces idle work but remains below realtime;
+PhysX CPU inline was faster on the same server field. See the
+[0.1.12 comparisons and validation](performance-0.1.12.md).
+
 Version 0.1.11 uses MuJoCo CPU for **Auto** and the motor setup preview.
 Explicit Bullet and PhysX profiles remain available. See the
 [MuJoCo integration and model limits](mujoco.md) and

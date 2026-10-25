@@ -2517,14 +2517,28 @@ class Workbench(QMainWindow):
         self.metric_values["pose"].setText(f"{x:.2f} / {y:.2f} m")
         self.pose_detail.setText(f"X {x:+.3f} m    Y {y:+.3f} m    Z {z:.3f} m\nHeading {yaw:.2f}°  ·  physics {self.config.get('physics_hz', 240)} Hz\nBacklog {float(state.get('physics_backlog_s', 0)):.3f} s  ·  sensor age {float(state.get('sensor_age_ms', 0)):.1f} ms")
         physics = state.get("physics") or {}
-        backend = {"bullet": "Bullet", "physx": "PhysX"}.get(physics.get("backend"), "Physics")
+        backend = {"bullet": "Bullet", "physx": "PhysX", "mujoco": "MuJoCo"}.get(physics.get("backend"), "Physics")
         acceleration = "CUDA" if physics.get("hardware_accelerated") else "CPU"
         physics_text = (f"Physics: {backend} · {acceleration} · {physics.get('device', 'unknown')}"
                         if physics.get("backend") else "Physics initialization pending…")
+        sleeping = physics.get("sleeping")
+        if sleeping:
+            if sleeping.get("enabled"):
+                physics_text += (f"\nAwake groups: {sleeping['awake_trees']}"
+                                 f"  ·  Sleeping groups: {sleeping['sleeping_trees']}"
+                                 f"  ·  Active contacts: {sleeping['contact_count']}")
+            else:
+                physics_text += "\nSleeping disabled"
         if physics.get("reason"):
             physics_text += "\n" + str(physics["reason"])
         self.physics_detail.setText(physics_text)
         self.physics_field_status.setText(physics_text)
+        activity_help = ("Each group is an independent movable object or connected mechanism. "
+                         "Awake groups can still be stationary. Sleeping groups skip settled contact work "
+                         "and wake when disturbed; fixed field geometry is not counted as a movable group. "
+                         "Active contacts exclude retained placement evidence for sleeping pieces.")
+        self.physics_detail.setToolTip(activity_help)
+        self.physics_field_status.setToolTip(activity_help)
         graphics = state.get("renderer") or {}
         device = graphics.get("device", "Graphics initialization pending")
         accelerated = bool(graphics.get("hardware_accelerated"))

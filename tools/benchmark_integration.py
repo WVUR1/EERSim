@@ -133,6 +133,28 @@ def cpu_threads_argument(value: str) -> int:
         raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
+def mujoco_scene_activity(world) -> dict:
+    """Read authoritative native activity without forwarding, waking or stepping."""
+    import mujoco
+    import numpy as np
+    adapter = getattr(world, '_physics', None)
+    model, data = getattr(adapter, 'model', None), getattr(adapter, 'data', None)
+    if model is None or data is None:
+        raise ValidationError('Requested MuJoCo diagnostics need a live native model and data')
+    asleep = int(np.count_nonzero(data.tree_asleep >= 0))
+    awake = int(model.ntree) - asleep
+    enabled = bool(model.opt.enableflags & int(mujoco.mjtEnableBit.mjENBL_SLEEP))
+    sleeping = {'enabled': enabled, 'awake_trees': awake, 'sleeping_trees': asleep,
+                'contact_count': int(data.ncon)}
+    return {'backend': 'mujoco', 'sleeping': sleeping,
+            'counts': {'trees': int(model.ntree), 'awake_trees': awake, 'sleeping_trees': asleep,
+                       'bodies': int(model.nbody), 'awake_and_static_bodies': int(data.nbody_awake),
+                       'degrees_of_freedom': int(model.nv), 'awake_degrees_of_freedom': int(data.nv_awake),
+                       'native_contacts': int(data.ncon), 'native_constraints': int(data.nefc),
+                       'islands': int(data.nisland)},
+            'scope': 'Read-only native mjData counters; awake bodies include static bodies. Sleeping contacts may be omitted by the engine.'}
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     result.add_argument("--backend", choices=("bullet", "physx_cpu", "physx_gpu", "mujoco"), default="physx_gpu")
@@ -154,7 +176,7 @@ def parser() -> argparse.ArgumentParser:
                         help="Stepping wall budget, checked between fixed ticks")
     result.add_argument("--progress-seconds", type=float, default=1.0)
     result.add_argument("--diagnostics-seconds", type=float, default=0.0,
-                        help="Opt-in native PhysX activity and cumulative profiling every N simulated seconds; 0 disables")
+                        help="Opt-in native PhysX/MuJoCo activity and cumulative profiling every N simulated seconds; 0 disables")
     result.add_argument("--output", type=Path, required=True, help="JSON report; adjacent CSV and log are also written")
     return result
 
@@ -185,9 +207,9 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
     if not math.isfinite(diagnostic_seconds) or diagnostic_seconds < 0:
         raise ValueError("diagnostics-seconds must be finite and nonnegative")
     diagnostic_ticks = max(1, math.ceil(diagnostic_seconds * hz - 1e-9)) if diagnostic_seconds else 0
-    if diagnostic_ticks and (args.backend not in ('physx_cpu', 'physx_gpu') or
+    if diagnostic_ticks and (args.backend not in ('physx_cpu', 'physx_gpu', 'mujoco') or
                              math.ceil(ticks / diagnostic_ticks) + 3 > 4096):
-        raise ValueError("Native diagnostics require PhysX and at most 4096 samples; increase diagnostics-seconds")
+        raise ValueError("Native diagnostics require PhysX or MuJoCo and at most 4096 samples; increase diagnostics-seconds")
     scope = "physics_only" if args.no_pros else "native_smoke"
     full = args.validation == "claw" or (args.validation == "auto" and not args.no_pros
                                          and args.fixture == "claw" and seconds >= 30)
@@ -250,20 +272,25 @@ def execute(args, *, config: dict | None = None, world_factory=None, session_fac
         if not diagnostic_ticks:
             return
         worker = getattr(world, '_process', None)
-        if worker is None or getattr(worker, 'failed', False):
+        if args.backend != 'mujoco' and (worker is None or getattr(worker, 'failed', False)):
             raise ValidationError('Requested native diagnostics need a live PhysX worker')
         began = time.perf_counter()
         with timed('diagnostics'):
-            response = worker.call('diagnostics', {'activity': True})
-            if 'scene_activity' not in response:
-                raise ValidationError('Worker did not return requested native scene activity')
-            performance = {'worker': response['performance']}
+            if args.backend == 'mujoco':
+                activity = mujoco_scene_activity(world)
+                performance = {}
+            else:
+                response = worker.call('diagnostics', {'activity': True})
+                if 'scene_activity' not in response:
+                    raise ValidationError('Worker did not return requested native scene activity')
+                activity = response['scene_activity']
+                performance = {'worker': response['performance']}
             for name, owner in (('ipc', worker), ('session', session), ('world', world)):
                 if hasattr(owner, 'performance'):
                     performance[name] = owner.performance.snapshot()
             sample = json_value({'label': label, 'tick': state['tick'], 'world_time': state['time'],
                                  'mode_time': mode_ticks / hz, 'performance': performance,
-                                 'scene_activity': response['scene_activity']})
+                                 'scene_activity': activity})
         sample['diagnostic_wall_seconds'] = time.perf_counter() - began
         report['diagnostic_samples'].append(sample)
 

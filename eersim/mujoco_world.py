@@ -50,6 +50,9 @@ class MuJoCoAdapter:
                            for (body, _), native in self.body_ids.items()
                            if self.model.body_mass[native] > 0 and self.model.body_weldid[native] != 0]
         self._shadow_dirty = True
+        # Presence only: native sleeping contacts need not remain in mjData.
+        # Never return these records from getContactPoints or reuse their forces.
+        self._sleep_contacts = {}
         # Only world-welded rigid flexes can retain their initialized vertices,
         # edge data and BVH. A moving/mocap/deformable flex uses the stock stage.
         flex_bodies = self.model.flex_vertbodyid
@@ -216,8 +219,50 @@ class MuJoCoAdapter:
     def has_contact(self, body_a, body_b):
         self._index_contacts()
         keys = self._contact_keys
-        return bool(np.any(((keys[:, 0] == body_a) & (keys[:, 1] == body_b)) |
-                           ((keys[:, 1] == body_a) & (keys[:, 0] == body_b))))
+        if np.any(((keys[:, 0] == body_a) & (keys[:, 1] == body_b)) |
+                  ((keys[:, 1] == body_a) & (keys[:, 0] == body_b))):
+            return True
+        pair = tuple(sorted((body_a, body_b)))
+        return any(self._sleep_contact_valid(native, pose)
+                   for native, pose in self._sleep_contacts.get(pair, {}).items())
+
+    def _sleep_contact_valid(self, bodies, pose=None):
+        if not self.model.opt.enableflags & mujoco.mjtEnableBit.mjENBL_SLEEP:
+            return False
+        trees = self.model.body_treeid[list(bodies)]
+        dynamic = trees >= 0
+        if not np.any(dynamic) or np.any(self.data.tree_awake[trees[dynamic]]):
+            return False
+        if pose is None:
+            return True
+        return (np.array_equal(self.data.xpos[list(bodies)], pose[0])
+                and np.array_equal(self.data.xquat[list(bodies)], pose[1]))
+
+    def _remember_sleeping_contacts(self):
+        retained = {}
+        for pair, records in self._sleep_contacts.items():
+            valid = {native: pose for native, pose in records.items()
+                     if self._sleep_contact_valid(native, pose)}
+            if valid:
+                retained[pair] = valid
+        self._sleep_contacts = retained
+        if self.data.ntree_awake == self.model.ntree:
+            return
+        self._index_contacts()
+        for body_a, body_b, link_a, link_b in np.unique(self._contact_keys, axis=0):
+            native = (self.body_ids[(int(body_a), int(link_a))],
+                      self.body_ids[(int(body_b), int(link_b))])
+            if self._sleep_contact_valid(native):
+                pair = tuple(sorted((int(body_a), int(body_b))))
+                self._sleep_contacts.setdefault(pair, {})[native] = (
+                    self.data.xpos[list(native)].copy(), self.data.xquat[list(native)].copy())
+
+    def sleep_status(self):
+        enabled = bool(self.model.opt.enableflags & mujoco.mjtEnableBit.mjENBL_SLEEP)
+        awake = int(np.count_nonzero(self.data.tree_awake)) if enabled else int(self.model.ntree)
+        return {'enabled': enabled, 'awake_trees': awake,
+                'sleeping_trees': int(self.model.ntree) - awake,
+                'contact_count': int(self.data.ncon)}
 
     def _contact_record(self, row, reverse=False):
         key = (row, reverse)
@@ -384,11 +429,18 @@ class MuJoCoAdapter:
 
     def _apply_body_drag(self):
         for body, rate in self._body_drag:
+            tree = self.model.body_treeid[body]
+            if tree >= 0 and not self.data.tree_awake[tree]:
+                continue
             linear, angular = self._motion(body)
             rotation = self.data.ximat[body].reshape(3, 3)
             angular_momentum = rotation @ (self.model.body_inertia[body] * (rotation.T @ angular))
-            self.data.xfrc_applied[body, :3] -= rate * self.model.body_mass[body] * linear
-            self.data.xfrc_applied[body, 3:] -= rate * angular_momentum
+            # Passive drag must not masquerade as an external perturbation:
+            # any nonzero xfrc_applied prevents native sleep. Add the same
+            # generalized COM wrench after step1's passive-force computation.
+            mujoco.mj_applyFT(self.model, self.data, -rate * self.model.body_mass[body] * linear,
+                              -rate * angular_momentum, self.data.xipos[body], body,
+                              self.data.qfrc_passive)
 
     def _check_warnings(self):
         counts = self.data.warning.number
@@ -401,8 +453,6 @@ class MuJoCoAdapter:
 
     def stepSimulation(self, **kwargs):
         self._check_warnings()
-        with self.world.performance.span('world.mujoco.body_drag'):
-            self._apply_body_drag()
         expected_time = float(self.data.time) + self.world.dt
         if (not np.isfinite(self.data.qpos).all() or not np.isfinite(self.data.qvel).all()
                 or np.any(np.abs(self.data.qpos) >= 1e10) or np.any(np.abs(self.data.qvel) >= 1e10)):
@@ -414,8 +464,25 @@ class MuJoCoAdapter:
                 mujoco.mj_step1(self.model, self.data)
                 with self.world.performance.span('world.mujoco.materials'):
                     self._apply_contact_materials()
+        with self.world.performance.span('world.mujoco.body_drag'):
+            self._apply_body_drag()
+        awake_before = self.data.tree_awake.copy()
         with self.world.performance.span('world.mujoco.step2'):
             mujoco.mj_step2(self.model, self.data)
+        if np.any(awake_before & ~self.data.tree_awake):
+            # Native advanceStart recomputes velocity dynamics when a tree
+            # first sleeps. implicitfast has already copied the acceleration
+            # used to integrate, but that recomputation overwrites our passive
+            # wrench in the force/acceleration feedback. Restore it before
+            # observing contacts or warmstarting the next tick. Derived poses
+            # still belong to this tick's solve; there is no extra integration.
+            self._apply_body_drag()
+            mujoco.mj_fwdAcceleration(self.model, self.data)
+            mujoco.mj_fwdConstraint(self.model, self.data)
+            self.data.flg_rnepost = 0
+            mujoco.mj_sensorAcc(self.model, self.data)
+            mujoco.mj_checkAcc(self.model, self.data)
+            self.data.qacc_warmstart[:] = self.data.qacc
         self._check_warnings()
         if not np.isfinite(self.data.qpos).all() or not np.isfinite(self.data.qvel).all() or abs(self.data.time - expected_time) > 1e-8:
             raise RuntimeError('MuJoCo encountered unstable/nonfinite dynamics; reduce the timestep and inspect overlapping geometry or joint inertia')
@@ -432,6 +499,8 @@ class MuJoCoAdapter:
         if self.model.nflex and not self._static_flex:
             mujoco.mj_flex(self.model, self.data)
         self._invalidate_state_cache()
+        self._remember_sleeping_contacts()
+        self.world.physics_status['sleeping'] = self.sleep_status()
         self._shadow_dirty = True
 
     def getCameraImage(self, *args, **kwargs):
@@ -478,7 +547,8 @@ class MuJoCoWorld(World):
             'material_combine': 'Bullet-compatible product sliding friction; cross-product sum spinning/rolling',
             'contact_model': 'MuJoCo compliant contacts; material-product restitution maps to an approximate damping ratio',
             'body_damping_model': 'Dissipative COM force/inertia torque: robot 0.02/s, props 0.04/s; PhysX rate semantics, not Bullet nonlinear damping',
-            'static_flex_cache': self._physics._cached_position_stage,
+            'static_flex_cache': self._physics._can_cache_position_stage(),
+            'sleeping': self._physics.sleep_status(),
             'scene_query_identity': 'Native MuJoCo geom/flex identities mapped to imported body/link IDs',
         }
         self._latency.clear()

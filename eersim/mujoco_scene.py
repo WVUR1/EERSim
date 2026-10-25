@@ -145,10 +145,14 @@ class _Compiler:
         self.root = ET.Element("mujoco", model="EERSim")
         ET.SubElement(self.root, "compiler", angle="radian", autolimits="true",
                       inertiafromgeom="false", fusestatic="false", balanceinertia="false")
-        ET.SubElement(self.root, "option", timestep=_numbers([world.dt]),
-                      gravity=_numbers([0, 0, -world.config.gravity]),
-                      integrator="implicitfast", solver="Newton", cone="elliptic",
-                      iterations=str(world.config.physics_solver_iterations), tolerance="1e-8")
+        option = ET.SubElement(self.root, "option", timestep=_numbers([world.dt]),
+                               gravity=_numbers([0, 0, -world.config.gravity]),
+                               integrator="implicitfast", solver="Newton", cone="elliptic",
+                               iterations=str(world.config.physics_solver_iterations), tolerance="1e-8")
+        # Enable before MjData construction: the native sleeping pipeline also
+        # initializes invariant static geometry at that time. Passive objects
+        # start awake and settle normally; retain MuJoCo's default tolerance.
+        ET.SubElement(option, "flag", sleep="enable")
         default = ET.SubElement(self.root, "default")
         ET.SubElement(default, "geom", solref="0.005 1", solimp="0.95 0.99 0.001",
                       margin="0", gap="0", density="0")
@@ -191,6 +195,7 @@ class _Compiler:
         if self.dynamics_for(body, -1)[0] > 0:
             name = f"free{body}"
             ET.SubElement(element, "freejoint", name=name)
+            element.set("sleep", "never" if body == self.world.robot else "allowed")
             self.free[body] = name
 
     def mesh(self, path, scale):
@@ -288,7 +293,7 @@ class _Compiler:
         info_by_name = {info[1].decode(): info for info in infos}
         visited = set()
 
-        def visit(name, parent_element, joint=None):
+        def visit(name, parent_element, joint=None, moving_parent=False):
             if name in visited:
                 raise ValueError(f"URDF link tree contains a cycle at {name}")
             visited.add(name)
@@ -300,9 +305,19 @@ class _Compiler:
                 pos = _vector(origin, "xyz", "0 0 0", scale)
                 quat = self.p.getQuaternionFromEuler(_vector(origin, "rpy", "0 0 0"))
             element = self.body(parent_element, body, link, pos, quat)
+            moving = moving_parent
             if joint is None:
                 self.free_joint(element, body)
+                moving = body in self.free
             elif joint.get("type") != "fixed":
+                # A moving joint beneath a fixed base (possibly through fixed
+                # mounts) starts its own native tree. Sleep policy is only
+                # legal on that first moving body, not on welded roots or on
+                # later links in the same tree. Keep all robot branches ready
+                # for motor commands; passive field mechanisms can settle.
+                if not moving_parent:
+                    element.set("sleep", "never" if body == self.world.robot else "allowed")
+                moving = True
                 info = info_by_name[joint.get("name")]
                 joint_name = f"j{body}_{link}"
                 axis = _vector(joint.find("axis"), "xyz", "1 0 0")
@@ -338,7 +353,7 @@ class _Compiler:
             for collision in links[name].findall("collision"):
                 self.collision(element, body, link, collision, path.parent, scale, links[name].get("concave") == "yes")
             for child_joint in children.get(name, []):
-                visit(child_joint.find("child").get("link"), element, child_joint)
+                visit(child_joint.find("child").get("link"), element, child_joint, moving)
 
         visit(root_name, self.worldbody)
         if visited != set(links):

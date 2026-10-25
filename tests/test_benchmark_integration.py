@@ -477,6 +477,63 @@ def test_bullet_cannot_silently_ignore_requested_native_activity(tmp_path):
         benchmark.execute(arguments(tmp_path, '--diagnostics-seconds', '1'), config={})
 
 
+def test_mujoco_activity_reads_native_sleep_state_without_mutating_or_stepping():
+    from types import SimpleNamespace
+    import mujoco
+    import numpy as np
+    model = mujoco.MjModel.from_xml_string('<mujoco><option><flag sleep="enable"/></option>'
+        '<worldbody><body><freejoint/><geom type="sphere" size=".1"/></body></worldbody></mujoco>')
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    world = SimpleNamespace(_physics=SimpleNamespace(model=model, data=data))
+    before = (data.qpos.copy(), data.qvel.copy(), data.tree_asleep.copy(), float(data.time))
+    awake = benchmark.mujoco_scene_activity(world)
+    assert awake['sleeping'] == {'enabled': True, 'awake_trees': 1, 'sleeping_trees': 0, 'contact_count': 0}
+    assert awake['counts']['degrees_of_freedom'] == 6
+    for actual, expected in zip((data.qpos, data.qvel, data.tree_asleep), before[:3]):
+        np.testing.assert_array_equal(actual, expected)
+    assert data.time == before[3]
+    # Native convention: negative is awake; any nonnegative cycle index is asleep.
+    data.tree_asleep[0] = 4
+    asleep = benchmark.mujoco_scene_activity(world)
+    assert asleep['sleeping']['awake_trees'] == 0 and asleep['sleeping']['sleeping_trees'] == 1
+    model.opt.enableflags = 0
+    assert not benchmark.mujoco_scene_activity(world)['sleeping']['enabled']
+
+
+def test_mujoco_sampling_excludes_query_cost_from_steps_and_keeps_periodic_states(tmp_path, monkeypatch):
+    clock = [0.0]
+    calls = []
+    monkeypatch.setattr(benchmark.time, 'perf_counter', lambda: clock[0])
+    class InstrumentedWorld(FakeWorld):
+        def step(self, commands):
+            clock[0] += .001
+            return super().step(commands)
+    def activity(world):
+        clock[0] += .1
+        calls.append(world.tick)
+        return {'sleeping': {'enabled': True, 'awake_trees': 2, 'sleeping_trees': world.tick}}
+    monkeypatch.setattr(benchmark, 'mujoco_scene_activity', activity)
+    args = arguments(tmp_path, '--backend', 'mujoco', '--no-pros', '--physics-hz', '240',
+                     '--steps', '480', '--diagnostics-seconds', '1')
+    report = benchmark.execute(args, config={}, world_factory=InstrumentedWorld)
+    assert report['status'] == 'passed', report.get('error')
+    assert calls == [1, 241, 481]
+    assert report['timing_seconds']['passive_steps'] == pytest.approx(.480)
+    assert report['timing_seconds']['diagnostics'] == pytest.approx(.3)
+    assert report['loop_wall_seconds_excluding_diagnostics'] == pytest.approx(.480)
+    assert report['step_realtime_factor'] == pytest.approx(2 / .480)
+    assert [row['scene_activity']['sleeping']['sleeping_trees'] for row in report['diagnostic_samples']] == calls
+
+
+def test_missing_mujoco_native_activity_fails_with_preserved_prepared_state(tmp_path):
+    args = arguments(tmp_path, '--backend', 'mujoco', '--no-pros', '--diagnostics-seconds', '1')
+    report = benchmark.execute(args, config={}, world_factory=FakeWorld)
+    assert report['status'] == 'failed' and 'live native model and data' in report['error']
+    assert report['initial_state']['tick'] == 1 and report['steps']['total'] == 0
+    assert report['diagnostic_samples'] == []
+
+
 @pytest.mark.parametrize('hz', [120, 240])
 def test_mujoco_fixed_step_native_smoke_records_hardware_and_backend(tmp_path, hz):
     folder = workspace(tmp_path)
